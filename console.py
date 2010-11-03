@@ -1,6 +1,7 @@
 import os
 import cmd
 import readline
+import xmlrpclib
 
 import seqtel
 
@@ -10,11 +11,37 @@ class Console(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.prompt = "=>> "
         self.intro  = "Welcome to console!"  ## defaults to None
+        self.server = None
 
     ## Command definitions ##
+    def do_connect(self, args):
+        """Exits from the console"""
+        self.server = xmlrpclib.ServerProxy('http://localhost:8010')
+
+    def do_list(self, args):
+        """Exits from the console"""
+        if self.server is not None:
+            try:
+                print self.server.system.listMethods()
+            except xmlrpclib.Error, v:
+                print "ERROR", v
+            except xmlrpclib.Fault, v:
+                print "ERROR", v
+
     def do_run(self, args):
         """Exits from the console"""
         seqtel.run_obsmode(args)
+
+    def do_run2(self, args):
+        """Exits from the console"""
+        if self.server is not None:
+            try:
+                self.server.run_command(args)
+            except xmlrpclib.Error, v:
+                print "ERROR", v
+            except xmlrpclib.Fault, v:
+                print "ERROR", v
+        
 
     def do_hist(self, args):
         """Print a list of commands that have been entered"""
@@ -87,4 +114,4 @@ class Console(cmd.Cmd):
 
 if __name__ == '__main__':
     console = Console()
-    console . cmdloop() 
+    console.cmdloop() 
