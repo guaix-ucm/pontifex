@@ -14,7 +14,7 @@ import logging.config
 logging.config.fileConfig("logging.conf")
 
 # create logger
-_logger = logging.getLogger("tel")
+_logger = logging.getLogger("sequencer")
 
 queue = Queue()
 queue2 = Queue()
@@ -44,7 +44,7 @@ class Test(object):
     def gimme_observation(self):
         return self.queue.get()
 
-def telescope():
+def sequencer():
     global queue2
     _logger.info('Waiting for events')
     while True:
@@ -58,11 +58,11 @@ def telescope():
 server = txrServer(('localhost', 8010), allow_none=True, logRequests=False)
 server.register_instance(Test(queue))
 
-server.register_function(server.shutdown)
+server.register_function(server.shutdown, name='shutdown')
 #server.serve_forever()
 
 th = []
-th.append(threading.Thread(target=telescope))
+th.append(threading.Thread(target=sequencer))
 th.append(threading.Thread(target=server.serve_forever))
 
 for i in th:

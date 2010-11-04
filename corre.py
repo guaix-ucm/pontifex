@@ -10,7 +10,7 @@ FORMAT = 'r%05d.fits'
 
 def test_create_fits(filename):
     hdu = pyfits.PrimaryHDU()
-    hdu.writeto(filename)
+    hdu.writeto('data/'+filename)
 
 def exec_obsmode(instrument, obsmode, exposure, filter, repeat):
 

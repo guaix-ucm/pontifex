@@ -30,13 +30,19 @@ class Console(cmd.Cmd):
 
     def do_run(self, args):
         """Exits from the console"""
-        seqtel.run_obsmode(args)
-
-    def do_run2(self, args):
-        """Exits from the console"""
         if self.server is not None:
             try:
                 self.server.run_command(args)
+            except xmlrpclib.Error, v:
+                print "ERROR", v
+            except xmlrpclib.Fault, v:
+                print "ERROR", v
+        
+    def do_shutdown(self, args):
+        """Exits from the console"""
+        if self.server is not None:
+            try:
+               self.server.shutdown()
             except xmlrpclib.Error, v:
                 print "ERROR", v
             except xmlrpclib.Fault, v:
