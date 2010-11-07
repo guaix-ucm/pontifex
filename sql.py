@@ -3,7 +3,7 @@ from time import sleep
 
 from sqlalchemy import desc
 from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, ForeignKey, Float
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relation, backref
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -29,7 +29,7 @@ class Images(Base):
     obsId = Column(Integer,  ForeignKey("obsblock.obsId"))
     stamp = Column(DateTime)
   
-    obsblock = relationship(ObsBlock, backref=backref('images', order_by=imageId))
+    obsblock = relation(ObsBlock, backref=backref('images', order_by=imageId))
 
     def __init__(self, name):
         self.name = name

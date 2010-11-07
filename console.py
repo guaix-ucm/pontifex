@@ -2,6 +2,7 @@ import os
 import cmd
 import readline
 import xmlrpclib
+import socket
 
 import seqtel
 
@@ -11,7 +12,8 @@ class Console(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.prompt = "=>> "
         self.intro  = "Welcome to console!"  ## defaults to None
-        self.server = None
+        self.server = xmlrpclib.ServerProxy('http://localhost:8010')
+	self.server.version()
 
     ## Command definitions ##
     def do_connect(self, args):
@@ -22,7 +24,7 @@ class Console(cmd.Cmd):
         """Exits from the console"""
         if self.server is not None:
             try:
-                print self.server.system.listMethods()
+                print self.server.instruments()
             except xmlrpclib.Error, v:
                 print "ERROR", v
             except xmlrpclib.Fault, v:

@@ -10,6 +10,7 @@ import uuid
 from Queue import Queue
 import logging
 import logging.config
+from xmlrpclib import Server
 
 logging.config.fileConfig("logging.conf")
 
@@ -19,30 +20,39 @@ _logger = logging.getLogger("sequencer")
 queue = Queue()
 queue2 = Queue()
 
-class TestObsModParser:
-    def bias(self, args):
-        return 'test', 'bias', 0, None, int(args[0])
-    def dark(self, args):
-        return 'test', 'dark', float(args[0]), None, int(args[1])
 
-ot = TestObsModParser()
-
-class Test(object):
-    def __init__(self, queue):
-        self.queue = queue
-    
-    def observations_waiting(self):
-        return self.queue.qsize()
+class InstrumentManager(object):
+    def __init__(self):
+        self.instruments = {}
 
     def run_command(self, args):
         repeat = 0
         argslist = args.split()
-        fun = getattr(ot, argslist[1])
-        pars = fun(argslist[2:])
-        return queue2.put(pars)
+        return queue2.put(argslist)
+    def version(self):
+	return '1.0'	
+    def unregister(self, name):
+        _logger.info('Instrument unregistered %s', name)
+	del self.instruments[name]
 
-    def gimme_observation(self):
-        return self.queue.get()
+    def register(self, name, host, port, focus, obsmodes):
+        if name not in self.instruments:
+            self.instruments[name]= (Server('http://%s:%d' % (host, int(port))), 
+                                              focus, obsmodes)
+            _logger.info('Instrument registered %s %s %s %s %s', name, host, port, focus, obsmodes)
+#            vacio.release()
+
+    def instruments(self):
+	return self.instruments.keys()
+
+    def finish_notify(self, name):
+        if name in self.instruments:
+#       a,b,c = self.slaves[id]
+#       self.slaves[id] = (a, b, True)
+            _logger.info('Instrument %s finished operation', name)
+#            vacio.release()
+
+im = InstrumentManager()
 
 def sequencer():
     global queue2
@@ -50,13 +60,13 @@ def sequencer():
     while True:
         mandate = queue2.get()
         _logger.info('Observing')
-        exec_obsmode(*mandate)
-        queue.put(mandate)
-        _logger.info('Finished observation instrument=%s mode=%s', mandate[0],
-        mandate[1])
+        if mandate[0] in im.instruments:
+            _logger.info('Observation instrument=%s mode=%s started', mandate[0], mandate[1])
+            im.instruments.command(mandate[1:])
+        #queue.put(mandate)
 
 server = txrServer(('localhost', 8010), allow_none=True, logRequests=False)
-server.register_instance(Test(queue))
+server.register_instance(im)
 
 server.register_function(server.shutdown, name='shutdown')
 #server.serve_forever()
