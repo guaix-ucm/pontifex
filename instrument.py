@@ -24,7 +24,7 @@ class Instrument(object):
 
     def command(self, args):
         mandate = self.parser(args)
-        self.queue1.put(mandata)
+        self.queue1.put(mandate)
 
 
     def worker(self):
@@ -32,7 +32,7 @@ class Instrument(object):
         # Run Mandate
 
     def register(self):
-	self.seq.register(self._name, 'localhost', '9090', 'cass', ['bias', 'dark'])
+	self.seq.register(self._name, 'localhost', '9010', 'cass', ['bias', 'dark'])
 
     def unregister(self):
 	self.seq.unregister(self._name)
@@ -40,4 +40,4 @@ class Instrument(object):
 def siiill(obj):
     def handler(signum, frame):
 	obj.unregister()
-    signal.signal(signal.sigkill, handler)
+    signal.signal(signal.SIGHUP, handler)

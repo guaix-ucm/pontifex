@@ -34,7 +34,8 @@ class Console(cmd.Cmd):
         """Exits from the console"""
         if self.server is not None:
             try:
-                self.server.run_command(args)
+                status = self.server.run_command(args)
+		print status
             except xmlrpclib.Error, v:
                 print "ERROR", v
             except xmlrpclib.Fault, v:
