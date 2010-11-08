@@ -23,6 +23,8 @@ queue3 = Queue()
 
 instruments = {}
 
+dbserver = Server('http://localhost:8050')
+
 class SequenceManager(object):
     def __init__(self):
         self._instruments = instruments
@@ -71,6 +73,7 @@ def sequencer():
         _logger.info('Event %s', mandate[0])
         if mandate[0] == 'store':
             _logger.info('Sending image to storage engine')
+            dbserver.store_image(mandate)
         elif mandate[0] in instruments:
             _logger.info('Observation instrument=%s mode=%s started', mandate[0], mandate[1])
             server = instruments[mandate[0]][0]
@@ -85,7 +88,6 @@ server = txrServer(('localhost', 8010), allow_none=True, logRequests=False)
 server.register_instance(im)
 
 server.register_function(server.shutdown, name='shutdown')
-#server.serve_forever()
 
 th = []
 th.append(threading.Thread(target=sequencer))
