@@ -49,8 +49,8 @@ def store_image(bindata, index):
     hdulist.writeto('data/' + filename, clobber=True)
     # Update database
     img = Images(filename)
-    img.exposure = 0 #exposure
-    img.imgtype = 'obsmode' #obsmode
+    img.exposure = hdulist[0].header['EXPOSED']
+    img.imgtype = hdulist[0].header['IMGTYP']
     img.stamp = datetime.datetime.utcnow()
     ob.images.append(img)
     session.commit()
