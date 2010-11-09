@@ -1,5 +1,3 @@
-from datetime import datetime
-from time import sleep
 
 from sqlalchemy import desc
 from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, ForeignKey, Float
@@ -33,3 +31,12 @@ class Images(Base):
 
     def __init__(self, name):
         self.name = name
+
+def lastindex(session):
+    try:
+        name, = session.query(Images.name).order_by(desc(Images.stamp)).first()
+        number = int(name[1:-5]) + 1
+    except TypeError:
+        number = 0
+    return number
+

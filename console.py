@@ -4,8 +4,6 @@ import readline
 import xmlrpclib
 import socket
 
-import seqtel
-
 class Console(cmd.Cmd):
 
     def __init__(self):

@@ -26,17 +26,6 @@ class Instrument(object):
         mandate = self.parser(args)
         self.queue1.put(mandate)
 
-
-    def worker(self):
-        mandate = self.queue1.get()
-        # Run Mandate
-
-    def register(self):
-	self.seq.register(self._name, 'localhost', '9010', 'cass', ['bias', 'dark'])
-
-    def unregister(self):
-	self.seq.unregister(self._name)
-
 def siiill(obj):
     def handler(signum, frame):
 	obj.unregister()

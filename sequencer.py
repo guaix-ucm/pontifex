@@ -1,12 +1,6 @@
 from txrServer import txrServer
-from corre import exec_obsmode
 
-import time
-import random
-from SimpleXMLRPCServer import SimpleXMLRPCServer
-from time import sleep
 import threading
-import uuid
 from Queue import Queue
 import logging
 import logging.config
@@ -18,74 +12,61 @@ logging.config.fileConfig("logging.conf")
 _logger = logging.getLogger("sequencer")
 
 queue = Queue()
-queue2 = Queue()
-queue3 = Queue()
 
-instruments = {}
+instruments = ['test']
 
 dbserver = Server('http://localhost:8050')
+insserver = Server('http://localhost:9010')
 
 class SequenceManager(object):
     def __init__(self):
         self._instruments = instruments
 
+    # Console
     def run_command(self, args):
-        _logger.info('Received command %s', args)
-        argslist = args.split()	
-        if argslist[0] in self._instruments:
-    	    queue2.put(argslist)
-    	    
-            _logger.info('Enqueued')
-            return "Enqued"
+        _logger.info('Received console command %s', args)
+        argslist = args.split()
+        if argslist[0] in instruments:
+    	    queue.put(('instrument',) + tuple(argslist))
+            return True
         else:
-            _logger.info('No such instrument')
-            return "No such instrument"
+            _logger.warning('No such instrument')
+            return False
 
     def version(self):
-    	return '1.0'
+    	return True
 
-    def unregister(self, name):
-        _logger.info('Instrument unregistered %s', name)
-    	del self._instruments[name]
-
-    def register(self, name, host, port, focus, obsmodes):
-        if name not in self._instruments:
-            self._instruments[name]= (Server('http://%s:%d' % (host, int(port))), 
-                                              focus, obsmodes)
-            _logger.info('Instrument registered %s %s %s %s %s', name, host, port, focus, obsmodes)
-#            vacio.release()
-
-    def return_image(self, ievent):
-        _logger.info('Received ievent')
-        queue2.put(ievent)
+    # Instrument
+    def return_image(self, event):
+        _logger.info('Received instrument event % s', event)
+        queue.put(event)
         return True
 
-    def instruments(self):
-    	return self._instruments.keys()
-
-im = SequenceManager()
+sm = SequenceManager()
 
 def sequencer():
-    global queue2
+    global queue
     _logger.info('Waiting for events')
     while True:
-        mandate = queue2.get()
-        _logger.info('Event %s', mandate[0])
-        if mandate[0] == 'store':
-            _logger.info('Sending image to storage engine')
-            dbserver.store_image(mandate)
-        elif mandate[0] in instruments:
-            _logger.info('Observation instrument=%s mode=%s started', mandate[0], mandate[1])
-            server = instruments[mandate[0]][0]
+        mandate = queue.get()
+        if mandate[0] == 'instrument':
+            _logger.info('Observation instrument=%s mode=%s started', mandate[1], mandate[2])
+            # Create obsblock
             try:
-                server.command(mandate[1:])
+                dbserver.startobsblock(mandate[1:3])
+                insserver.command(mandate[1:])
             except Exception, ex:
                 _logger.error('Error %s', ex)
+        elif mandate[0] == 'endobsblock':
+            dbserver.endobsblock()
+        elif mandate[0] == 'store':
+            _logger.info('Sending event to storage engine')
+            dbserver.store_image(mandate)
         else:
-            _logger.info('Instrument %s not registred', mandate[0])
+            _logger.warning('Mandate %s does not exist', mandate[0])
 
 server = txrServer(('localhost', 8010), allow_none=True, logRequests=False)
-server.register_instance(im)
+server.register_instance(sm)
 
 server.register_function(server.shutdown, name='shutdown')
 
