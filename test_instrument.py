@@ -1,6 +1,6 @@
 from txrServer import txrServer
-from instrument import Instrument, siiill
 
+import itertools
 import time
 import xmlrpclib
 import threading
@@ -29,74 +29,86 @@ head = pyfits.Header(cards)
 
 dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
-def parser1(args):
-    if args[1] == 'bias':
-        return 'instrument', 'bias', 0, 0, int(args[2])
-    elif args[1] == 'dark':
-        return 'instrument', 'dark', float(args[3]), 0, int(args[2])
+def parser2(args):
+
+    if len(args) < 3:
+        _logger.warning('Arguments too short: %s', args)
+        return []
+
+    instrument_name = args[0]
+    obsmode_name = args[1]
+    repeat = int(args[2])
+
+
+    hed = itertools.repeat(('startobsblock', instrument_name, obsmode_name), 1)
+
+    # No repetition
+    mid = itertools.repeat(('nop',), 0)
+    if obsmode_name == 'bias':
+        mid = itertools.repeat(('expose', dirad[obsmode_name], 0.0, 0), repeat)
+    elif obsmode_name == 'dark':
+        mid = itertools.repeat(('expose', dirad[obsmode_name], float(args[3]), 0), repeat)
     else:
-        return args
+        _logger.warning('Obsmode %s does not exist', obsmode_name)
+        return mid
 
-class TestInstrument(Instrument):
-    def __init__(self):
-        super(TestInstrument, self).__init__('test', 'cass', ['bias', 'dark'])
+    tal = itertools.repeat(('endobsblock',), 1)
 
-    def parser(self, args):
-        if args[0] == 'startobsblock':
-            return args
-        elif args[0] == 'endobsblock':
-            return args
-        else:
-            return parser1(args)
-    
-    def command(self, args):
-        mandate = self.parser(args)
-        queue1.put(mandate)
+    return itertools.chain(hed, mid, tal)
 
-
-ti = TestInstrument()
+def command(args):
+    for cmd in parser2(args):       
+        queue1.put(cmd)
 
 server = txrServer(('localhost', 9010), allow_none=True, logRequests=False)
-server.register_instance(ti)
+server.register_function(command)
 
 def main_loop():
     
-    _logger.info('Waiting for instrument events')
+    _logger.info('Waiting for instrument commands')
     while True:
-        event = queue1.get()
-        _logger.info('Event is %s', event)
-        if event[0] == 'store':
+        cmd = queue1.get()
+        _logger.info('Command is %s', cmd)
+        if cmd[0] == 'store':
             # tell the sequencer we want to store an image
-            seqserver.return_image(event)
-        elif event[0] == 'endobsblock':
-            seqserver.return_image(event)
-        elif event[0] == 'startobsblock':
-            seqserver.return_image(event)
-        elif event[0] == 'instrument':
-            for i in range(event[4]):
-                _logger.info('Sending readout mandate %d to reader thread', i)
-                queue2.put(event[:4])
-            queue2.put(('endobsblock',))
+            seqserver.return_image(cmd)
+        elif cmd[0] == 'storeob':
+            # tell the sequencer we want to finish an OB
+            seqserver.return_image(cmd)
+        elif cmd[0] == 'startobsblock':
+            # tell the sequencer we want to start an OB
+            seqserver.return_image(cmd)
+        elif cmd[0] == 'expose':
+            # Sending expose cmd to the detector
+            _logger.info('Sending expose command to reader thread')
+            queue2.put(cmd)
+        elif cmd[0] == 'endobsblock':
+            queue2.put(cmd)
+        elif cmd[0] == 'nop':
+            # do nothing
+            pass
         else:
-            _logger.warning('Mandate %s does not exist', event[0])
+            _logger.warning('Command %s does not exist', cmd[0])
 	    
 def readout():
     while True:
-        event = queue2.get()
-        if event[0] == 'endobsblock':
+        cmd = queue2.get()
+        if cmd[0] == 'endobsblock':
             queue2.task_done()
-            queue1.put(event)
-        elif event[0] == 'instrument':
-            _logger.info('Exposing image %s', event)
-            cmd, obsmode, exposure, phfilter = event
+            cmd = ('storeob', )
+            queue1.put(cmd)
+        elif cmd[0] == 'expose':
+            _logger.info('Exposing image type=%s, exposure=%6.1f, filter ID=%d', cmd[1], cmd[2], cmd[3])
+            _, obsmode, exposure, phfilter = cmd
             time.sleep(exposure)
             data = numpy.zeros((10, 10))
             _logger.info('Readout image')
 
             # Add headers, etc
+            _logger.info('Creating FITS data')
             hdu = pyfits.PrimaryHDU(data, head)
             hdu.header['EXPOSED'] = exposure
-            hdu.header['IMGTYP'] = dirad[obsmode]
+            hdu.header['IMGTYP'] = obsmode
             hdu.header['FILTER'] = phfilter
             hdulist = pyfits.HDUList([hdu])
 
@@ -105,11 +117,14 @@ def readout():
             hdulist.writeto(handle)
             hdub = xmlrpclib.Binary(handle.getvalue())
 
-            event = ('store', hdub)
+            cmd = ('store', hdub)
             queue2.task_done()
-            queue1.put(event)
+            queue1.put(cmd)
+        elif cmd[0] == 'nop':
+            # do nothing
+            pass
         else:
-            _logger.warning('Command %s not understood', event)
+            _logger.warning('Command %s not understood', cmd)
 	
 th = []
 th.append(threading.Thread(target=main_loop))

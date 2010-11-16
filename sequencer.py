@@ -37,18 +37,19 @@ class SequenceManager(object):
     	return True
 
     # Instrument
-    def return_image(self, event):
-        _logger.info('Received instrument event % s', event)
-        queue.put(event)
+    def return_image(self, cmd):
+        _logger.info('Received instrument cmd % s', cmd)
+        queue.put(cmd)
         return True
 
 sm = SequenceManager()
 
 def sequencer():
     global queue
-    _logger.info('Waiting for events')
+    _logger.info('Waiting for commands')
     while True:
         cmd = queue.get()
+        # This cmd comes from the console
         if cmd[0] == 'instrument':
             _logger.info('Observation instrument=%s mode=%s started', cmd[1], cmd[2])
             # Create obsblock
@@ -57,13 +58,18 @@ def sequencer():
                 insserver.command(cmd[1:])
             except Exception, ex:
                 _logger.error('Error %s', ex)
-        elif cmd[0] == 'endobsblock':
+        # This cmd comes from the instrument
+        elif cmd[0] == 'startobsblock':
+            dbserver.startobsblock(cmd)
+        # This cmd comes from the instrument
+        elif cmd[0] == 'storeob':
             dbserver.endobsblock()
+        # This cmd comes from the instrument
         elif cmd[0] == 'store':
-            _logger.info('Sending event to storage engine')
+            _logger.info('Sending command to storage engine')
             dbserver.store_image(cmd)
         else:
-            _logger.warning('cmd %s does not exist', cmd[0])
+            _logger.warning('Command %s does not exist', cmd[0])
 
 server = txrServer(('localhost', 8010), allow_none=True, logRequests=False)
 server.register_instance(sm)
