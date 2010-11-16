@@ -31,15 +31,32 @@ dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
 def parser1(args):
     if args[1] == 'bias':
-        return 'instrument', 'bias', 0, 0, int(args[2])
+        return 'expose', 'bias', 0, 0, int(args[2])
     elif args[1] == 'dark':
-        return 'instrument', 'dark', float(args[3]), 0, int(args[2])
+        return 'expose', 'dark', float(args[3]), 0, int(args[2])
     else:
         return args
 
-class TestInstrument(Instrument):
+def translate1(args):
+    if args[0] == 'startobsblock':
+        return args
+    elif args[0] == 'endobsblock':
+        return args
+    else:
+        repeat = int(args[2])
+        if args[1] == 'bias':
+            c = [('startobsblock',)] + [('expose', 'BIAS', 0, 0)] * repeat + [('endobsblock',)]
+            return  c
+        elif args[1] == 'dark':
+            c = [('startobsblock',)] + [('expose', 'DARK', float(args[3]), 0)] * repeat + [('endobsblock',)]
+            return c
+        else:
+            return []
+
+class TestInstrument(object):
     def __init__(self):
-        super(TestInstrument, self).__init__('test', 'cass', ['bias', 'dark'])
+	    pass
+        #super(object, self).__init__('test', 'cass', ['bias', 'dark'])
 
     def parser(self, args):
         if args[0] == 'startobsblock':
@@ -50,8 +67,9 @@ class TestInstrument(Instrument):
             return parser1(args)
     
     def command(self, args):
-        mandate = self.parser(args)
-        queue1.put(mandate)
+        mandates = translate1(args)
+        for i in mandates:
+            queue1.put(i)
 
 
 ti = TestInstrument()
@@ -72,11 +90,9 @@ def main_loop():
             seqserver.return_image(event)
         elif event[0] == 'startobsblock':
             seqserver.return_image(event)
-        elif event[0] == 'instrument':
-            for i in range(event[4]):
-                _logger.info('Sending readout mandate %d to reader thread', i)
-                queue2.put(event[:4])
-            queue2.put(('endobsblock',))
+        elif event[0] == 'expose':
+            _logger.info('Sending readout mandate to reader thread')
+            queue2.put(event)
         else:
             _logger.warning('Mandate %s does not exist', event[0])
 	    
@@ -86,9 +102,9 @@ def readout():
         if event[0] == 'endobsblock':
             queue2.task_done()
             queue1.put(event)
-        elif event[0] == 'instrument':
+        elif event[0] == 'expose':
             _logger.info('Exposing image %s', event)
-            obsmode, exposure, phfilter = event
+            _, obsmode, exposure, phfilter = event
             time.sleep(exposure)
             data = numpy.zeros((10, 10))
             _logger.info('Readout image')
@@ -96,7 +112,7 @@ def readout():
             # Add headers, etc
             hdu = pyfits.PrimaryHDU(data, head)
             hdu.header['EXPOSED'] = exposure
-            hdu.header['IMGTYP'] = dirad[obsmode]
+            hdu.header['IMGTYP'] = obsmode
             hdu.header['FILTER'] = phfilter
             hdulist = pyfits.HDUList([hdu])
 
