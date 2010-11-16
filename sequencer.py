@@ -48,22 +48,22 @@ def sequencer():
     global queue
     _logger.info('Waiting for events')
     while True:
-        mandate = queue.get()
-        if mandate[0] == 'instrument':
-            _logger.info('Observation instrument=%s mode=%s started', mandate[1], mandate[2])
+        cmd = queue.get()
+        if cmd[0] == 'instrument':
+            _logger.info('Observation instrument=%s mode=%s started', cmd[1], cmd[2])
             # Create obsblock
             try:
-                dbserver.startobsblock(mandate[1:3])
-                insserver.command(mandate[1:])
+                dbserver.startobsblock(cmd[1:3])
+                insserver.command(cmd[1:])
             except Exception, ex:
                 _logger.error('Error %s', ex)
-        elif mandate[0] == 'endobsblock':
+        elif cmd[0] == 'endobsblock':
             dbserver.endobsblock()
-        elif mandate[0] == 'store':
+        elif cmd[0] == 'store':
             _logger.info('Sending event to storage engine')
-            dbserver.store_image(mandate)
+            dbserver.store_image(cmd)
         else:
-            _logger.warning('Mandate %s does not exist', mandate[0])
+            _logger.warning('cmd %s does not exist', cmd[0])
 
 server = txrServer(('localhost', 8010), allow_none=True, logRequests=False)
 server.register_instance(sm)

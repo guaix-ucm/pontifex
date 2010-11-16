@@ -88,7 +88,7 @@ def readout():
             queue1.put(event)
         elif event[0] == 'instrument':
             _logger.info('Exposing image %s', event)
-            obsmode, exposure, phfilter = event
+            cmd, obsmode, exposure, phfilter = event
             time.sleep(exposure)
             data = numpy.zeros((10, 10))
             _logger.info('Readout image')
