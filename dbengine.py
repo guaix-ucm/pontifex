@@ -1,5 +1,5 @@
 from txrServer import txrServer
-from dbins import session
+from dbins import session, datadir
 from sql import ObsBlock, Images, lastindex
 
 import datetime
@@ -10,6 +10,7 @@ from Queue import Queue
 import logging
 import logging.config
 from xmlrpclib import Server
+import os.path
 
 logging.config.fileConfig("logging.conf")
 
@@ -21,7 +22,7 @@ queue1 = Queue()
 class DatabaseManager(object):
     def startobsblock(self, args):
         _logger.info('Received start observing block command')
-        queue1.put(('startobsblock',) + tuple(args))
+        queue1.put(args)
 
     def store_image(self, args):
         _logger.info('Received store image command')
@@ -46,7 +47,7 @@ def store_image(bindata, index):
     hdulist = pyfits.open(handle)
     # Write to disk
     filename = FORMAT % index
-    hdulist.writeto('data/' + filename, clobber=True)
+    hdulist.writeto(os.path.join(datadir, filename), clobber=True)
     # Update database
     img = Images(filename)
     img.exposure = hdulist[0].header['EXPOSED']
