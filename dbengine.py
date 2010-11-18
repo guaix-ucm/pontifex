@@ -60,29 +60,29 @@ def manager():
     global ob
     index = lastindex(session)
     _logger.info('Last stored image is number %d', index)
-    _logger.info('Waiting for events')
+    _logger.info('Waiting for commands')
     while True:
-        mandate = queue1.get()
-        if mandate[0] == 'store':
-            _logger.info('Storing image')
-            store_image(mandate[1], index)
+        cmd = queue1.get()
+        if cmd[0] == 'store':
+            _logger.info('Storing image %d', index)
+            store_image(cmd[1], index)
             index += 1
-        elif mandate[0] == 'startobsblock':
+        elif cmd[0] == 'startobsblock':
             # Add ObsBlock to database
             _logger.info('Add ObsBlock to database')
-            ob = ObsBlock(mandate[2])
-            ob.instrument = mandate[1]
+            ob = ObsBlock(cmd[2])
+            ob.instrument = cmd[1]
             ob.operator = 'Sergio'
             ob.start = datetime.datetime.utcnow()
             session.add(ob)
             session.commit()
-        elif mandate[0] == 'endobsblock':
+        elif cmd[0] == 'endobsblock':
             _logger.info('Update endtime of ObsBlock in database')
             ob.end = datetime.datetime.utcnow()
             session.commit()    
             ob = None
         else:
-            _logger.warning('Mandate %s does not exist', mandate[0])
+            _logger.warning('Command %s does not exist', cmd[0])
 
 
 server = txrServer(('localhost', 8050), allow_none=True, logRequests=False)

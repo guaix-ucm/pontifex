@@ -38,7 +38,7 @@ class SequenceManager(object):
 
     # Instrument
     def return_image(self, cmd):
-        _logger.info('Received instrument cmd % s', cmd)
+        _logger.info('Received instrument command % s', cmd)
         queue.put(cmd)
         return True
 
@@ -54,7 +54,6 @@ def sequencer():
             _logger.info('Observation instrument=%s mode=%s started', cmd[1], cmd[2])
             # Create obsblock
             try:
-                dbserver.startobsblock(cmd[1:3])
                 insserver.command(cmd[1:])
             except Exception, ex:
                 _logger.error('Error %s', ex)
