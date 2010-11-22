@@ -6,16 +6,31 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+class ObsRun(Base):
+    __tablename__ = 'obsrun'
+    runId = Column(Integer, primary_key=True)
+    piData = Column(String(20))
+    start = Column(DateTime)
+    status = Column(String(10))
+    end = Column(DateTime)
+
+    def __init__(self, pi_data):
+        self.piData = pi_data
+        self.status = 'IDLE'
+
 class ObsBlock(Base):
     __tablename__ = 'obsblock'
     obsId = Column(Integer, primary_key=True)
-    operator = Column(String(20))
     instrument = Column(String(10))
     mode = Column(String(20))
     start = Column(DateTime)
     end = Column(DateTime)
+    runId = Column(Integer,  ForeignKey("obsrun.runId"))
 
-    def __init__(self, mode):
+    obsrun = relation(ObsRun, backref=backref('obsblock', order_by=obsId))
+
+    def __init__(self, instrument, mode):
+        self.instrument = instrument
         self.mode = mode
 
 class Images(Base):

@@ -18,16 +18,6 @@ class Console(cmd.Cmd):
         """Exits from the console"""
         self.server = xmlrpclib.ServerProxy('http://localhost:8010')
 
-    def do_list(self, args):
-        """Exits from the console"""
-        if self.server is not None:
-            try:
-                print self.server.instruments()
-            except xmlrpclib.Error, v:
-                print "ERROR", v
-            except xmlrpclib.Fault, v:
-                print "ERROR", v
-
     def do_run(self, args):
         """Exits from the console"""
         if self.server is not None:
@@ -38,6 +28,29 @@ class Console(cmd.Cmd):
                 print "ERROR", v
             except xmlrpclib.Fault, v:
                 print "ERROR", v
+
+    def do_startobsrun(self, args):
+        """Exits from the console"""
+        if self.server is not None:
+            try:
+                status = self.server.run_command('startobsrun ' + args)
+		print status
+            except xmlrpclib.Error, v:
+                print "ERROR", v
+            except xmlrpclib.Fault, v:
+                print "ERROR", v
+
+    def do_endobsrun(self, args):
+        """Exits from the console"""
+        if self.server is not None:
+            try:
+                status = self.server.run_command('endobsrun')
+		print status
+            except xmlrpclib.Error, v:
+                print "ERROR", v
+            except xmlrpclib.Fault, v:
+                print "ERROR", v
+
         
     def do_shutdown(self, args):
         """Exits from the console"""

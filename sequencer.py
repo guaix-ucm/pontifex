@@ -21,6 +21,9 @@ insserver = Server('http://localhost:9010')
 class SequenceManager(object):
     def __init__(self):
         self._instruments = instruments
+        self._c_obsrun_id = 0
+        self._c_obsblock_id = 0
+        self._c_image_id = 0
 
     # Console
     def run_command(self, args):
@@ -28,6 +31,12 @@ class SequenceManager(object):
         argslist = args.split()
         if argslist[0] in instruments:
     	    queue.put(('instrument',) + tuple(argslist))
+            return True
+        if argslist[0] == 'startobsrun':
+    	    queue.put(tuple(argslist))
+            return True
+        if argslist[0] == 'endobsrun':
+    	    queue.put(tuple(argslist))
             return True
         else:
             _logger.warning('No such instrument')
@@ -42,6 +51,10 @@ class SequenceManager(object):
         queue.put(cmd)
         return True
 
+    def obsrun_id(self, newid):
+        _logger.info('Current observing block id=% d', newid)
+        self._c_obsrun_id = newid
+
 sm = SequenceManager()
 
 def sequencer():
@@ -55,6 +68,20 @@ def sequencer():
             # Create obsblock
             try:
                 insserver.command(cmd[1:])
+            except Exception, ex:
+                _logger.error('Error %s', ex)
+        # This cmd comes from the console
+        elif cmd[0] == 'startobsrun':
+            _logger.info('Creating ObservingRun entry with info=%s', cmd[1])
+            # Create obsblock
+            try:
+        		dbserver.startobsrun(cmd)
+            except Exception, ex:
+                _logger.error('Error %s', ex)
+        elif cmd[0] == 'endobsrun':
+            _logger.info('Ending current ObservingRun')
+            try:
+        		dbserver.endobsrun()
             except Exception, ex:
                 _logger.error('Error %s', ex)
         # This cmd comes from the instrument
