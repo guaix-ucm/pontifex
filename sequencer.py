@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from txrServer import txrServer
 
 import threading

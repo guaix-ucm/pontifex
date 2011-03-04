@@ -1,6 +1,8 @@
+#!/usr/bin/python
+
 from txrServer import txrServer
 from dbins import session, datadir
-from sql import ObsRun, ObsBlock, Images, lastindex
+from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, lastindex
 
 import datetime
 import StringIO
@@ -114,6 +116,9 @@ def manager():
             if ob is not None:
                 _logger.info('Update endtime of ObsBlock in database')
                 ob.end = datetime.datetime.utcnow()
+                pbq = ProcessingBlockQueue()
+                pbq.obsblock = ob
+                session.add(pbq)
                 session.commit()    
                 ob = None
             else:
