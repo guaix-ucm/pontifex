@@ -13,6 +13,7 @@ logging.config.fileConfig("logging.conf")
 # create logger
 _logger = logging.getLogger("sequencer")
 
+
 queue = Queue()
 
 instruments = ['test']
