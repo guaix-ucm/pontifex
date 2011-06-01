@@ -1,28 +1,29 @@
 #!/usr/bin/python
 
-from txrServer import txrServer
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
-import itertools
 import time
-import xmlrpclib
-import threading
+from StringIO import StringIO
 import logging
 import logging.config
-from xmlrpclib import Server
-from Queue import Queue
+
 import pyfits
 import numpy
-from StringIO import StringIO
+import gobject
+import dbus
+from dbus import SessionBus
+from dbus.service import Object, BusName, signal, method
+from dbus.mainloop.glib import DBusGMainLoop
+
+from instrument import InstrumentManager, InstrumentFilterWheel
 
 logging.config.fileConfig("logging.conf")
 
 # create logger
 _logger = logging.getLogger("instrument.test")
 
-queue1 = Queue()
-queue2 = Queue()
-
-seqserver = Server('http://localhost:8010')
+dbus_loop = DBusGMainLoop()
+dsession = SessionBus(mainloop=dbus_loop)
 
 cards = [pyfits.Card('EXPOSED', 0, 'Exposure time')]
 cards.append(pyfits.Card('IMGTYP', 'NONE', 'Image type'))
@@ -31,111 +32,47 @@ head = pyfits.Header(cards)
 
 dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
-def parser2(args):
+class TestInstrumentManager(InstrumentManager):
+    def __init__(self, bus, loop):
+        super(TestInstrumentManager, self).__init__('Test', bus, loop, _logger)
 
-    if len(args) < 3:
-        _logger.warning('Arguments too short: %s', args)
-        return []
+        self.fw = InstrumentFilterWheel(bus, self.path, _logger, fwid=0)
 
-    instrument_name = args[0]
-    obsmode_name = args[1]
-    repeat = int(args[2])
+        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
+        self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
+        _logger.info('Waiting for commands')
 
+    @method(dbus_interface='es.ucm.Pontifex.Instrument',
+            in_signature='sd', out_signature='')
+    def expose(self, imgtyp, exposure):
+        filtid = self.fw.fwpos
+        _logger.info('Exposing image type=%s, exposure=%6.1f, filter ID=%d', imgtyp, exposure, filtid)
+        #time.sleep(exposure)
+        data = numpy.zeros((10, 10), dtype='int32')
+        _logger.info('Readout image')
 
-    hed = itertools.repeat(('startobsblock', instrument_name, obsmode_name), 1)
+        # Add headers, etc
+        _logger.info('Creating FITS data')
+        hdu = pyfits.PrimaryHDU(data, head)
+        hdu.header['EXPOSED'] = exposure        
+        hdu.header['IMGTYP'] = str(imgtyp)
+        hdu.header['FILTER'] = filtid
+        hdulist = pyfits.HDUList([hdu])
+        #hdulist.writeto('test.fits', clobber=True)
 
-    # No repetition
-    mid = itertools.repeat(('nop',), 0)
-    if obsmode_name == 'bias':
-        mid = itertools.repeat(('expose', dirad[obsmode_name], 0.0, 0), repeat)
-    elif obsmode_name == 'dark':
-        mid = itertools.repeat(('expose', dirad[obsmode_name], float(args[3]), 0), repeat)
-    else:
-        _logger.warning('Obsmode %s does not exist', obsmode_name)
-        return mid
+        # Preparing to send binary data back to sequencer
+        handle = StringIO()
+        hdulist.writeto(handle)
+        hdub = dbus.ByteArray(handle.getvalue())
+        # valor 'ay'
+        self.dbi.store_image(hdub)
 
-    tal = itertools.repeat(('endobsblock',), 1)
+    def version(self):
+    	return '1.0'
 
-    return itertools.chain(hed, mid, tal)
+loop = gobject.MainLoop()
+gobject.threads_init()
 
-def command(args):
-    for cmd in parser2(args):       
-        queue1.put(cmd)
-
-server = txrServer(('localhost', 9010), allow_none=True, logRequests=False)
-server.register_function(command)
-
-def main_loop():
-    
-    _logger.info('Waiting for instrument commands')
-    while True:
-        cmd = queue1.get()
-        _logger.info('Command is %s', cmd)
-        if cmd[0] == 'store':
-            # tell the sequencer we want to store an image
-            seqserver.return_image(cmd)
-        elif cmd[0] == 'storeob':
-            # tell the sequencer we want to finish an OB
-            seqserver.return_image(cmd)
-        elif cmd[0] == 'startobsblock':
-            # tell the sequencer we want to start an OB
-            seqserver.return_image(cmd)
-        elif cmd[0] == 'expose':
-            # Sending expose cmd to the detector
-            _logger.info('Sending expose command to reader thread')
-            queue2.put(cmd)
-        elif cmd[0] == 'endobsblock':
-            queue2.put(cmd)
-        elif cmd[0] == 'nop':
-            # do nothing
-            pass
-        else:
-            _logger.warning('Command %s does not exist', cmd[0])
-	    
-def readout():
-    while True:
-        cmd = queue2.get()
-        if cmd[0] == 'endobsblock':
-            queue2.task_done()
-            cmd = ('storeob', )
-            queue1.put(cmd)
-        elif cmd[0] == 'expose':
-            _logger.info('Exposing image type=%s, exposure=%6.1f, filter ID=%d', cmd[1], cmd[2], cmd[3])
-            _, obsmode, exposure, phfilter = cmd
-            time.sleep(exposure)
-            data = numpy.zeros((10, 10))
-            _logger.info('Readout image')
-
-            # Add headers, etc
-            _logger.info('Creating FITS data')
-            hdu = pyfits.PrimaryHDU(data, head)
-            hdu.header['EXPOSED'] = exposure
-            hdu.header['IMGTYP'] = obsmode
-            hdu.header['FILTER'] = phfilter
-            hdulist = pyfits.HDUList([hdu])
-
-            # Preparing to send binary data back to sequencer
-            handle = StringIO()
-            hdulist.writeto(handle)
-            hdub = xmlrpclib.Binary(handle.getvalue())
-
-            cmd = ('store', hdub)
-            queue2.task_done()
-            queue1.put(cmd)
-        elif cmd[0] == 'nop':
-            # do nothing
-            pass
-        else:
-            _logger.warning('Command %s not understood', cmd)
-	
-th = []
-th.append(threading.Thread(target=main_loop))
-th.append(threading.Thread(target=readout))
-th.append(threading.Thread(target=server.serve_forever))
-
-for i in th:
-    i.start()
-
-for i in th:
-    i.join()
+im = TestInstrumentManager(dsession, loop)
+loop.run()
 

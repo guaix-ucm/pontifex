@@ -1,32 +1,44 @@
-from Queue import Queue
-from xmlrpclib import Server
-import signal
+#!/usr/bin/python
 
-class Instrument(object):
-    def __init__(self, name, focus, obsmodes):
-        self._name = name
-        self._focus = focus
-        self._obsmodes = obsmodes
-        self.queue1 = Queue()
-        self.seq = Server('http://localhost:8010')
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
-    def name(self):
-        return self._name
+from dbus.service import Object, BusName, signal, method
 
-    def focus(self):
-        return self._focus
+class InstrumentFilterWheel(Object):
+    def __init__(self, bus, ipath, logger, fwid=0):
+        name = BusName('es.ucm.Pontifex.Instrument', bus)
+        path = '%s/FilterWheel%d' % (ipath, fwid)
 
-    def obsmodes(self):
-        return self._obsmodes
+        self.fwid = fwid
+        self.fwpos = 0
+        self.fwmax = 4
 
-    def parser(self):
-        pass
+        super(InstrumentFilterWheel, self).__init__(name, path)
+ 
+    @method(dbus_interface='es.ucm.Pontifex.Instrument.FilterWheel',
+            in_signature='i', out_signature='i')
+    def turn_filter_wheel(self, position):
+        self.fwpos += (position % self.fwmax)
+        self.logger.info('Turning filter wheel %d %d positions', self.fwid, position)
+        return self.fwpos
 
-    def command(self, args):
-        mandate = self.parser(args)
-        self.queue1.put(mandate)
+class InstrumentManager(Object):
+    def __init__(self, name, bus, loop, logger):
 
-def siiill(obj):
-    def handler(signum, frame):
-	obj.unregister()
-    signal.signal(signal.SIGHUP, handler)
+        self.name = name
+
+        bname = BusName('es.ucm.Pontifex.Instrument', bus)
+        self.path = '/es/ucm/Pontifex/Instrument/%s' % self.name
+
+        self.loop = loop
+        self.logger = logger
+        super(InstrumentManager, self).__init__(bname, self.path)
+
+    @method(dbus_interface='es.ucm.Pontifex.Instrument')
+    def quit(self):
+        self.logger.info('Ending')
+        self.loop.quit()
+    
+    def version(self):
+    	return '1.0'
+

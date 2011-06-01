@@ -2,21 +2,22 @@
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
-from dbins import session, datadir
-from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index
-
 import datetime
 import StringIO
-import pyfits
 
 import logging
 import logging.config
+import os.path
 
+import pyfits
 import gobject
 import dbus
 from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
+
+from dbins import session, datadir
+from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index
 
 logging.config.fileConfig("logging.conf")
 
@@ -105,14 +106,23 @@ class DatabaseManager(Object):
             _logger.warning('Observing Run not iniatialized')
         return False
 
+    @method(dbus_interface='es.ucm.Pontifex.DBengine',
+            in_signature='ay', out_signature='', byte_arrays=True)
     def store_image(self, bindata):
-        if self.ob is not None:
-            _logger.info('Storing image %d', self.index)
-            # Convert binary data back to HDUList
-            handle = StringIO.StringIO(bindata)
-            hdulist = pyfits.open(handle)
+        _logger.info('Receiving image')
+        # Convert binary data back to HDUList
+        handle = StringIO.StringIO(bindata)
+        hdulist = pyfits.open(handle)
+        if self.ob is None:
+            _logger.warning('Observing block not initialized')
+            _logger.info('Saving scratch image')
             # Write to disk
-            filename = FORMAT % index
+            filename = 'scratch.fits'
+            hdulist.writeto(os.path.join(datadir, filename), clobber=True)
+        else:
+            _logger.info('Storing image %d', self.index)
+            # Write to disk
+            filename = FORMAT % self.index
             hdulist.writeto(os.path.join(datadir, filename), clobber=True)
             # Update database
             img = Images(filename)
@@ -122,8 +132,6 @@ class DatabaseManager(Object):
             self.ob.images.append(img)
             session.commit()
             self.index += 1
-        else:
-            _logger.warning('Observing block not initialized')
 
     @method(dbus_interface='es.ucm.Pontifex.DBengine',
             in_signature='', out_signature='b')
