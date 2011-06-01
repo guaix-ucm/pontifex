@@ -53,7 +53,7 @@ class ProcessingBlockQueue(Base):
     obsId = Column(Integer, ForeignKey('obsblock.obsId'))
     obsblock = relation("ObsBlock", backref=backref("procqueue", uselist=False))
 
-def lastindex(session):
+def get_last_image_index(session):
     try:
         name, = session.query(Images.name).order_by(desc(Images.stamp)).first()
         number = int(name[1:-5]) + 1
