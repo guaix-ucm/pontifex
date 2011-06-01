@@ -15,7 +15,7 @@ from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
-from instrument import InstrumentManager, InstrumentFilterWheel
+from instrument import InstrumentManager, InstrumentFilterWheel, InstrumentDetector
 
 logging.config.fileConfig("logging.conf")
 
@@ -36,7 +36,8 @@ class TestInstrumentManager(InstrumentManager):
     def __init__(self, bus, loop):
         super(TestInstrumentManager, self).__init__('Test', bus, loop, _logger)
 
-        self.fw = InstrumentFilterWheel(bus, self.path, _logger, fwid=0)
+        self.fw = InstrumentFilterWheel(bus, self.busname, self.path, _logger, fwid=0)
+        self.detector = InstrumentDetector(bus, self.busname, self.path, _logger)
 
         self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
@@ -48,8 +49,9 @@ class TestInstrumentManager(InstrumentManager):
         filtid = self.fw.fwpos
         _logger.info('Exposing image type=%s, exposure=%6.1f, filter ID=%d', imgtyp, exposure, filtid)
         #time.sleep(exposure)
-        data = numpy.zeros((10, 10), dtype='int32')
-        _logger.info('Readout image')
+        self.detector.expose(exposure)
+        _logger.info('Reading out')
+        data = self.detector.readout()
 
         # Add headers, etc
         _logger.info('Creating FITS data')
