@@ -2,7 +2,6 @@
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
-from txrServer import txrServer
 from dbins import session, datadir
 from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index
 
@@ -31,7 +30,7 @@ FORMAT = 's%05d.fits'
 
 class DatabaseManager(Object):
     def __init__(self, bus, loop):
-        name = BusName('es.ucm.Pontifex', bus)
+        name = BusName('es.ucm.Pontifex.DBengine', bus)
         path = '/es/ucm/Pontifex/DBengine'
 
         self.loop = loop
