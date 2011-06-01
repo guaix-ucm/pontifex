@@ -21,7 +21,7 @@ class InstrumentDetector(Object):
         super(InstrumentDetector, self).__init__(name, path)
 
         self.logger = logger if logger is not None else _logger
-        self.shape = (100, 100)
+        self.shape = (1024, 1024)
         self.biaslevel = 200
         self.dark = 20
         self.gain = 2.0
@@ -35,14 +35,15 @@ class InstrumentDetector(Object):
         self.logger.info('Reset detector')
         self.buffer.fill(0)
 
-
+    @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
+            in_signature='d', out_signature='')
     def expose(self, exposure):
         self.logger.info('Exposing exposure=%6.1f', exposure)
         #time.sleep(exposure)
         self.buffer += self.dark * exposure
 
     def readout(self):
-        data = numpy.random.normal(self.buffer, self.ron, data.shape)
+        data = numpy.random.normal(self.buffer, self.ron, self.buffer.shape)
         # readout destroys data
         self.reset()
         
