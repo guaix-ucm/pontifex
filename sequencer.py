@@ -1,12 +1,18 @@
 #!/usr/bin/python
 
-from txrServer import txrServer
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 import threading
 from Queue import Queue
 import logging
 import logging.config
 from xmlrpclib import Server
+
+import gobject
+import dbus
+from dbus import SessionBus
+from dbus.service import Object, BusName, signal, method
+from dbus.mainloop.glib import DBusGMainLoop
 
 logging.config.fileConfig("logging.conf")
 
@@ -19,6 +25,26 @@ instruments = ['test']
 
 dbserver = Server('http://localhost:8050')
 insserver = Server('http://localhost:9010')
+
+class SeqManager(Object):
+    def __init__(self, bus, loop):
+        name = BusName('es.ucm.Pontifex.Sequencer', bus)
+        path = '/es/ucm/Pontifex/Sequencer'
+        super(SeqManager, self).__init__(name, path)
+        self.loop = loop
+
+        _logger.info('Looking for instruments')
+        for i in session.list_names():
+            if str(i).startswith('es.ucm.Pontifex.Instrument'):
+                _logger.info('Instrument %s', str(i))
+
+        _logger.info('Waiting for commands')
+
+    @method(dbus_interface='es.ucm.Pontifex.Sequencer')
+    def quit(self):
+        _logger.info('Ending')
+        self.loop.quit()
+
 
 class SequenceManager(object):
     def __init__(self):
@@ -99,18 +125,12 @@ def sequencer():
         else:
             _logger.warning('Command %s does not exist', cmd[0])
 
-server = txrServer(('localhost', 8010), allow_none=True, logRequests=False)
-server.register_instance(sm)
+dbus_loop = DBusGMainLoop()
+session = SessionBus(mainloop=dbus_loop)
 
-server.register_function(server.shutdown, name='shutdown')
+loop = gobject.MainLoop()
+gobject.threads_init()
 
-th = []
-th.append(threading.Thread(target=sequencer))
-th.append(threading.Thread(target=server.serve_forever))
-
-for i in th:
-    i.start()
-
-for i in th:
-    i.join()
+seq = SeqManager(session, loop)
+loop.run()
 
