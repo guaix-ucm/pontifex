@@ -3,6 +3,7 @@
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 import time
+import datetime
 from StringIO import StringIO
 import logging
 import logging.config
@@ -16,6 +17,7 @@ from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
 from instrument import InstrumentManager, InstrumentFilterWheel, InstrumentDetector
+from astrotime import datetime_to_mjd
 
 logging.config.fileConfig("logging.conf")
 
@@ -78,10 +80,15 @@ class MegaraInstrumentManager(InstrumentManager):
         hdr['IMAGETY'] = self.meta['imgtyp']
         # These fields should be updated
         hdr['OBS_MODE'] = 'FALSE'
-        hdr['DATE'] = '2010-02-01T03:03:45'        
-        hdr['DATE-OBS'] = '2010-02-01T03:03:45'
-        hdr['MDJ-OBS'] = 238237283
-        hdr['AIRMASS'] = 1.23234
+        now = datetime.datetime.now()
+        hdr['DATE'] = now.isoformat()
+        hdr['DATE-OBS'] = self.detectors[0].meta['DATE-OBS']
+        hdr['MDJ-OBS'] = self.detectors[0].meta['MDJ-OBS']
+        hdr['GAIN'] = self.detectors[0].gain
+        hdr['READNOIS'] = self.detectors[0].ron
+        #hdr['AIRMASS'] = 1.23234
+        #hdr.update('RA', str(target.ra))    
+        #hdr.update('DEC', str(target.dec))
         
         hdu0 = pyfits.PrimaryHDU(alldata[0], hdr)
         hdu0.header['FILTER'] = self.fw0.fwpos
@@ -96,7 +103,6 @@ class MegaraInstrumentManager(InstrumentManager):
         handle = StringIO()
         hdulist.writeto(handle)
         hdub = dbus.ByteArray(handle.getvalue())
-        # valor 'ay'
         self.dbi.store_image(hdub)
 
     def version(self):

@@ -4,10 +4,13 @@
 
 import logging
 import logging.config
+import datetime
 
 import numpy
 from numpy.random import normal
 from dbus.service import Object, BusName, signal, method
+
+from astrotime import datetime_to_mjd
 
 logging.config.fileConfig("logging.conf")
 
@@ -29,6 +32,7 @@ class InstrumentDetector(Object):
         self.ron = description.ron
         self.buffer = numpy.zeros(self.shape)
         self.amplifiers = description.amps
+        self.meta = {}
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
             in_signature='', out_signature='')
@@ -39,15 +43,15 @@ class InstrumentDetector(Object):
             in_signature='d', out_signature='')
     def expose(self, exposure):
         self.logger.info('exposing exposure=%6.1f', exposure)
+        now = datetime.datetime.now()
+        # Recording time of start of exposure
+        self.meta['DATE-OBS'] = now.isoformat()
+        self.meta['MDJ-OBS'] = datetime_to_mjd(now)
         self.buffer += self.dark * exposure
 
-    def readout(self):
-
-        # readout destroys data
-        
+    def readout(self):        
         data = self.buffer.copy()
-        for amp in self.amplifiers:
-            
+        for amp in self.amplifiers:            
             if amp.ron > 0:
                 try:
                     data[amp.shape] = normal(self.buffer[amp.shape], amp.ron)
@@ -56,6 +60,7 @@ class InstrumentDetector(Object):
             data[amp.shape] /= amp.gain
         data += self.biaslevel
         data = data.astype('int32')
+        # readout destroys data
         self.buffer.fill(0)
         return data
 
