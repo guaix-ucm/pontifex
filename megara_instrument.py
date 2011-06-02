@@ -27,45 +27,12 @@ dsession = SessionBus(mainloop=dbus_loop)
 
 dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
-class MegaraObservingModes(Object):
-    def __init__(self, bus):
-        self.name = 'Megara'
-        self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
-        self.path = '/es/ucm/Pontifex/Instrument/%s/ObservingModes' % self.name
-
-        bname = BusName(self.busname, bus)
-
-        self.obsmodes = ['bias', 'dark']
-
-        super(MegaraObservingModes, self).__init__(bname, self.path)
-
-    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
-            in_signature='', out_signature='as')
-    def observing_modes(self):
-        return self.obsmodes
-
-class MegaraSequencer(Object):
-    def __init__(self, bus):
-        self.name = 'Megara'
-        self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
-        self.path = '/es/ucm/Pontifex/Instrument/%s/Secuencer' % self.name
-
-        bname = BusName(self.busname, bus)
-
-        super(MegaraSequencer, self).__init__(bname, self.path)
-
-    @method(dbus_interface='es.ucm.Pontifex.Sequencer',
-            in_signature='os', out_signature='')
-    def dum(self, path, method):
-        print path
-
-
 class MegaraInstrumentManager(InstrumentManager):
     def __init__(self, description, bus, loop):
         super(MegaraInstrumentManager, self).__init__(description.name, bus, loop, _logger)
 
         self.fw0 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=0)
-        self.fw1 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=1)
+        #self.fw1 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=1)
 
         self.detectors = []
 
@@ -81,7 +48,6 @@ class MegaraInstrumentManager(InstrumentManager):
         _logger.info('Loading default FITS headers')
         sfile = 'megara_header.txt'
         self.header = pyfits.Header(txtfile=sfile)
-        self.header.update('INSTRUME', 'MEGARA')
         self.header.update('ORIGIN', 'Pontifex')
         self.header.update('OBSERVER', 'Pontifex')
         _logger.info('Ready')
