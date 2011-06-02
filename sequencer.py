@@ -104,7 +104,10 @@ class SeqManager(Object):
         db_i_if.end_obsblock()
         db_i_if.end_obsrun()
 
-
+    @method(dbus_interface='es.ucm.Pontifex.Sequencer.Console',
+            in_signature='s', out_signature='')
+    def console(self, command):
+        _logger.info('Console command: "%s"', command)
 
 class SequenceManager(object):
     def __init__(self):

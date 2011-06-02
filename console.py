@@ -1,8 +1,13 @@
+#!/usr/bin/python
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
+
 import os
 import cmd
 import readline
-import xmlrpclib
-import socket
+
+import dbus
+from dbus.service import Object, BusName, signal, method
 
 class Console(cmd.Cmd):
 
@@ -10,58 +15,14 @@ class Console(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.prompt = "=>> "
         self.intro  = "Welcome to console!"  ## defaults to None
-        self.server = xmlrpclib.ServerProxy('http://localhost:8010')
-	self.server.version()
+        bus = dbus.SessionBus()
+        self.seq = bus.get_object('es.ucm.Pontifex.Sequencer', '/es/ucm/Pontifex/Sequencer')
+        self.seq_if = dbus.Interface(self.seq, dbus_interface='es.ucm.Pontifex.Sequencer.Console')
 
-    ## Command definitions ##
-    def do_connect(self, args):
-        """Exits from the console"""
-        self.server = xmlrpclib.ServerProxy('http://localhost:8010')
 
     def do_run(self, args):
         """Exits from the console"""
-        if self.server is not None:
-            try:
-                status = self.server.run_command(args)
-		print status
-            except xmlrpclib.Error, v:
-                print "ERROR", v
-            except xmlrpclib.Fault, v:
-                print "ERROR", v
-
-    def do_startobsrun(self, args):
-        """Exits from the console"""
-        if self.server is not None:
-            try:
-                status = self.server.run_command('startobsrun ' + args)
-		print status
-            except xmlrpclib.Error, v:
-                print "ERROR", v
-            except xmlrpclib.Fault, v:
-                print "ERROR", v
-
-    def do_endobsrun(self, args):
-        """Exits from the console"""
-        if self.server is not None:
-            try:
-                status = self.server.run_command('endobsrun')
-		print status
-            except xmlrpclib.Error, v:
-                print "ERROR", v
-            except xmlrpclib.Fault, v:
-                print "ERROR", v
-
-        
-    def do_shutdown(self, args):
-        """Exits from the console"""
-        if self.server is not None:
-            try:
-               self.server.shutdown()
-            except xmlrpclib.Error, v:
-                print "ERROR", v
-            except xmlrpclib.Fault, v:
-                print "ERROR", v
-        
+        self.seq_if.console(' '.join(args))
 
     def do_hist(self, args):
         """Print a list of commands that have been entered"""
