@@ -57,35 +57,37 @@ class DatabaseManager(Object):
 
     @signal(dbus_interface='es.ucm.Pontifex.DBengine', signature='su')
     def signal_start_obsrun(self, pidata, runid):
-        pass
+        _logger.info('runID is %d', runid)
+
 
     @signal(dbus_interface='es.ucm.Pontifex.DBengine', signature='u')
     def signal_end_obsblock(self, runid):
-        pass
+        _logger.info('ObsBlock %d ended', runid)
 
     @signal(dbus_interface='es.ucm.Pontifex.DBengine', signature='u')
     def signal_end_obsrun(self, runid):
-        pass
+        _logger.info('ObsRun %d ended', runid)
 
 
     @method(dbus_interface='es.ucm.Pontifex.DBengine',
-            in_signature='s', out_signature='u', sender_keyword='sender',
-            destination_keyword='dest')
-    def start_obsrun(self, pidata, sender='alguien', dest='mi'):
+            in_signature='s', out_signature='i')
+    def start_obsrun(self, pidata):
         ''' Add ObsRun to database
            
             startobsrun pidata
         '''
-        _logger.info('Add ObsRun to database')
-        _logger.debug('Sending from %s to %s', sender, dest)
-        self.obsrun = ObsRun(pidata)
-        self.obsrun.start = datetime.datetime.utcnow()
-        session.add(self.obsrun)
-        session.commit()
-        runId = self.obsrun.runId
-        self.signal_start_obsrun(pidata, runId)
-        _logger.info('runID is %d', runId)
-        return runId
+        if self.obsrun is None:
+            _logger.info('Add ObsRun to database')
+            self.obsrun = ObsRun(pidata)
+            self.obsrun.start = datetime.datetime.utcnow()
+            session.add(self.obsrun)
+            session.commit()
+            runId = self.obsrun.runId
+            self.signal_start_obsrun(pidata, runId)
+            return runId
+        else:
+            _logger.info('ObsRun already started')
+        return 0
 
     @method(dbus_interface='es.ucm.Pontifex.DBengine',
             in_signature='ss', out_signature='b')

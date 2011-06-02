@@ -19,10 +19,17 @@ class Console(cmd.Cmd):
         self.seq = bus.get_object('es.ucm.Pontifex.Sequencer', '/es/ucm/Pontifex/Sequencer')
         self.seq_if = dbus.Interface(self.seq, dbus_interface='es.ucm.Pontifex.Sequencer.Console')
 
+    def do_run(self, arg):
+        """Run command"""
+        self.seq_if.console('run %s' % arg)
 
-    def do_run(self, args):
-        """Exits from the console"""
-        self.seq_if.console(' '.join(args))
+    def do_startobsrun(self, arg):
+        """Start observing run"""
+        self.seq_if.console('startobsrun %s' % arg)
+
+    def do_endobsrun(self, arg):
+        """End observing run"""
+        self.seq_if.console('endobsrun %s' % arg)
 
     def do_hist(self, args):
         """Print a list of commands that have been entered"""
