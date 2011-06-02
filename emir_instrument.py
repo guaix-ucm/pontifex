@@ -36,7 +36,7 @@ class EmirInstrumentManager(InstrumentManager):
     def __init__(self, bus, loop):
         super(EmirInstrumentManager, self).__init__('Emir', bus, loop, _logger)
 
-        self.fw = InstrumentFilterWheel(bus, self.busname, self.path, _logger, fwid=0)
+        self.fw = InstrumentFilterWheel(bus, self.busname, self.path, _logger)
 
         self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')

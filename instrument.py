@@ -15,9 +15,9 @@ logging.config.fileConfig("logging.conf")
 _logger = logging.getLogger("instrument")
 
 class InstrumentDetector(Object):
-    def __init__(self, bus, ibusname, ipath, logger=None, fwid=0):
+    def __init__(self, bus, ibusname, ipath, logger=None, cid=0):
         name = BusName(ibusname, bus)
-        path = '%s/Detector%d' % (ipath, fwid)
+        path = '%s/Detector%d' % (ipath, cid)
         super(InstrumentDetector, self).__init__(name, path)
 
         self.logger = logger if logger is not None else _logger
@@ -31,8 +31,6 @@ class InstrumentDetector(Object):
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
             in_signature='', out_signature='')
     def reset(self):
-        # No reset noise
-        self.logger.info('Reset detector')
         self.buffer.fill(0)
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
@@ -53,11 +51,10 @@ class InstrumentDetector(Object):
         return data
 
 class InstrumentFilterWheel(Object):
-    def __init__(self, bus, ibusname, ipath, logger=None, fwid=0):
+    def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
         name = BusName(ibusname, bus)
-        path = '%s/FilterWheel%d' % (ipath, fwid)
+        path = '%s/FilterWheel%d' % (ipath, cwid)
         self.logger = logger if logger is not None else _logger
-        self.fwid = fwid
         self.fwpos = 0
         self.fwmax = 4
 

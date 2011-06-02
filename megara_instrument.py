@@ -20,7 +20,7 @@ from instrument import InstrumentManager, InstrumentFilterWheel, InstrumentDetec
 logging.config.fileConfig("logging.conf")
 
 # create logger
-_logger = logging.getLogger("instrument.test")
+_logger = logging.getLogger("instrument.megara")
 
 dbus_loop = DBusGMainLoop()
 dsession = SessionBus(mainloop=dbus_loop)
@@ -32,9 +32,9 @@ head = pyfits.Header(cards)
 
 dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
-class TestObservingModes(Object):
+class MegaraObservingModes(Object):
     def __init__(self, bus):
-        self.name = 'Test'
+        self.name = 'Megara'
         self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
         self.path = '/es/ucm/Pontifex/Instrument/%s/ObservingModes' % self.name
 
@@ -42,22 +42,22 @@ class TestObservingModes(Object):
 
         self.obsmodes = ['bias', 'dark']
 
-        super(TestObservingModes, self).__init__(bname, self.path)
+        super(MegaraObservingModes, self).__init__(bname, self.path)
 
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='', out_signature='as')
     def observing_modes(self):
         return self.obsmodes
 
-class TestSequencer(Object):
+class MegaraSequencer(Object):
     def __init__(self, bus):
-        self.name = 'Test'
+        self.name = 'Megara'
         self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
         self.path = '/es/ucm/Pontifex/Instrument/%s/Secuencer' % self.name
 
         bname = BusName(self.busname, bus)
 
-        super(TestSequencer, self).__init__(bname, self.path)
+        super(MegaraSequencer, self).__init__(bname, self.path)
 
     @method(dbus_interface='es.ucm.Pontifex.Sequencer',
             in_signature='os', out_signature='')
@@ -65,34 +65,43 @@ class TestSequencer(Object):
         print path
 
 
-class TestInstrumentManager(InstrumentManager):
+class MegaraInstrumentManager(InstrumentManager):
     def __init__(self, bus, loop):
-        super(TestInstrumentManager, self).__init__('Test', bus, loop, _logger)
+        super(MegaraInstrumentManager, self).__init__('Megara', bus, loop, _logger)
 
-        self.fw = InstrumentFilterWheel(bus, self.busname, self.path, _logger)
-        self.detector = InstrumentDetector(bus, self.busname, self.path, _logger)
+        self.fw0 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=0)
+        self.fw1 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=1)
+        self.detector0 = InstrumentDetector(bus, self.busname, self.path, _logger, cid=0)
+        self.detector1 = InstrumentDetector(bus, self.busname, self.path, _logger, cid=1)
 
         self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
-        _logger.info('Waiting for commands')
+        _logger.info('Ready')
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument',
             in_signature='sd', out_signature='')
     def expose(self, imgtyp, exposure):
-        filtid = self.fw.fwpos
+        filtid = self.fw0.fwpos
         _logger.info('Exposing image type=%s, exposure=%6.1f, filter ID=%d', imgtyp, exposure, filtid)
-        self.detector.expose(exposure)
+        self.detector0.expose(exposure)
+        self.detector1.expose(exposure)
         _logger.info('Reading out')
-        data = self.detector.readout()
+        data0 = self.detector0.readout()
+        data1 = self.detector1.readout()
 
         # Add headers, etc
         _logger.info('Creating FITS data')
-        hdu = pyfits.PrimaryHDU(data, head)
-        hdu.header['EXPOSED'] = exposure        
-        hdu.header['IMGTYP'] = str(imgtyp)
-        hdu.header['FILTER'] = filtid
-        hdulist = pyfits.HDUList([hdu])
-        #hdulist.writeto('test.fits', clobber=True)
+        hdu0 = pyfits.PrimaryHDU(data0, head)
+        hdu0.header['EXPOSED'] = exposure        
+        hdu0.header['IMGTYP'] = str(imgtyp)
+        hdu0.header['FILTER'] = self.fw0.fwpos
+
+        hdu1 = pyfits.ImageHDU(data1, head)
+        hdu1.header['EXPOSED'] = exposure        
+        hdu1.header['IMGTYP'] = str(imgtyp)
+        hdu1.header['FILTER'] = self.fw0.fwpos
+
+        hdulist = pyfits.HDUList([hdu0, hdu1])
 
         # Preparing to send binary data back to sequencer
         handle = StringIO()
@@ -107,7 +116,6 @@ class TestInstrumentManager(InstrumentManager):
 loop = gobject.MainLoop()
 gobject.threads_init()
 
-bm = TestSequencer(dsession)
-im = TestInstrumentManager(dsession, loop)
+im = MegaraInstrumentManager(dsession, loop)
 loop.run()
 
