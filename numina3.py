@@ -55,11 +55,11 @@ def parse_instrument(fd):
 
         for j in range(namp):
             amp = AmplifierDescription()
-
             alabel = afunc(j)
             amp.gain = config.getfloat(alabel, 'gain')
             amp.ron = config.getfloat(alabel, 'ron')
-            amp.shape = eval(config.get(alabel, 'shape'))
+            shape = eval(config.get(alabel, 'shape'))
+            amp.shape = tuple(slice(*p) for p in shape)
             amps.append(amp)
             _logger.debug('reading %s', alabel)
 

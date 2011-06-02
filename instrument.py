@@ -6,7 +6,7 @@ import logging
 import logging.config
 
 import numpy
-import numpy.random
+from numpy.random import normal
 from dbus.service import Object, BusName, signal, method
 
 logging.config.fileConfig("logging.conf")
@@ -28,6 +28,7 @@ class InstrumentDetector(Object):
         self.gain = description.gain
         self.ron = description.ron
         self.buffer = numpy.zeros(self.shape)
+        self.amplifiers = description.amps
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
             in_signature='', out_signature='')
@@ -37,18 +38,25 @@ class InstrumentDetector(Object):
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
             in_signature='d', out_signature='')
     def expose(self, exposure):
-        self.logger.info('Exposing exposure=%6.1f', exposure)
-        #time.sleep(exposure)
+        self.logger.info('exposing exposure=%6.1f', exposure)
         self.buffer += self.dark * exposure
 
     def readout(self):
-        data = numpy.random.normal(self.buffer, self.ron, self.buffer.shape)
+
         # readout destroys data
-        self.reset()
         
-        data /= self.gain
+        data = self.buffer.copy()
+        for amp in self.amplifiers:
+            
+            if amp.ron > 0:
+                try:
+                    data[amp.shape] = normal(self.buffer[amp.shape], amp.ron)
+                except Exception, e:
+                    self.logger.error(str(e))
+            data[amp.shape] /= amp.gain
         data += self.biaslevel
         data = data.astype('int32')
+        self.buffer.fill(0)
         return data
 
 class InstrumentFilterWheel(Object):
