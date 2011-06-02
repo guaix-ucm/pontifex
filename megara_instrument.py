@@ -32,7 +32,7 @@ class MegaraInstrumentManager(InstrumentManager):
         super(MegaraInstrumentManager, self).__init__(description.name, bus, loop, _logger)
 
         self.fw0 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=0)
-        self.fw1 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=1)
+        #self.fw1 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=1)
 
         self.detectors = []
 
@@ -48,7 +48,6 @@ class MegaraInstrumentManager(InstrumentManager):
         _logger.info('Loading default FITS headers')
         sfile = 'megara_header.txt'
         self.header = pyfits.Header(txtfile=sfile)
-        self.header.update('INSTRUME', 'MEGARA')
         self.header.update('ORIGIN', 'Pontifex')
         self.header.update('OBSERVER', 'Pontifex')
         _logger.info('Ready')
