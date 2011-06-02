@@ -15,17 +15,18 @@ logging.config.fileConfig("logging.conf")
 _logger = logging.getLogger("instrument")
 
 class InstrumentDetector(Object):
-    def __init__(self, bus, ibusname, ipath, logger=None, cid=0):
+    def __init__(self, description, bus, ibusname, ipath, logger=None, cid=0):
         name = BusName(ibusname, bus)
         path = '%s/Detector%d' % (ipath, cid)
         super(InstrumentDetector, self).__init__(name, path)
 
         self.logger = logger if logger is not None else _logger
-        self.shape = (1024, 1024)
-        self.biaslevel = 200
-        self.dark = 20
-        self.gain = 2.0
-        self.ron = 3.0
+        self.shape = description.shape
+        self.model = description.model
+        self.biaslevel = description.bias
+        self.dark = description.dark
+        self.gain = description.gain
+        self.ron = description.ron
         self.buffer = numpy.zeros(self.shape)
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',

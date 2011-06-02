@@ -1,0 +1,48 @@
+[instrument]
+name = MEGARA
+version = 1
+
+[image]
+detectors = 1
+
+[detector_0]
+model = E2V CCD231-84-1-E74 
+amplifiers = 2
+shape = (2048, 2048)
+bias = 200.0
+dark = 0.3
+gain = 2.0
+ron = 50.0
+
+[detector_1]
+model = E2V CCD231-84-1-E74 
+amplifiers = 2
+shape = (2048, 2048)
+bias = 500.0
+dark = 30.0
+gain = 1.0
+ron = 5.0
+
+[amp_0_0]
+gain = 1.0
+ron = 0.0
+wdepth = 50000
+shape = ((0, 2048), (1024, 2048))
+
+[amp_0_1]
+gain = 1.0
+ron = 0.0
+wdepth = 50000
+shape = ((0, 2048), (0, 1024))
+
+[amp_1_0]
+gain = 1.0
+ron = 0.0
+wdepth = 50000
+shape = ((0, 2048), (1024, 2048))
+
+[amp_1_1]
+gain = 1.0
+ron = 0.0
+wdepth = 50000
+shape = ((0, 2048), (0, 1024))
