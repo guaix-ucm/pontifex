@@ -63,12 +63,20 @@ class InstrumentFilterWheel(Object):
 
         super(InstrumentFilterWheel, self).__init__(name, path)
  
-    @method(dbus_interface='es.ucm.Pontifex.Instrument.FilterWheel',
+    @method(dbus_interface='es.ucm.Pontifex.FilterWheel',
             in_signature='i', out_signature='i')
-    def turn_filter_wheel(self, position):
+    def turn(self, position):
         self.fwpos += (position % self.fwmax)
         self.logger.info('Turning filter wheel %d %d positions', self.fwid, position)
         return self.fwpos
+
+    @method(dbus_interface='es.ucm.Pontifex.FilterWheel',
+            in_signature='i', out_signature='i')
+    def set(self, position):
+        self.fwpos = (position % self.fwmax)
+        self.logger.info('Setting filter wheel to %d position', self.fwid)
+        return self.fwpos
+
 
 class InstrumentManager(Object):
     def __init__(self, name, bus, loop, logger):

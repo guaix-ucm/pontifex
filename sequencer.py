@@ -45,6 +45,66 @@ class SeqManager(Object):
         _logger.info('Ending')
         self.loop.quit()
 
+    @method(dbus_interface='es.ucm.Pontifex.Sequencer',
+            in_signature='di', out_signature='')
+    def obsmode_dark_test(self, exposure, repeat):
+        # what we need
+        bus = dbus.SessionBus()
+        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test')
+        test_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Instrument')
+
+        db_i = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
+        db_i_if = dbus.Interface(db_i, dbus_interface='es.ucm.Pontifex.DBengine')
+
+        obsrunid = db_i_if.start_obsrun('Test')
+        db_i_if.start_obsblock('test', 'dark')
+        for i in range(repeat):
+            test_i_if.expose('dark', exposure)
+        db_i_if.end_obsblock()
+        db_i_if.end_obsrun()
+
+    @method(dbus_interface='es.ucm.Pontifex.Sequencer',
+            in_signature='i', out_signature='')
+    def obsmode_bias_test(self, repeat):
+        # what we need
+        bus = dbus.SessionBus()
+        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test')
+        test_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Instrument')
+
+        db_i = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
+        db_i_if = dbus.Interface(db_i, dbus_interface='es.ucm.Pontifex.DBengine')
+
+        obsrunid = db_i_if.start_obsrun('Test')
+        db_i_if.start_obsblock('test', 'bias')
+        for i in range(repeat):
+            test_i_if.expose('bias', 0)
+        db_i_if.end_obsblock()
+        db_i_if.end_obsrun()
+
+    @method(dbus_interface='es.ucm.Pontifex.Sequencer',
+            in_signature='dii', out_signature='')
+    def obsmode_flat_test(self, exposure, repeat, filterpos):
+        # what we need
+        bus = dbus.SessionBus()
+        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test')
+        test_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Instrument')
+
+        fw_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test/FilterWheel0')
+        fw_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.FilterWheel')
+
+        db_i = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
+        db_i_if = dbus.Interface(db_i, dbus_interface='es.ucm.Pontifex.DBengine')
+
+        obsrunid = db_i_if.start_obsrun('Test')
+        db_i_if.start_obsblock('test', 'flat')
+        # Put the filter
+        #r = fw_i_if.set(filterpos)
+        for i in range(repeat):
+            test_i_if.expose('flat', exposure)
+        db_i_if.end_obsblock()
+        db_i_if.end_obsrun()
+
+
 
 class SequenceManager(object):
     def __init__(self):

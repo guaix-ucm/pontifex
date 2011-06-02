@@ -32,6 +32,39 @@ head = pyfits.Header(cards)
 
 dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
+class TestObservingModes(Object):
+    def __init__(self, bus):
+        self.name = 'Test'
+        self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
+        self.path = '/es/ucm/Pontifex/Instrument/%s/ObservingModes' % self.name
+
+        bname = BusName(self.busname, bus)
+
+        self.obsmodes = ['bias', 'dark']
+
+        super(TestObservingModes, self).__init__(bname, self.path)
+
+    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
+            in_signature='', out_signature='as')
+    def observing_modes(self):
+        return self.obsmodes
+
+class TestSequencer(Object):
+    def __init__(self, bus):
+        self.name = 'Test'
+        self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
+        self.path = '/es/ucm/Pontifex/Instrument/%s/Secuencer' % self.name
+
+        bname = BusName(self.busname, bus)
+
+        super(TestSequencer, self).__init__(bname, self.path)
+
+    @method(dbus_interface='es.ucm.Pontifex.Sequencer',
+            in_signature='os', out_signature='')
+    def dum(self, path, method):
+        print path
+
+
 class TestInstrumentManager(InstrumentManager):
     def __init__(self, bus, loop):
         super(TestInstrumentManager, self).__init__('Test', bus, loop, _logger)
@@ -48,7 +81,6 @@ class TestInstrumentManager(InstrumentManager):
     def expose(self, imgtyp, exposure):
         filtid = self.fw.fwpos
         _logger.info('Exposing image type=%s, exposure=%6.1f, filter ID=%d', imgtyp, exposure, filtid)
-        #time.sleep(exposure)
         self.detector.expose(exposure)
         _logger.info('Reading out')
         data = self.detector.readout()
@@ -75,6 +107,7 @@ class TestInstrumentManager(InstrumentManager):
 loop = gobject.MainLoop()
 gobject.threads_init()
 
+bm = TestSequencer(dsession)
 im = TestInstrumentManager(dsession, loop)
 loop.run()
 
