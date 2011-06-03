@@ -1,4 +1,6 @@
 
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
+
 from sqlalchemy import desc
 from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, ForeignKey, Float
 from sqlalchemy.orm import relation, backref

@@ -4,10 +4,10 @@
 
 import datetime
 import StringIO
-
 import logging
 import logging.config
 import os.path
+import os
 
 import pyfits
 import gobject
@@ -53,12 +53,11 @@ class DatabaseManager(Object):
 
     @signal(dbus_interface='es.ucm.Pontifex.DBengine', signature='ss')
     def signal_start_obsblock(self, instrument, mode):
-        pass
+        _logger.info('ObsBlock started')
 
     @signal(dbus_interface='es.ucm.Pontifex.DBengine', signature='su')
     def signal_start_obsrun(self, pidata, runid):
-        _logger.info('runID is %d', runid)
-
+        _logger.info('OsbRun started (runID is %d)', runid)
 
     @signal(dbus_interface='es.ucm.Pontifex.DBengine', signature='u')
     def signal_end_obsblock(self, runid):
@@ -107,6 +106,43 @@ class DatabaseManager(Object):
         else:
             _logger.warning('Observing Run not iniatialized')
         return False
+
+    @method(dbus_interface='es.ucm.Pontifex.DBengine',
+            in_signature='s', out_signature='')
+    def store_file(self, tmpfile):
+        _logger.info('Receiving image')
+        # Convert binary data back to HDUList
+        hdulist = pyfits.open(tmpfile)
+        if self.ob is None:
+            _logger.warning('Observing block not initialized')
+            _logger.info('Saving scratch image')
+            # Write to disk
+            filename = 'scratch.fits'
+            hdulist.writeto(os.path.join(datadir, filename), clobber=True)
+        else:
+            _logger.info('Storing image %d', self.index)
+            # Write to disk
+            filename = FORMAT % self.index
+            hdulist.writeto(os.path.join(datadir, filename), clobber=True)
+            for hdu in hdulist:
+                hdu.header['RUN'] = self.index
+                hdu.header.update('FILENAME', filename)
+            # Update database
+            img = Images(filename)
+            img.exposure = hdulist[0].header['EXPOSED']
+            img.imgtype = hdulist[0].header['IMGTYP']
+            img.stamp = datetime.datetime.utcnow()
+            self.ob.images.append(img)
+            session.commit()
+            self.index += 1
+        
+        del hdulist
+
+        try:
+            os.remove(tmpfile)
+        except OSError, e:
+            _logger.warning(str(e)) 
+
 
     @method(dbus_interface='es.ucm.Pontifex.DBengine',
             in_signature='ay', out_signature='', byte_arrays=True)

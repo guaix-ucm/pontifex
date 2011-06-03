@@ -6,6 +6,7 @@ import time
 from StringIO import StringIO
 import logging
 import logging.config
+import tempfile
 
 import pyfits
 import numpy
@@ -87,17 +88,12 @@ class MegaraInstrumentManager(InstrumentManager):
         hdu0.header['FILTER'] = self.fw0.fwpos
 
         hdus = [pyfits.ImageHDU(data, hdr) for data in alldata[1:]]
-
-        #hdu1.header['FILTER'] = self.fw1.fwpos
-
         hdulist = pyfits.HDUList([hdu0] + hdus)
 
         # Preparing to send binary data back to sequencer
-        handle = StringIO()
-        hdulist.writeto(handle)
-        hdub = dbus.ByteArray(handle.getvalue())
-        # valor 'ay'
-        self.dbi.store_image(hdub)
+        fd, filepath = tempfile.mkstemp()
+        hdulist.writeto(filepath)
+        self.dbi.store_file(filepath)
 
     def version(self):
     	return '1.0'

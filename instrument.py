@@ -99,7 +99,6 @@ class InstrumentManager(Object):
 
         self.started()
 
-
     @method(dbus_interface='es.ucm.Pontifex.Instrument')
     def quit(self):
         self.logger.info('Ending')
