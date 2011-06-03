@@ -3,16 +3,17 @@ name = MEGARA
 version = 1
 
 [image]
-detectors = 2
+detectors = 1
 
 [detector_0]
 model = E2V CCD231-84-1-E74 
 amplifiers = 2
 shape = (4096, 4096)
 bias = 200.0
-dark = 0.3
-gain = 2.0
-ron = 50.0
+dark = 0.000833333
+gain = 1.0
+ron = 3.0
+pixsize = 15
 
 [detector_1]
 model = E2V CCD231-84-1-E74 
@@ -21,23 +22,24 @@ shape = (4096, 4096)
 bias = 500.0
 dark = 30.0
 gain = 1.0
-ron = 5.0
+ron = 3.0
+pixsize = 15
 
 [amp_0_0]
 gain = 1.0
-ron = 0.0
+ron = 3.0
 wdepth = 50000
 shape = ((0, 4096), (2048, 4096))
 
 [amp_0_1]
 gain = 1.0
-ron = 1.0
+ron = 0.0
 wdepth = 50000
 shape = ((0, 4096), (0, 2048))
 
 [amp_1_0]
 gain = 1.0
-ron = 1.0
+ron = 3.0
 wdepth = 50000
 shape = ((0, 4096), (2048, 4096))
 
