@@ -38,7 +38,7 @@ class EmirInstrumentManager(InstrumentManager):
 
         self.fw = InstrumentFilterWheel(bus, self.busname, self.path, _logger)
 
-        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
+        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
         _logger.info('Waiting for commands')
 

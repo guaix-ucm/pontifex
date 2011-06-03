@@ -43,7 +43,7 @@ class MegaraInstrumentManager(InstrumentManager):
             self.detectors.append(InstrumentDetector(detinfo, bus, self.busname, 
                                     self.path, _logger, cid=cid))
 
-        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
+        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
         # Metadata in a dictionary
 

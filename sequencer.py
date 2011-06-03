@@ -19,7 +19,7 @@ _logger = logging.getLogger("sequencer")
 class SeqManager(Object):
     def __init__(self, bus, loop):
         name = BusName('es.ucm.Pontifex.Sequencer', bus)
-        path = '/es/ucm/Pontifex/Sequencer'
+        path = '/'
         super(SeqManager, self).__init__(name, path)
         self.loop = loop
 
@@ -30,10 +30,10 @@ class SeqManager(Object):
             if str(i).startswith('es.ucm.Pontifex.Instrument'):
                 shortname = i[27:]
                 _logger.info('Instrument %s', shortname)
-                proxy = bus.get_object(i, '/es/ucm/Pontifex/Instrument/%s' % shortname)
+                proxy = bus.get_object(i, '/')
                 self.instruments[shortname] = proxy
 
-        self.db_i = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
+        self.db_i = bus.get_object('es.ucm.Pontifex.DBengine', '/')
         self.db_i_if = dbus.Interface(self.db_i, dbus_interface='es.ucm.Pontifex.DBengine')
 
         _logger.info('Waiting for commands')
@@ -105,7 +105,7 @@ class SeqManager(Object):
     def bias_test(self, repeat):
         # what we need
         bus = dbus.SessionBus()
-        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test')
+        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/')
         test_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Instrument')
 
         self.db_i_if.start_obsblock('test', 'bias')
@@ -118,10 +118,10 @@ class SeqManager(Object):
     def flat_test(self, exposure, repeat, filterpos):
         # what we need
         bus = dbus.SessionBus()
-        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test')
+        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/')
         test_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Instrument')
 
-        fw_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test/FilterWheel0')
+        fw_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/FilterWheel0')
         fw_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.FilterWheel')
 
 

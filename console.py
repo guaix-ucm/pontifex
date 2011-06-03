@@ -9,6 +9,21 @@ import readline
 import dbus
 from dbus.service import Object, BusName, signal, method
 
+def handle_hello_reply(r):
+    global hello_replied
+    hello_replied = True
+
+    print str(r)
+
+def handle_hello_error(e):
+    global failed
+    global hello_replied
+    hello_replied = True
+    failed = True
+    print "HelloWorld raised an exception! That's not meant to happen..."
+    print "\t", str(e)
+
+
 class Console(cmd.Cmd):
 
     def __init__(self):
@@ -16,8 +31,10 @@ class Console(cmd.Cmd):
         self.prompt = "=>> "
         self.intro  = "Welcome to console!"  ## defaults to None
         bus = dbus.SessionBus()
-        self.seq = bus.get_object('es.ucm.Pontifex.Sequencer', '/es/ucm/Pontifex/Sequencer')
-        self.seq_if = dbus.Interface(self.seq, dbus_interface='es.ucm.Pontifex.Sequencer.Console')
+        self.seq = bus.get_object('es.ucm.Pontifex.Sequencer', '/')
+        self.seq_if = dbus.Interface(self.seq, 
+                                    dbus_interface='es.ucm.Pontifex.Sequencer.Console',
+                                    reply_handler=handle_hello_reply, error_handler=handle_hello_error)
 
     def do_run(self, arg):
         """Run command"""

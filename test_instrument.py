@@ -36,7 +36,7 @@ class TestObservingModes(Object):
     def __init__(self, bus):
         self.name = 'Test'
         self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
-        self.path = '/es/ucm/Pontifex/Instrument/%s/ObservingModes' % self.name
+        self.path = '/ObservingModes' % self.name
 
         bname = BusName(self.busname, bus)
 
@@ -53,7 +53,7 @@ class TestSequencer(Object):
     def __init__(self, bus):
         self.name = 'Test'
         self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
-        self.path = '/es/ucm/Pontifex/Instrument/%s/Secuencer' % self.name
+        self.path = '/Secuencer' % self.name
 
         bname = BusName(self.busname, bus)
 
@@ -72,7 +72,7 @@ class TestInstrumentManager(InstrumentManager):
         self.fw = InstrumentFilterWheel(bus, self.busname, self.path, _logger)
         self.detector = InstrumentDetector(bus, self.busname, self.path, _logger)
 
-        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
+        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
         _logger.info('Waiting for commands')
 

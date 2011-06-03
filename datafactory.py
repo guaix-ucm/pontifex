@@ -25,7 +25,7 @@ dsession = SessionBus(mainloop=dbus_loop)
 class DatafactoryManager(Object):
     def __init__(self, bus, loop):
         name = BusName('es.ucm.Pontifex.DFP', bus)
-        path = '/es/ucm/Pontifex/DFP'
+        path = '/'
 
         self.loop = loop
 

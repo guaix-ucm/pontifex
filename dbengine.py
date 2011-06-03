@@ -32,10 +32,10 @@ FORMAT = 's%05d.fits'
 class DatabaseManager(Object):
     def __init__(self, bus, loop):
         name = BusName('es.ucm.Pontifex.DBengine', bus)
-        path = '/es/ucm/Pontifex/DBengine'
+        path = '/'
+        super(DatabaseManager, self).__init__(name, path)
 
         self.loop = loop
-
         self.index = get_last_image_index(session)
         _logger.info('Last stored image is number %d', self.index)
         _logger.info('Waiting for commands')
@@ -44,7 +44,7 @@ class DatabaseManager(Object):
         self.ob = None
         self.props = {}
 
-        super(DatabaseManager, self).__init__(name, path)
+
 
     @method(dbus_interface='es.ucm.Pontifex.DBengine')
     def quit(self):

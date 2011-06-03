@@ -8,6 +8,7 @@ import datetime
 
 import numpy
 from numpy.random import normal
+import dbus
 from dbus.service import Object, BusName, signal, method
 
 from astrotime import datetime_to_mjd
@@ -19,9 +20,9 @@ _logger = logging.getLogger("instrument")
 
 class InstrumentDetector(Object):
     def __init__(self, description, bus, ibusname, ipath, logger=None, cid=0):
-        name = BusName(ibusname, bus)
-        path = '%s/Detector%d' % (ipath, cid)
-        super(InstrumentDetector, self).__init__(name, path)
+        busname = BusName(ibusname, bus=dbus.SessionBus())
+        path = '/Detector%d' % (cid,)
+        super(InstrumentDetector, self).__init__(busname, path)
 
         self.logger = logger if logger is not None else _logger
         self.shape = description.shape
@@ -67,8 +68,9 @@ class InstrumentDetector(Object):
 class InstrumentFilterWheel(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
         name = BusName(ibusname, bus)
-        path = '%s/FilterWheel%d' % (ipath, cwid)
+        path = '/FilterWheel%d' % (cwid,)
         self.logger = logger if logger is not None else _logger
+        self.cwid = cwid
         self.fwpos = 0
         self.fwmax = 4
 
@@ -78,14 +80,14 @@ class InstrumentFilterWheel(Object):
             in_signature='i', out_signature='i')
     def turn(self, position):
         self.fwpos += (position % self.fwmax)
-        self.logger.info('Turning filter wheel %d %d positions', self.fwid, position)
+        self.logger.info('Turning filter wheel %d %d positions', self.cwid, position)
         return self.fwpos
 
     @method(dbus_interface='es.ucm.Pontifex.FilterWheel',
             in_signature='i', out_signature='i')
     def set(self, position):
         self.fwpos = (position % self.fwmax)
-        self.logger.info('Setting filter wheel to %d position', self.fwid)
+        self.logger.info('Setting filter wheel to %d position', self.cwid)
         return self.fwpos
 
 
@@ -94,14 +96,12 @@ class InstrumentManager(Object):
 
         self.name = name
         self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
-        self.path = '/es/ucm/Pontifex/Instrument/%s' % self.name
-
-        bname = BusName(self.busname, bus)
+        self.path = '/'
+        bname = BusName(self.busname, bus=dbus.SessionBus())
+        super(InstrumentManager, self).__init__(bname, '/')
 
         self.loop = loop
         self.logger = logger
-        super(InstrumentManager, self).__init__(bname, self.path)
-
         self.started()
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument')
@@ -112,7 +112,6 @@ class InstrumentManager(Object):
     @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
     def started(self):
         pass
-
 
     def version(self):
     	return '1.0'
