@@ -142,6 +142,9 @@ class DatabaseManager(Object):
         if self.ob is not None:
             _logger.info('Update endtime of ObsBlock in database')
             self.ob.end = datetime.datetime.utcnow()
+            pbq = ProcessingBlockQueue()
+            pbq.obsblock = self.ob
+            session.add(pbq) 
             session.commit()
             self.signal_end_obsblock(self.ob.obsId)
             self.ob = None

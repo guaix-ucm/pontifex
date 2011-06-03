@@ -97,11 +97,19 @@ class InstrumentManager(Object):
         self.logger = logger
         super(InstrumentManager, self).__init__(bname, self.path)
 
+        self.started()
+
+
     @method(dbus_interface='es.ucm.Pontifex.Instrument')
     def quit(self):
         self.logger.info('Ending')
         self.loop.quit()
     
+    @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
+    def started(self):
+        pass
+
+
     def version(self):
     	return '1.0'
 

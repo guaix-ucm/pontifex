@@ -23,16 +23,18 @@ class SeqManager(Object):
         super(SeqManager, self).__init__(name, path)
         self.loop = loop
 
+        self.instruments = {}
+
         _logger.info('Looking for instruments')
         for i in session.list_names():
             if str(i).startswith('es.ucm.Pontifex.Instrument'):
-                _logger.info('Instrument %s', str(i))
+                shortname = i[27:]
+                _logger.info('Instrument %s', shortname)
+                proxy = bus.get_object(i, '/es/ucm/Pontifex/Instrument/%s' % shortname)
+                self.instruments[shortname] = proxy
 
         self.db_i = bus.get_object('es.ucm.Pontifex.DBengine', '/es/ucm/Pontifex/DBengine')
         self.db_i_if = dbus.Interface(self.db_i, dbus_interface='es.ucm.Pontifex.DBengine')
-
-        self.test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test')
-        self.test_i_if = dbus.Interface(self.test_i, dbus_interface='es.ucm.Pontifex.Instrument')
 
         _logger.info('Waiting for commands')
 
@@ -42,8 +44,54 @@ class SeqManager(Object):
         self.loop.quit()
 
     @method(dbus_interface='es.ucm.Pontifex.Sequencer',
+            in_signature='', out_signature='as')
+    def available_instruments(self):
+        return self.instruments.keys()
+
+    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
+            in_signature='i', out_signature='')
+    def bias_megara(self, repeat):
+        
+        name = 'MEGARA'
+        ins = self.instruments[name]
+
+        ins_if = dbus.Interface(ins, dbus_interface='es.ucm.Pontifex.Instrument')
+
+        self.db_i_if.start_obsblock(name, 'bias')
+        for i in range(repeat):
+            ins_if.expose('bias', 0.0)
+        self.db_i_if.end_obsblock()
+
+    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='di', out_signature='')
-    def obsmode_dark_test(self, exposure, repeat):
+    def dark_megara(self, exposure, repeat):
+        
+        name = 'MEGARA'
+        ins = self.instruments[name]
+
+        ins_if = dbus.Interface(ins, dbus_interface='es.ucm.Pontifex.Instrument')
+
+        self.db_i_if.start_obsblock(name, 'dark')
+        for i in range(repeat):
+            self.ins_if.expose('dark', exposure)
+        self.db_i_if.end_obsblock()
+
+    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
+            in_signature='di', out_signature='')
+    def flat_megara(self, exposure, repeat):
+
+        name = 'MEGARA'
+        ins = self.instruments[name]
+        ins_if = dbus.Interface(ins, dbus_interface='es.ucm.Pontifex.Instrument')
+
+        self.db_i_if.start_obsblock(name, 'flat')
+        for i in range(repeat):
+            self.ins_if.expose('flat', exposure)
+        self.db_i_if.end_obsblock()
+
+    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
+            in_signature='di', out_signature='')
+    def dark_test(self, exposure, repeat):
         # what we need
         bus = dbus.SessionBus()
 
@@ -52,9 +100,9 @@ class SeqManager(Object):
             self.test_i_if.expose('dark', exposure)
         self.db_i_if.end_obsblock()
 
-    @method(dbus_interface='es.ucm.Pontifex.Sequencer',
+    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='i', out_signature='')
-    def obsmode_bias_test(self, repeat):
+    def bias_test(self, repeat):
         # what we need
         bus = dbus.SessionBus()
         test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test')
@@ -65,9 +113,9 @@ class SeqManager(Object):
             test_i_if.expose('bias', 0)
         self.db_i_if.end_obsblock()
 
-    @method(dbus_interface='es.ucm.Pontifex.Sequencer',
+    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='dii', out_signature='')
-    def obsmode_flat_test(self, exposure, repeat, filterpos):
+    def flat_test(self, exposure, repeat, filterpos):
         # what we need
         bus = dbus.SessionBus()
         test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/es/ucm/Pontifex/Instrument/Test')
@@ -93,14 +141,14 @@ class SeqManager(Object):
         if args[0] == 'test':
             if args[1] == 'bias':
                 try:
-                    self.obsmode_bias_test(int(args[2]))
+                    self.bias_test(int(args[2]))
                 except Exception,e:
                     _logger.error('%s', str(e))
             elif args[1] == 'dark':
                 try:
                     repeat = int(args[2])
                     exposure = float(args[3])
-                    self.obsmode_dark_test(exposure, repeat)
+                    self.dark_test(exposure, repeat)
                 except Exception,e:
                     _logger.error('%s', str(e))
             elif args[1] == 'flat':
@@ -108,12 +156,36 @@ class SeqManager(Object):
                     repeat = int(args[2])
                     exposure = float(args[3])
                     filterpos = int(args[4])
-                    self.obsmode_flat_test(exposure, repeat, filterpos)
+                    self.flat_test(exposure, repeat, filterpos)
                 except Exception,e:
                     _logger.error('%s', str(e))
                 pass
             else:
-                _logger.info('Observing mode %s not implemented', args[1])        
+                _logger.info('Observing mode %s not implemented', args[1])
+        if args[0].lower() == 'megara':
+            if args[1] == 'bias':
+                try:
+                    self.bias_megara(int(args[2]))
+                except Exception,e:
+                    _logger.error('%s', str(e))
+            elif args[1] == 'dark':
+                try:
+                    repeat = int(args[2])
+                    exposure = float(args[3])
+                    self.dark_megara(exposure, repeat)
+                except Exception,e:
+                    _logger.error('%s', str(e))
+            elif args[1] == 'flat':
+                try:
+                    repeat = int(args[2])
+                    exposure = float(args[3])
+                    filterpos = int(args[4])
+                    self.flat_megara(exposure, repeat, filterpos)
+                except Exception,e:
+                    _logger.error('%s', str(e))
+                pass
+            else:
+                _logger.info('Observing mode %s not implemented', args[1])                
         else:
             _logger.info('Instrument %s not implemented', args[0])        
 
