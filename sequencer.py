@@ -73,20 +73,24 @@ class SeqManager(Object):
 
         self.db_i_if.start_obsblock(name, 'dark')
         for i in range(repeat):
-            self.ins_if.expose('dark', exposure)
+            ins_if.expose('dark', exposure)
         self.db_i_if.end_obsblock()
 
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
-            in_signature='di', out_signature='')
-    def flat_megara(self, exposure, repeat):
+            in_signature='dii', out_signature='')
+    def flat_megara(self, exposure, repeat, filterpos):
 
         name = 'MEGARA'
         ins = self.instruments[name]
         ins_if = dbus.Interface(ins, dbus_interface='es.ucm.Pontifex.Instrument')
 
+        fw_i = dbus.SessionBus().get_object('es.ucm.Pontifex.Instrument.MEGARA', '/FilterWheel0')
+        fw_i_if = dbus.Interface(fw_i, dbus_interface='es.ucm.Pontifex.FilterWheel')
+
         self.db_i_if.start_obsblock(name, 'flat')
+        fw_i_if.set(filterpos)
         for i in range(repeat):
-            self.ins_if.expose('flat', exposure)
+            ins_if.expose('flat', exposure)
         self.db_i_if.end_obsblock()
 
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
