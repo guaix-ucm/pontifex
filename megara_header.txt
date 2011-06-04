@@ -36,7 +36,7 @@ IMAGETY = '' / Type of observation, e.g. object
 IMGTYP  = '' / Type of observation, e.g. object                                 
 DEC     = '00:00:00.000'       / DEC of the instrument scientific aperture      
 RA      = '00:00:00.000'       / RA of the instrument scientific aperture
-FILTER  = '' / Filter id.
+GRISM   = '' / Grism id. 
 EXPOSED =                    0 / [s] Time between correlated reads              
 EXPTIME =                    0 / [s] Time between correlated reads
 READNOIS=                 2.16 / Readout noise in electrons per pix
@@ -53,4 +53,4 @@ CUNIT1  = 'pixel'
 CUNIT2  = 'pixel'
 RADESYS = 'FK5'
 EQUINOX = 2000.0 / [yr] Equinox of equatorial coordinates
-COMMENT WCS ends here                                                           
+SUNIT   =      0 / Spectrograph unit                            

@@ -75,7 +75,7 @@ class InstrumentWheel(Object):
             path = '/Wheel%d' % (cwid,)
         else:
             path = '%s/Wheel%d' % (ipath, cwid)
-        print path
+
         super(InstrumentWheel, self).__init__(name, path)
         self.logger = logger if logger is not None else _logger
         self.cwid = cwid
