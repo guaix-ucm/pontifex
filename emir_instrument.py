@@ -15,7 +15,7 @@ from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
-from instrument import InstrumentManager, InstrumentWheel
+from pontifex.instrument import InstrumentManager, InstrumentWheel
 
 logging.config.fileConfig("logging.conf")
 

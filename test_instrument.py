@@ -15,7 +15,7 @@ from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
-from instrument import InstrumentManager, InstrumentWheel, InstrumentDetector
+from pontifex.instrument import InstrumentManager, InstrumentWheel, InstrumentDetector
 
 logging.config.fileConfig("logging.conf")
 
@@ -32,45 +32,12 @@ head = pyfits.Header(cards)
 
 dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
-class TestObservingModes(Object):
-    def __init__(self, bus):
-        self.name = 'Test'
-        self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
-        self.path = '/ObservingModes' % self.name
-
-        bname = BusName(self.busname, bus)
-
-        self.obsmodes = ['bias', 'dark']
-
-        super(TestObservingModes, self).__init__(bname, self.path)
-
-    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
-            in_signature='', out_signature='as')
-    def observing_modes(self):
-        return self.obsmodes
-
-class TestSequencer(Object):
-    def __init__(self, bus):
-        self.name = 'Test'
-        self.busname = 'es.ucm.Pontifex.Instrument.%s' % self.name
-        self.path = '/Secuencer' % self.name
-
-        bname = BusName(self.busname, bus)
-
-        super(TestSequencer, self).__init__(bname, self.path)
-
-    @method(dbus_interface='es.ucm.Pontifex.Sequencer',
-            in_signature='os', out_signature='')
-    def dum(self, path, method):
-        print path
-
-
 class TestInstrumentManager(InstrumentManager):
     def __init__(self, bus, loop):
         super(TestInstrumentManager, self).__init__('Test', bus, loop, _logger)
 
         self.fw = InstrumentWheel(bus, self.busname, self.path, _logger)
-        self.detector = InstrumentDetector(bus, self.busname, self.path, _logger)
+        self.detector = InstrumentDetector(None, bus, self.busname, self.path, _logger)
 
         self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
@@ -107,7 +74,6 @@ class TestInstrumentManager(InstrumentManager):
 loop = gobject.MainLoop()
 gobject.threads_init()
 
-bm = TestSequencer(dsession)
 im = TestInstrumentManager(dsession, loop)
 loop.run()
 

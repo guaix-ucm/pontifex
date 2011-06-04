@@ -21,7 +21,10 @@ _logger = logging.getLogger("instrument")
 class InstrumentDetector(Object):
     def __init__(self, description, bus, ibusname, ipath, logger=None, cid=0):
         busname = BusName(ibusname, bus=dbus.SessionBus())
-        path = '%s/Detector%d' % (ipath,cid)
+        if ipath == '/':
+            path = '/Detector%d' % (cid,)
+        else:
+            path = '%s/Detector%d' % (ipath,cid)
         super(InstrumentDetector, self).__init__(busname, path)
 
         self.logger = logger if logger is not None else _logger
@@ -68,15 +71,17 @@ class InstrumentDetector(Object):
 class InstrumentWheel(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
         name = BusName(ibusname, bus)
-        path = '%s/Wheel%d' % (ipath, cwid)
+        if ipath == '/':
+            path = '/Wheel%d' % (cwid,)
+        else:
+            path = '%s/Wheel%d' % (ipath, cwid)
+        print path
         super(InstrumentWheel, self).__init__(name, path)
         self.logger = logger if logger is not None else _logger
         self.cwid = cwid
         self.fwpos = 0
         self.fwmax = 4
 
-
- 
     @method(dbus_interface='es.ucm.Pontifex.Wheel',
             in_signature='i', out_signature='i')
     def turn(self, position):
@@ -94,7 +99,10 @@ class InstrumentWheel(Object):
 class InstrumentShutter(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
         name = BusName(ibusname, bus)
-        path = '%s/Shutter%d' % (ipath, cwid)
+        if ipath == '/':
+            path = '/Shutter%d' % (ipath, cwid)
+        else:
+            path = '%s/Shutter%d' % (ipath, cwid)
         super(InstrumentShutter, self).__init__(name, path)
         self.logger = logger if logger is not None else _logger
         self.cwid = cwid
