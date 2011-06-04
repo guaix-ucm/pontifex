@@ -7,7 +7,7 @@ import logging.config
 import datetime
 
 import numpy
-from numpy.random import normal
+from numpy.random import normal, poisson
 import dbus
 from dbus.service import Object, BusName, signal, method
 
@@ -35,6 +35,7 @@ class InstrumentDetector(Object):
         self.gain = description.gain
         self.ron = description.ron
         self.buffer = numpy.zeros(self.shape)
+        self.ls = 0.0
         self.amplifiers = description.amps
         self.meta = {}
 
@@ -51,6 +52,8 @@ class InstrumentDetector(Object):
         # Recording time of start of exposure
         self.meta['DATE-OBS'] = now.isoformat()
         self.meta['MDJ-OBS'] = datetime_to_mjd(now)
+        self.buffer += self.ls * exposure
+        self.buffer = poisson(self.buffer)
         self.buffer += self.dark * exposure
 
     def readout(self):        
@@ -67,6 +70,10 @@ class InstrumentDetector(Object):
         # readout destroys data
         self.buffer.fill(0)
         return data
+
+    def illum(self, ls):
+        self.ls = ls
+        return 0.0
 
 class InstrumentWheel(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cid=0):
@@ -96,6 +103,9 @@ class InstrumentWheel(Object):
         self.logger.info('Setting Wheel%d to %d position', self.cid, self.fwpos)
         return self.fwpos
 
+    def illum(self, ls):
+        return ls
+
 class InstrumentShutter(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cid=0):
         name = BusName(ibusname, bus)
@@ -118,6 +128,10 @@ class InstrumentShutter(Object):
     def close(self):
         self.opened = False
     
+    def illum(self, ls):
+        if self.opened:
+            return ls
+        return 0.0
 
 class InstrumentManager(Object):
     def __init__(self, name, bus, loop, logger):

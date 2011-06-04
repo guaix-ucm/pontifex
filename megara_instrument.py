@@ -54,6 +54,11 @@ class MegaraInstrumentSpectrograph(Object):
         grismid = self.gw.fwpos
         _logger.info('Exposing spectrograph %d, mode=%s, exposure=%6.1f, grism ID=%d', self.cid, imgtyp, exposure, grismid)
 
+        ls = 10000
+        ls = self.st.illum(ls)
+        ls = self.gw.illum(ls)
+        self.detector.illum(ls)
+
         self.detector.expose(exposure)
         _logger.info('Reading out')
         self.data = self.detector.readout()
