@@ -15,7 +15,7 @@ from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
-from instrument import InstrumentManager, InstrumentFilterWheel
+from instrument import InstrumentManager, InstrumentWheel
 
 logging.config.fileConfig("logging.conf")
 
@@ -36,7 +36,7 @@ class EmirInstrumentManager(InstrumentManager):
     def __init__(self, bus, loop):
         super(EmirInstrumentManager, self).__init__('Emir', bus, loop, _logger)
 
-        self.fw = InstrumentFilterWheel(bus, self.busname, self.path, _logger)
+        self.fw = InstrumentWheel(bus, self.busname, self.path, _logger)
 
         self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')

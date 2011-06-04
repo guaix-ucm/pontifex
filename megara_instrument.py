@@ -17,7 +17,7 @@ from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
-from instrument import InstrumentManager, InstrumentFilterWheel, InstrumentDetector, InstrumentShutter
+from instrument import InstrumentManager, InstrumentWheel, InstrumentDetector, InstrumentShutter
 from astrotime import datetime_to_mjd
 
 logging.config.fileConfig("logging.conf")
@@ -37,7 +37,7 @@ class MegaraInstrumentSpectrograph(Object):
         path = '%sSpectrograph%d' % (ipath, cwid)
         super(MegaraInstrumentSpectrograph, self).__init__(busname, path)
 
-        self.fw = InstrumentFilterWheel(bus, ibusname, path, _logger, cwid=0)
+        self.fw = InstrumentWheel(bus, ibusname, path, _logger, cwid=0)
 
         self.st = InstrumentShutter(bus, ibusname, path, _logger, cwid=0)
 

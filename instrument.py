@@ -65,29 +65,30 @@ class InstrumentDetector(Object):
         self.buffer.fill(0)
         return data
 
-class InstrumentFilterWheel(Object):
+class InstrumentWheel(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
         name = BusName(ibusname, bus)
-        path = '%s/FilterWheel%d' % (ipath, cwid)
+        path = '%s/Wheel%d' % (ipath, cwid)
+        super(InstrumentWheel, self).__init__(name, path)
         self.logger = logger if logger is not None else _logger
         self.cwid = cwid
         self.fwpos = 0
         self.fwmax = 4
 
-        super(InstrumentFilterWheel, self).__init__(name, path)
+
  
-    @method(dbus_interface='es.ucm.Pontifex.FilterWheel',
+    @method(dbus_interface='es.ucm.Pontifex.Wheel',
             in_signature='i', out_signature='i')
     def turn(self, position):
         self.fwpos += (position % self.fwmax)
-        self.logger.info('Turning filter wheel %d %d positions', self.cwid, position)
+        self.logger.info('Turning Wheel%d %d positions', self.cwid, position)
         return self.fwpos
 
-    @method(dbus_interface='es.ucm.Pontifex.FilterWheel',
+    @method(dbus_interface='es.ucm.Pontifex.Wheel',
             in_signature='i', out_signature='i')
     def set(self, position):
         self.fwpos = (position % self.fwmax)
-        self.logger.info('Setting filter wheel to %d position', self.cwid)
+        self.logger.info('Setting Wheel%d to %d position', self.cwid, self.fwpos)
         return self.fwpos
 
 class InstrumentShutter(Object):

@@ -15,7 +15,7 @@ from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
-from instrument import InstrumentManager, InstrumentFilterWheel, InstrumentDetector
+from instrument import InstrumentManager, InstrumentWheel, InstrumentDetector
 
 logging.config.fileConfig("logging.conf")
 
@@ -69,7 +69,7 @@ class TestInstrumentManager(InstrumentManager):
     def __init__(self, bus, loop):
         super(TestInstrumentManager, self).__init__('Test', bus, loop, _logger)
 
-        self.fw = InstrumentFilterWheel(bus, self.busname, self.path, _logger)
+        self.fw = InstrumentWheel(bus, self.busname, self.path, _logger)
         self.detector = InstrumentDetector(bus, self.busname, self.path, _logger)
 
         self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
