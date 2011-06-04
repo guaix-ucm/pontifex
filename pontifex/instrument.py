@@ -69,16 +69,16 @@ class InstrumentDetector(Object):
         return data
 
 class InstrumentWheel(Object):
-    def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
+    def __init__(self, bus, ibusname, ipath, logger=None, cid=0):
         name = BusName(ibusname, bus)
         if ipath == '/':
-            path = '/Wheel%d' % (cwid,)
+            path = '/Wheel%d' % (cid,)
         else:
-            path = '%s/Wheel%d' % (ipath, cwid)
+            path = '%s/Wheel%d' % (ipath, cid)
 
         super(InstrumentWheel, self).__init__(name, path)
         self.logger = logger if logger is not None else _logger
-        self.cwid = cwid
+        self.cid = cid
         self.fwpos = 0
         self.fwmax = 4
 
@@ -86,26 +86,26 @@ class InstrumentWheel(Object):
             in_signature='i', out_signature='i')
     def turn(self, position):
         self.fwpos += (position % self.fwmax)
-        self.logger.info('Turning Wheel%d %d positions', self.cwid, position)
+        self.logger.info('Turning Wheel%d %d positions', self.cid, position)
         return self.fwpos
 
     @method(dbus_interface='es.ucm.Pontifex.Wheel',
             in_signature='i', out_signature='i')
     def set(self, position):
         self.fwpos = (position % self.fwmax)
-        self.logger.info('Setting Wheel%d to %d position', self.cwid, self.fwpos)
+        self.logger.info('Setting Wheel%d to %d position', self.cid, self.fwpos)
         return self.fwpos
 
 class InstrumentShutter(Object):
-    def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
+    def __init__(self, bus, ibusname, ipath, logger=None, cid=0):
         name = BusName(ibusname, bus)
         if ipath == '/':
-            path = '/Shutter%d' % (ipath, cwid)
+            path = '/Shutter%d' % (ipath, cid)
         else:
-            path = '%s/Shutter%d' % (ipath, cwid)
+            path = '%s/Shutter%d' % (ipath, cid)
         super(InstrumentShutter, self).__init__(name, path)
         self.logger = logger if logger is not None else _logger
-        self.cwid = cwid
+        self.cid = cid
         self.opened = True
 
     @method(dbus_interface='es.ucm.Pontifex.Shutter',

@@ -32,14 +32,14 @@ dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
 
 class MegaraInstrumentSpectrograph(Object):
-    def __init__(self, description, bus, ibusname, ipath, logger, cwid=0):
+    def __init__(self, description, bus, ibusname, ipath, logger, cid=0):
         busname = BusName(ibusname, bus=dbus.SessionBus())
-        path = '%sSpectrograph%d' % (ipath, cwid)
+        path = '%sSpectrograph%d' % (ipath, cid)
         super(MegaraInstrumentSpectrograph, self).__init__(busname, path)
-        self.cid = cwid
-        self.gw = InstrumentWheel(bus, ibusname, path, _logger, cwid=0)
+        self.cid = cid
+        self.gw = InstrumentWheel(bus, ibusname, path, _logger, cid=0)
 
-        self.st = InstrumentShutter(bus, ibusname, path, _logger, cwid=0)
+        self.st = InstrumentShutter(bus, ibusname, path, _logger, cid=0)
         detinfo = description
         self.detector = InstrumentDetector(detinfo, bus, ibusname, 
                                     path, _logger, cid=0)
@@ -105,7 +105,7 @@ class MegaraInstrumentManager(InstrumentManager):
 
         self.sps = []
         for cid, detinfo in enumerate(description.detectors):
-            st = MegaraInstrumentSpectrograph(detinfo, bus, self.busname, self.path, _logger, cwid=cid)
+            st = MegaraInstrumentSpectrograph(detinfo, bus, self.busname, self.path, _logger, cid=cid)
             self.sps.append(st)
 
 
