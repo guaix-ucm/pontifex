@@ -21,7 +21,7 @@ _logger = logging.getLogger("instrument")
 class InstrumentDetector(Object):
     def __init__(self, description, bus, ibusname, ipath, logger=None, cid=0):
         busname = BusName(ibusname, bus=dbus.SessionBus())
-        path = '/Detector%d' % (cid,)
+        path = '%s/Detector%d' % (ipath,cid)
         super(InstrumentDetector, self).__init__(busname, path)
 
         self.logger = logger if logger is not None else _logger
@@ -68,7 +68,7 @@ class InstrumentDetector(Object):
 class InstrumentFilterWheel(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
         name = BusName(ibusname, bus)
-        path = '/FilterWheel%d' % (cwid,)
+        path = '%s/FilterWheel%d' % (ipath, cwid)
         self.logger = logger if logger is not None else _logger
         self.cwid = cwid
         self.fwpos = 0
@@ -90,6 +90,25 @@ class InstrumentFilterWheel(Object):
         self.logger.info('Setting filter wheel to %d position', self.cwid)
         return self.fwpos
 
+class InstrumentShutter(Object):
+    def __init__(self, bus, ibusname, ipath, logger=None, cwid=0):
+        name = BusName(ibusname, bus)
+        path = '%s/Shutter%d' % (ipath, cwid)
+        super(InstrumentShutter, self).__init__(name, path)
+        self.logger = logger if logger is not None else _logger
+        self.cwid = cwid
+        self.opened = True
+
+    @method(dbus_interface='es.ucm.Pontifex.Shutter',
+            in_signature='', out_signature='')
+    def open(self):
+        self.opened = True
+
+    @method(dbus_interface='es.ucm.Pontifex.Shutter',
+            in_signature='', out_signature='')
+    def close(self):
+        self.opened = False
+    
 
 class InstrumentManager(Object):
     def __init__(self, name, bus, loop, logger):

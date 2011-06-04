@@ -17,7 +17,7 @@ from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
-from instrument import InstrumentManager, InstrumentFilterWheel, InstrumentDetector
+from instrument import InstrumentManager, InstrumentFilterWheel, InstrumentDetector, InstrumentShutter
 from astrotime import datetime_to_mjd
 
 logging.config.fileConfig("logging.conf")
@@ -30,21 +30,39 @@ dsession = SessionBus(mainloop=dbus_loop)
 
 dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
+
+class MegaraInstrumentSpectrograph(Object):
+    def __init__(self, description, bus, ibusname, ipath, logger, cwid=0):
+        busname = BusName(ibusname, bus=dbus.SessionBus())
+        path = '%sSpectrograph%d' % (ipath, cwid)
+        super(MegaraInstrumentSpectrograph, self).__init__(busname, path)
+
+        self.fw = InstrumentFilterWheel(bus, ibusname, path, _logger, cwid=0)
+
+        self.st = InstrumentShutter(bus, ibusname, path, _logger, cwid=0)
+
+        detinfo = description
+        self.detector = InstrumentDetector(detinfo, bus, ibusname, 
+                                    path, _logger, cid=0)
+
+        # Metadata in a dictionary
+
+        self.meta = {}
+        _logger.info('Ready')
+
+
+
 class MegaraInstrumentManager(InstrumentManager):
     def __init__(self, description, bus, loop):
         super(MegaraInstrumentManager, self).__init__(description.name, bus, loop, _logger)
-
-        self.fw0 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=0)
-        #self.fw1 = InstrumentFilterWheel(bus, self.busname, self.path, _logger, cwid=1)
-
-        self.detectors = []
-
+        self.sps = []
         for cid, detinfo in enumerate(description.detectors):
-            self.detectors.append(InstrumentDetector(detinfo, bus, self.busname, 
-                                    self.path, _logger, cid=cid))
+            st = MegaraInstrumentSpectrograph(detinfo, bus, self.busname, self.path, _logger, cwid=cid)
+            self.sps.append(st)
 
-        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
-        self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
+
+        #self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
+        #self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
         # Metadata in a dictionary
 
         self.meta = {}
@@ -58,12 +76,12 @@ class MegaraInstrumentManager(InstrumentManager):
     @method(dbus_interface='es.ucm.Pontifex.Instrument',
             in_signature='sd', out_signature='')
     def expose(self, imgtyp, exposure):
-        filtid = self.fw0.fwpos
+        filtid = self.sps[0].fw.fwpos
         _logger.info('Exposing image type=%s, exposure=%6.1f, filter ID=%d', imgtyp, exposure, filtid)
-        for det in self.detectors:
-            det.expose(exposure)
+        for sp in self.sps:
+            sp.detector.expose(exposure)
         _logger.info('Reading out')
-        alldata = [det.readout() for det in self.detectors]
+        alldata = [sp.detector.readout() for det in self.sps]
 
         self.meta['exposure'] = exposure
         self.meta['imgtyp'] = str(imgtyp)
@@ -76,31 +94,31 @@ class MegaraInstrumentManager(InstrumentManager):
         hdr = self.header.copy()
         hdr['EXPOSED'] = self.meta['exposure']
         hdr['IMGTYP'] = self.meta['imgtyp']
-        hdr['FILTER'] = self.fw0.fwpos
+        hdr['FILTER'] = self.sps[0].fw.fwpos
         hdr['OBSTYPE'] = self.meta['imgtyp']
         hdr['IMAGETY'] = self.meta['imgtyp']
         # These fields should be updated
         hdr['OBS_MODE'] = 'FALSE'
         now = datetime.datetime.now()
         hdr['DATE'] = now.isoformat()
-        hdr['DATE-OBS'] = self.detectors[0].meta['DATE-OBS']
-        hdr['MDJ-OBS'] = self.detectors[0].meta['MDJ-OBS']
-        hdr['GAIN'] = self.detectors[0].gain
-        hdr['READNOIS'] = self.detectors[0].ron
+        hdr['DATE-OBS'] = self.sps[0].detector.meta['DATE-OBS']
+        hdr['MDJ-OBS'] = self.sps[0].detector.meta['MDJ-OBS']
+        hdr['GAIN'] = self.sps[0].detector.gain
+        hdr['READNOIS'] = self.sps[0].detector.ron
         #hdr['AIRMASS'] = 1.23234
         #hdr.update('RA', str(target.ra))    
         #hdr.update('DEC', str(target.dec))
         
         hdu0 = pyfits.PrimaryHDU(alldata[0], hdr)
-        hdu0.header['FILTER'] = self.fw0.fwpos
+        hdu0.header['FILTER'] = self.sps[0].fw.fwpos
 
         hdus = [pyfits.ImageHDU(data, hdr) for data in alldata[1:]]
         hdulist = pyfits.HDUList([hdu0] + hdus)
 
         # Preparing to send binary data back to sequencer
-        fd, filepath = tempfile.mkstemp()
-        hdulist.writeto(filepath)
-        self.dbi.store_file(filepath)
+        #fd, filepath = tempfile.mkstemp()
+        hdulist.writeto('scratch.fits', clobber=True)
+        #self.dbi.store_file(filepath)
 
     def version(self):
     	return '1.0'
