@@ -3,7 +3,7 @@ name = MEGARA
 version = 1
 
 [image]
-detectors = 1
+detectors = 2
 
 [detector_0]
 model = E2V CCD231-84-1-E74 

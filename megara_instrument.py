@@ -33,7 +33,7 @@ dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
 class MegaraInstrumentSpectrograph(Object):
     def __init__(self, description, bus, ibusname, ipath, logger, cid=0):
-        busname = BusName(ibusname, bus=dbus.SessionBus())
+        busname = BusName(ibusname, bus=bus)
         path = '%sSpectrograph%d' % (ipath, cid)
         super(MegaraInstrumentSpectrograph, self).__init__(busname, path)
         self.cid = cid
@@ -84,9 +84,7 @@ class MegaraInstrumentSpectrograph(Object):
         hdr['GAIN'] = self.detector.gain
         hdr['READNOIS'] = self.detector.ron
         hdr['SUNIT'] = self.cid
-        #hdr['AIRMASS'] = 1.23234
-        #hdr.update('RA', str(target.ra))    
-        #hdr.update('DEC', str(target.dec))
+      
         if self.cid == 0:
             return pyfits.PrimaryHDU(self.data, hdr)
         else:
@@ -125,7 +123,9 @@ class MegaraInstrumentManager(InstrumentManager):
             sp.expose(imgtyp, exposure)
     
         header = self.header.copy()
-
+        #hdr['AIRMASS'] = 1.23234
+        #hdr.update('RA', str(target.ra))    
+        #hdr.update('DEC', str(target.dec))
 
         alldata = [sp.create_fits_hdu(header) for sp in self.sps]
         self.create_fits_file(alldata)
