@@ -8,6 +8,7 @@ from StringIO import StringIO
 import logging
 import logging.config
 import tempfile
+import math
 
 import pyfits
 import numpy
@@ -30,6 +31,20 @@ dsession = SessionBus(mainloop=dbus_loop)
 
 dirad = {'bias': 'BIAS', 'dark': 'DARK'}
 
+
+def black_body(wl, temp):
+    # wl en nm, now in cm
+    wl *= 1e-7
+    x = 1.43817 / (wl * temp)
+    y = 3.742e-05 / wl**5
+    return y / (math.exp(x)-1)
+
+
+class LigthSource:
+    def __init__(self, sed, x, y):
+        self.sed = sed
+        self.x = x
+        self.y = y
 
 class MegaraInstrumentSpectrograph(Object):
     def __init__(self, description, bus, ibusname, ipath, logger, cid=0):
@@ -54,7 +69,8 @@ class MegaraInstrumentSpectrograph(Object):
         grismid = self.gw.fwpos
         _logger.info('Exposing spectrograph %d, mode=%s, exposure=%6.1f, grism ID=%d', self.cid, imgtyp, exposure, grismid)
 
-        ls = 10000
+        # ad hoc number included here
+        ls = LigthSource(lambda x: 5e-19 * black_body(x, 5500), 2048, 300)
         ls = self.st.illum(ls)
         ls = self.gw.illum(ls)
         self.detector.illum(ls)

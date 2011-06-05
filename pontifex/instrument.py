@@ -10,6 +10,8 @@ import numpy
 from numpy.random import normal, poisson
 import dbus
 from dbus.service import Object, BusName, signal, method
+from scipy.integrate import quad
+from scipy.interpolate import interp1d
 
 from astrotime import datetime_to_mjd
 
@@ -38,6 +40,10 @@ class InstrumentDetector(Object):
         self.ls = 0.0
         self.amplifiers = description.amps
         self.meta = {}
+        x = [200, 300, 400, 500, 600, 700, 800, 900, 1000]
+        y = [0.0, 0.79, 0.88, 0.92, 0.94, 0.85, 0.82, 0.79, 0.0]
+        self.eff = interp1d(x, y)
+
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
             in_signature='', out_signature='')
@@ -52,8 +58,16 @@ class InstrumentDetector(Object):
         # Recording time of start of exposure
         self.meta['DATE-OBS'] = now.isoformat()
         self.meta['MDJ-OBS'] = datetime_to_mjd(now)
-        self.buffer += self.ls * exposure
+        #
+        #
+        fun = lambda x: self.eff(x) * self.ls.sed(x) * x
+        val,_ = quad(fun, 200.0, 1000.0)
+        #for i in range(2, 4096, 6):
+        #    self.buffer[i:i+4,:] += val * exposure
+        self.buffer[2046:2050,:] += val * exposure
+        #
         self.buffer = poisson(self.buffer)
+        #self.buffer = normal(self.buffer, scale=numpy.sqrt(self.buffer))
         self.buffer += self.dark * exposure
 
     def readout(self):        
