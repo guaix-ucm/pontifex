@@ -3,7 +3,7 @@
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 from dbins import session, datadir
-from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index
+from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
 
 import logging
 import logging.config
@@ -50,6 +50,11 @@ def my_func(obid):
 
 dsession.add_signal_receiver(my_func, dbus_interface="es.ucm.Pontifex.DBengine",
                     signal_name="signal_end_obsblock")
+
+for i in get_unprocessed_obsblock(session):
+    i.status = 'PENDING'
+
+session.commit()
 
 loop.run()
 

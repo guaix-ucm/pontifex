@@ -54,6 +54,19 @@ class ProcessingBlockQueue(Base):
     pblockId = Column(Integer, primary_key=True)
     obsId = Column(Integer, ForeignKey('obsblock.obsId'))
     obsblock = relation("ObsBlock", backref=backref("procqueue", uselist=False))
+    status = Column(String(10))
+
+class DataProcessing(Base):
+    __tablename__ = 'dataprocessing'
+    processingId = Column(Integer, primary_key=True)
+    obsId = Column(Integer, ForeignKey('obsblock.obsId'))
+    obsblock = relation("ObsBlock", backref=backref("dataprocessing", uselist=False))
+    status = Column(String(10))
+    stamp = Column(DateTime)
+
+def get_unprocessed_obsblock(session):
+    return session.query(ProcessingBlockQueue)
+
 
 def get_last_image_index(session):
     try:

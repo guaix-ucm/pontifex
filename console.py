@@ -33,8 +33,8 @@ class Console(cmd.Cmd):
         bus = dbus.SessionBus()
         self.seq = bus.get_object('es.ucm.Pontifex.Sequencer', '/')
         self.seq_if = dbus.Interface(self.seq, 
-                                    dbus_interface='es.ucm.Pontifex.Sequencer.Console',
-                                    reply_handler=handle_hello_reply, error_handler=handle_hello_error)
+                                    dbus_interface='es.ucm.Pontifex.Sequencer.Console')
+                                    
 
     def do_run(self, arg):
         """Run command"""

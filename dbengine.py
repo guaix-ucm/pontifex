@@ -180,6 +180,7 @@ class DatabaseManager(Object):
             self.ob.end = datetime.datetime.utcnow()
             pbq = ProcessingBlockQueue()
             pbq.obsblock = self.ob
+            pbq.status = 'NEW'
             session.add(pbq) 
             session.commit()
             self.signal_end_obsblock(self.ob.obsId)

@@ -128,8 +128,8 @@ class MegaraInstrumentManager(InstrumentManager):
             self.sps.append(st)
 
 
-        #self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
-        #self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
+        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
+        self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
         # Metadata in a dictionary
 
         self.meta = {}
@@ -155,9 +155,9 @@ class MegaraInstrumentManager(InstrumentManager):
         _logger.info('Creating FITS data')
         hdulist = pyfits.HDUList(alldata)
         # Preparing to send binary data back to sequencer
-        #fd, filepath = tempfile.mkstemp()
-        hdulist.writeto('scratch.fits', clobber=True)
-        #self.dbi.store_file(filepath)
+        fd, filepath = tempfile.mkstemp()
+        hdulist.writeto(filepath, clobber=True)
+        self.dbi.store_file(filepath)
 
     def version(self):
     	return '1.0'
