@@ -107,7 +107,7 @@ class DatafactoryManager(Object):
                 dp.stamp = datetime.datetime.utcnow()
                 m = hashlib.md5()
                 m.update(str(time.time()))
-                #dp.hashdir = m
+                dp.hashdir = m.digest()
                 session_i.add(dp)
                 session_i.commit()
                 self.qback.task_done()

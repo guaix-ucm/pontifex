@@ -171,6 +171,6 @@ _logger.info('Loading instrument configuration')
 idescrip = numina3.parse_instrument('megara.instrument')
 
 im = MegaraInstrumentManager(idescrip, dsession, loop)
-im.expose('dark', 10)
+
 loop.run()
 
