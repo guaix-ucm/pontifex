@@ -93,7 +93,7 @@ class DatafactorySlave(Object):
                 time.sleep(10)
                 _logger.info('Finished')
                 self.queue.task_done()
-                self.rserver.receiver(pid, oid)
+                self.rserver.receiver(self.cid, pid, oid)
             else:
                 _logger.info('Ending worker thread')
                 return

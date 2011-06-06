@@ -43,18 +43,16 @@ class DatafactoryManager(Object):
     def __init__(self, bus, loop):
         name = BusName('es.ucm.Pontifex.DFP', bus)
         path = '/'
+        super(DatafactoryManager, self).__init__(name, path)
 
         self.loop = loop
-        self.timer = None
-        self.repeat = 5
         self.doned = False
-        self.queue = Queue(4)
+        self.queue = Queue()
         self.qback = Queue()
-        self.images = 0
-        super(DatafactoryManager, self).__init__(name, path)
-        _logger.info('Waiting for commands')
         self.slaves = {}
-        self.session_w = Session()
+        self.nslaves = 0
+        self.tslaves = threading.Semaphore(0)
+        _logger.info('Started')
 
 
     @method(dbus_interface='es.ucm.Pontifex.DFP')
@@ -71,12 +69,14 @@ class DatafactoryManager(Object):
 
     def register(self, hostid, host, port, capabilities):
         if hostid not in self.slaves:
+            self.nslaves += 1
             self.slaves[hostid]= (Server('%s:%d' % (host, port)), capabilities, True)
             _logger.info('Host registered %s %s %s %s', hostid, host, port, capabilities)
 
     def unregister(self, hostid):
+        self.nslaves -= 1
         del self.slaves[hostid]
-        _logger.info('Unregistering host %d %s %s %s', hostid)
+        _logger.info('Unregistering host %d', hostid)
 
     def find_server(self, pid, oid, recipe, instrument, slaves):
         _logger.info('Finding server for observation number=%d, mode=%s, instrument=%s', oid, recipe, instrument)
@@ -85,6 +85,7 @@ class DatafactoryManager(Object):
             if idle and instrument.lower() in cap:
                 _logger.info('Sending to server number=%s', idx)
                 server.pass_info(pid, oid, recipe, instrument)
+                self.nslaves -= 1
                 self.slaves[idx] = (server, cap, False)
                 return idx
         else:
@@ -106,7 +107,7 @@ class DatafactoryManager(Object):
                 return
             else:            
                 time.sleep(5)
-                for i in session_w.query(ProcessingBlockQueue).filter_by(status='NEW')[:4]:
+                for i in session_w.query(ProcessingBlockQueue).filter_by(status='NEW')[:self.nslaves]:
                     _logger.info('Enqueueing job %d for obsblock %d', i.pblockId, i.obsId)
                     self.queue.put((i.obsblock.instrument, i.obsblock.mode, i.pblockId, i.obsId))
                     i.status = 'PENDING'
@@ -161,11 +162,12 @@ class DatafactoryManager(Object):
                     _logger.info('Processing %s, %s, %d, %d in slave %d', ins, mod, pid, oid, cid)
 
 
-    def receiver(self, pid, oid):
+    def receiver(self, cid, pid, oid):
         self.queue.task_done()
         self.qback.put(('workdone', pid, oid))
-        r = self.slaves[0]
-        self.slaves[0] = (r[0], r[1], True)
+        self.nslaves += 1
+        r = self.slaves[cid]
+        self.slaves[cid] = (r[0], r[1], True)
 
 loop = gobject.MainLoop()
 gobject.threads_init()
