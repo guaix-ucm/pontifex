@@ -32,7 +32,7 @@ Session = sessionmaker(bind=engine)
 logging.config.fileConfig("logging.conf")
 
 # create logger
-_logger = logging.getLogger("datafactory")
+_logger = logging.getLogger("DF")
 
 dbus_loop = DBusGMainLoop()
 dsession = SessionBus(mainloop=dbus_loop)
@@ -72,22 +72,24 @@ class DatafactoryManager(Object):
     def register(self, hostid, host, port, capabilities):
         if hostid not in self.slaves:
             self.slaves[hostid]= (Server('%s:%d' % (host, port)), capabilities, True)
-            _logger.info('Host registered %s %s %s %s', id, host, port, capabilities)
+            _logger.info('Host registered %s %s %s %s', hostid, host, port, capabilities)
 
-    def find_server(self, number, recipe, instrument, slaves):
-        _logger.info('Finding server for observation number=%s, mode=%s, instrument=%s', number, recipe, instrument)
-        
+    def unregister(self, hostid):
+        del self.slaves[hostid]
+        _logger.info('Unregistering host %d %s %s %s', hostid)
+
+    def find_server(self, pid, oid, recipe, instrument, slaves):
+        _logger.info('Finding server for observation number=%d, mode=%s, instrument=%s', oid, recipe, instrument)
         for idx in self.slaves:
             server, cap, idle = self.slaves[idx]
-            if idle and instrument in cap:
+            if idle and instrument.lower() in cap:
                 _logger.info('Sending to server number=%s', idx)
-                server.pass_info(number, recipe, instrument)
+                server.pass_info(pid, oid, recipe, instrument)
                 self.slaves[idx] = (server, cap, False)
                 return idx
-
-
-        #pending.put((number, recipe, instrument))
-        _logger.info('No server for observation number=%s, mode=%s, instrument=%s', number, recipe, instrument)
+        else:
+            _logger.info('No server for observation number=%d, mode=%s, instrument=%s', oid, recipe, instrument)
+            self.qback.put(('failed', pid, oid))
         
         return None
 
@@ -125,18 +127,23 @@ class DatafactoryManager(Object):
                 _logger.info('Insert thread finished')
                 return
             else:
-                _, pid, oid = val
-                _logger.info('Updating done work, obsblock %d', oid)
-                myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
-                myobsblock.status = 'DONE'
-                dp = DataProcessing()
-                dp.obsId = oid
-                dp.status = 'DONE'
-                dp.stamp = datetime.datetime.utcnow()
-                m = hashlib.md5()
-                m.update(str(time.time()))
-                dp.hashdir = m.digest()
-                session_i.add(dp)
+                flag, pid, oid = val
+                if flag == 'workdone':
+                    _logger.info('Updating done work, obsblock %d', int(oid))
+                    myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
+                    myobsblock.status = 'DONE'
+                    dp = DataProcessing()
+                    dp.obsId = oid
+                    dp.status = 'DONE'
+                    dp.stamp = datetime.datetime.utcnow()
+                    m = hashlib.md5()
+                    m.update(str(time.time()))
+                    dp.hashdir = m.digest()
+                    session_i.add(dp)
+                else:
+                    _logger.info('Updating failed work, obsblock %d', oid)
+                    myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
+                    myobsblock.status = 'FAILED'
                 session_i.commit()
                 self.qback.task_done()
 
@@ -148,10 +155,17 @@ class DatafactoryManager(Object):
                 return
             else:
                 ins, mod, pid, oid = val
-                _logger.info('Processing %s, %s, %d, %d', ins, mod, pid, oid)
-                time.sleep(20)
-                self.queue.task_done()
-                self.qback.put(('workdone', pid, oid))
+                
+                cid = self.find_server(pid, oid, mod, ins, self.slaves)
+                if cid is not None:
+                    _logger.info('Processing %s, %s, %d, %d in slave %d', ins, mod, pid, oid, cid)
+
+
+    def receiver(self, pid, oid):
+        self.queue.task_done()
+        self.qback.put(('workdone', pid, oid))
+        r = self.slaves[0]
+        self.slaves[0] = (r[0], r[1], True)
 
 loop = gobject.MainLoop()
 gobject.threads_init()
@@ -159,7 +173,9 @@ gobject.threads_init()
 im = DatafactoryManager(dsession, loop)
 
 tserver = txrServer(('localhost', 7081), allow_none=True, logRequests=False)
-tserver.register_instance(im.register)
+tserver.register_function(im.register)
+tserver.register_function(im.unregister)
+tserver.register_function(im.receiver)
 xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
 
@@ -174,8 +190,7 @@ inserter.start()
 consumer = threading.Thread(target=im.consumer)
 consumer.start()
 
-consumer2 = threading.Thread(target=im.consumer)
-consumer2.start()
+
 
 try:
     loop.run()
