@@ -2,7 +2,7 @@
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 from sqlalchemy import desc
-from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, ForeignKey, Float
+from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, ForeignKey, Float, Binary
 from sqlalchemy.orm import relation, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -54,7 +54,7 @@ class ProcessingBlockQueue(Base):
     pblockId = Column(Integer, primary_key=True)
     obsId = Column(Integer, ForeignKey('obsblock.obsId'))
     obsblock = relation("ObsBlock", backref=backref("procqueue", uselist=False))
-    status = Column(String(10))
+    status = Column(String(10), default='NEW')
 
 class DataProcessing(Base):
     __tablename__ = 'dataprocessing'
@@ -63,6 +63,8 @@ class DataProcessing(Base):
     obsblock = relation("ObsBlock", backref=backref("dataprocessing", uselist=False))
     status = Column(String(10))
     stamp = Column(DateTime)
+    hashdir = Column(Binary(16))
+
 
 def get_unprocessed_obsblock(session):
     return session.query(ProcessingBlockQueue)
