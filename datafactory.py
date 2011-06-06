@@ -9,6 +9,7 @@ import logging.config
 from Queue import Queue
 import hashlib
 import datetime
+from xmlrpclib import Server, ProtocolError, Error
 
 import gobject
 import dbus
@@ -22,6 +23,7 @@ from sql import Base
 from ptimer import PeriodicTimer
 from dbins import datadir
 from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
+from txrServer import txrServer
 
 engine = create_engine('sqlite:///operation.db', echo=True)
 Base.metadata.create_all(engine) 
@@ -34,6 +36,8 @@ _logger = logging.getLogger("datafactory")
 
 dbus_loop = DBusGMainLoop()
 dsession = SessionBus(mainloop=dbus_loop)
+
+df_server = Server('http://127.0.0.1:7080')
 
 class DatafactoryManager(Object):
     def __init__(self, bus, loop):
@@ -49,7 +53,7 @@ class DatafactoryManager(Object):
         self.images = 0
         super(DatafactoryManager, self).__init__(name, path)
         _logger.info('Waiting for commands')
-
+        self.slaves = {}
         self.session_w = Session()
 
 
@@ -65,31 +69,55 @@ class DatafactoryManager(Object):
     def version(self):
     	return '1.0'
 
+    def register(self, hostid, host, port, capabilities):
+        if hostid not in self.slaves:
+            self.slaves[hostid]= (Server('%s:%d' % (host, port)), capabilities, True)
+            _logger.info('Host registered %s %s %s %s', id, host, port, capabilities)
+
+    def find_server(self, number, recipe, instrument, slaves):
+        _logger.info('Finding server for observation number=%s, mode=%s, instrument=%s', number, recipe, instrument)
+        
+        for idx in self.slaves:
+            server, cap, idle = self.slaves[idx]
+            if idle and instrument in cap:
+                _logger.info('Sending to server number=%s', idx)
+                server.pass_info(number, recipe, instrument)
+                self.slaves[idx] = (server, cap, False)
+                return idx
+
+
+        #pending.put((number, recipe, instrument))
+        _logger.info('No server for observation number=%s, mode=%s, instrument=%s', number, recipe, instrument)
+        
+        return None
+
+
     def watchdog(self):
-        if self.doned:
-            _logger.info('Cleaning up PENDING jobs')
-            for i in self.session_w.query(ProcessingBlockQueue).filter_by(status='PENDING'):
-                i.status = 'NEW'
-            self.session_w.commit()            
-            return
-        else:
-            _logger.info('Checking database for ObsBlocks')
-            # do something here ...
-            for i in get_unprocessed_obsblock(self.session_w):
-                if i.status == 'NEW':
+        session_w = Session()
+        while True:
+            if self.doned:
+                _logger.info('Cleaning up PENDING jobs')
+                for i in session_w.query(ProcessingBlockQueue).filter_by(status='PENDING'):
+                    i.status = 'NEW'
+                session_w.commit()
+                _logger.info('Watchdog thread is finished')          
+                return
+            else:            
+                time.sleep(5)
+                for i in session_w.query(ProcessingBlockQueue).filter_by(status='NEW')[:4]:
                     _logger.info('Enqueueing job %d for obsblock %d', i.pblockId, i.obsId)
                     self.queue.put((i.obsblock.instrument, i.obsblock.mode, i.pblockId, i.obsId))
                     i.status = 'PENDING'
-                    self.session_w.commit()
+                    session_w.commit()
 
     def inserter(self):
         session_i = Session()
         # clean up
-        for i in get_unprocessed_obsblock(session_i):
-            if i.status == 'PENDING':
-                _logger.info('Fixing job %d', i.obsId)
-                i.status = 'NEW'
-            session_i.commit()
+        q = session_i.query(ProcessingBlockQueue).filter_by(status='PENDING')
+        for i in q:
+            _logger.info('Fixing job %d', i.obsId)
+            i.status = 'NEW'
+        session_i.commit()
 
         while True:
             val = self.qback.get()
@@ -115,25 +143,29 @@ class DatafactoryManager(Object):
     def consumer(self):
         while True:
             val = self.queue.get()
-            if self.doned:
+            if self.doned or val is None:
+                _logger.info('Consumer thread is finished')
                 return
-            if val is not None:
+            else:
                 ins, mod, pid, oid = val
                 _logger.info('Processing %s, %s, %d, %d', ins, mod, pid, oid)
                 time.sleep(20)
                 self.queue.task_done()
                 self.qback.put(('workdone', pid, oid))
-            else:
-                return
-
 
 loop = gobject.MainLoop()
 gobject.threads_init()
 
 im = DatafactoryManager(dsession, loop)
 
+tserver = txrServer(('localhost', 7081), allow_none=True, logRequests=False)
+tserver.register_instance(im.register)
+xmls = threading.Thread(target=tserver.serve_forever)
+xmls.start()
+
 POLL = 5
-timer = PeriodicTimer(POLL, im.watchdog)
+_logger.info('Polling database for new ObsBlocks every %d seconds', POLL)
+timer = threading.Thread(target=im.watchdog)
 timer.start()
 
 inserter = threading.Thread(target=im.inserter)
@@ -149,4 +181,5 @@ try:
     loop.run()
 except KeyboardInterrupt:
     im.quit()
-    timer.end()
+    tserver.shutdown()
+

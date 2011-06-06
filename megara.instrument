@@ -3,8 +3,8 @@ name = MEGARA
 version = 1
 
 [image]
-detectors = 2
-spectrographs = 2
+detectors = 1
+spectrographs = 1
 
 [spectrograph_0]
 
