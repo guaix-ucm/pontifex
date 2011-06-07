@@ -90,7 +90,7 @@ class InstrumentDetector(Object):
         return 0.0
 
 class InstrumentWheel(Object):
-    def __init__(self, bus, ibusname, ipath, logger=None, cid=0):
+    def __init__(self, description, bus, ibusname, ipath, logger=None, cid=0):
         name = BusName(ibusname, bus)
         if ipath == '/':
             path = '/Wheel%d' % (cid,)
@@ -101,7 +101,7 @@ class InstrumentWheel(Object):
         self.logger = logger if logger is not None else _logger
         self.cid = cid
         self.fwpos = 0
-        self.fwmax = 4
+        self.fwmax = len(description.grisms)
 
     @method(dbus_interface='es.ucm.Pontifex.Wheel',
             in_signature='i', out_signature='i')

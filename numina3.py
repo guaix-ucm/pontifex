@@ -17,11 +17,12 @@ class WheelDescription(object):
 class AmplifierDescription(object):
     pass
 
-class WheelDescription(object):
+class SpectrographDescription(object):
     pass
 
 class GrismDescription(object):
     pass
+
 class DetectorDescription(object):
     pass
 
@@ -36,9 +37,10 @@ def parse_instrument(fd):
     ins.name = config.get('instrument', 'name')
     ins.version = config.get('instrument', 'version')
     nspec = config.getint('instrument', 'spectrographs')
+    sp = SpectrographDescription()
 
     nwheel = config.getint('spectrograph_0', 'wheels')
-    ins.wheels = []
+    sp.wheels = []
     dfunc = lambda x: 'wheel_%d' % x
     for i in range(nwheel):
         wheel = WheelDescription()
@@ -48,7 +50,7 @@ def parse_instrument(fd):
 
         afunc = lambda x: 'grism_%d_%d' % (i, x)
         wheel.grisms = []
-        ins.wheels.append(wheel)
+        sp.wheels.append(wheel)
 
         for j in range(namp):
             amp = GrismDescription()
@@ -60,7 +62,7 @@ def parse_instrument(fd):
     ndetect = config.getint('spectrograph_0', 'detectors')
     dfunc = lambda x: 'detector_%d' % x
 
-    ins.dets = []
+    sp.detectors = []
 
     for i in range(ndetect):
         det = DetectorDescription()
@@ -78,7 +80,7 @@ def parse_instrument(fd):
         afunc = lambda x: 'amp_%d_%d' % (i, x)
         amps = []
         det.amps = amps
-        ins.dets.append(det)
+        sp.detectors.append(det)
 
         for j in range(namp):
             amp = AmplifierDescription()
@@ -90,8 +92,7 @@ def parse_instrument(fd):
             amps.append(amp)
             _logger.debug('reading %s', alabel)
 
-    ins.detectors = ins.dets
-    del ins.dets
+    ins.spectrograph = sp
 
     return ins
 

@@ -52,11 +52,10 @@ class MegaraInstrumentSpectrograph(Object):
         path = '%sSpectrograph%d' % (ipath, cid)
         super(MegaraInstrumentSpectrograph, self).__init__(busname, path)
         self.cid = cid
-        self.gw = InstrumentWheel(bus, ibusname, path, _logger, cid=0)
+        self.gw = InstrumentWheel(description.wheels[0], bus, ibusname, path, _logger, cid=0)
 
         self.st = InstrumentShutter(bus, ibusname, path, _logger, cid=0)
-        detinfo = description
-        self.detector = InstrumentDetector(detinfo, bus, ibusname, 
+        self.detector = InstrumentDetector(description.detectors[0], bus, ibusname, 
                                     path, _logger, cid=0)
         self.data = None # buffer
         # Metadata in a dictionary
@@ -123,9 +122,10 @@ class MegaraInstrumentManager(InstrumentManager):
         self.header.update('OBSERVER', 'Pontifex')        
 
         self.sps = []
-        for cid, detinfo in enumerate(description.detectors):
-            st = MegaraInstrumentSpectrograph(detinfo, bus, self.busname, self.path, _logger, cid=cid)
-            self.sps.append(st)
+        cid = 0
+        st = MegaraInstrumentSpectrograph(description.spectrograph, 
+                bus, self.busname, self.path, _logger, cid=cid)
+        self.sps.append(st)
 
 
         self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
