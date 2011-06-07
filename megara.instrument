@@ -1,27 +1,40 @@
 [instrument]
 name = MEGARA
 version = 1
-
-[image]
-detectors = 1
 spectrographs = 1
 
 [spectrograph_0]
+wheels = 1
+detectors = 1
 
 [spectrograph_1]
 
 [wheel_0]
+elements = 11
+
 [grism_0_0]
+name = Nombre
 [grism_0_1]
+name = Nombre
 [grism_0_2]
+name = Nombre
 [grism_0_3]
+name = Nombre
 [grism_0_4]
+name = Nombre
 [grism_0_5]
+name = Nombre
 [grism_0_6]
+name = Nombre
 [grism_0_7]
+name = Nombre
 [grism_0_8]
+name = Nombre
 [grism_0_9]
+name = Nombre
 [grism_0_10]
+name = Nombre
+
 [wheel_1]
 [grism_1_0]
 [grism_1_1]

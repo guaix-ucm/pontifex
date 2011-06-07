@@ -11,9 +11,17 @@ _logger = logging.getLogger('parser')
 class InstrumentDescription(object):
     pass
 
+class WheelDescription(object):
+    pass
+
 class AmplifierDescription(object):
     pass
 
+class WheelDescription(object):
+    pass
+
+class GrismDescription(object):
+    pass
 class DetectorDescription(object):
     pass
 
@@ -27,10 +35,29 @@ def parse_instrument(fd):
     _logger.debug('reading %s', 'instrument')
     ins.name = config.get('instrument', 'name')
     ins.version = config.get('instrument', 'version')
-    # read image
-    _logger.debug('reading %s', 'image')
-    ndetect = config.getint('image', 'detectors')
-    
+    nspec = config.getint('instrument', 'spectrographs')
+
+    nwheel = config.getint('spectrograph_0', 'wheels')
+    ins.wheels = []
+    dfunc = lambda x: 'wheel_%d' % x
+    for i in range(nwheel):
+        wheel = WheelDescription()
+        dlabel = dfunc(i)
+        _logger.debug('reading %s', dlabel)
+        namp = config.getint(dlabel, 'elements')
+
+        afunc = lambda x: 'grism_%d_%d' % (i, x)
+        wheel.grisms = []
+        ins.wheels.append(wheel)
+
+        for j in range(namp):
+            amp = GrismDescription()
+            alabel = afunc(j)
+            amp.name = config.get(alabel, 'name')
+            wheel.grisms.append(amp)
+            _logger.debug('reading %s', alabel)
+
+    ndetect = config.getint('spectrograph_0', 'detectors')
     dfunc = lambda x: 'detector_%d' % x
 
     ins.dets = []
