@@ -10,6 +10,8 @@ from Queue import Queue
 import hashlib
 import datetime
 from xmlrpclib import Server, ProtocolError, Error
+import os
+import os.path
 
 import gobject
 import dbus
@@ -73,6 +75,10 @@ class DatafactoryManager(Object):
             self.slaves[hostid]= (Server('%s:%d' % (host, port)), capabilities, True)
             _logger.info('Host registered %s %s %s %s', hostid, host, port, capabilities)
 
+    def init_workdir(self, hashdir):
+        basedir = 'proc'
+        os.mkdir(os.path.join(basedir, hashdir))
+
     def unregister(self, hostid):
         self.nslaves -= 1
         del self.slaves[hostid]
@@ -87,6 +93,7 @@ class DatafactoryManager(Object):
                 m = hashlib.md5()
                 m.update(str(time.time()))
                 workdir = m.hexdigest()
+                self.init_workdir(workdir)
                 server.pass_info(pid, oid, recipe, instrument, workdir)
                 self.nslaves -= 1
                 self.slaves[idx] = (server, cap, False)
