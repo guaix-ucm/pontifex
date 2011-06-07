@@ -10,6 +10,31 @@ spectrographs = 1
 
 [spectrograph_1]
 
+[wheel_0]
+[grism_0_0]
+[grism_0_1]
+[grism_0_2]
+[grism_0_3]
+[grism_0_4]
+[grism_0_5]
+[grism_0_6]
+[grism_0_7]
+[grism_0_8]
+[grism_0_9]
+[grism_0_10]
+[wheel_1]
+[grism_1_0]
+[grism_1_1]
+[grism_1_2]
+[grism_1_3]
+[grism_1_4]
+[grism_1_5]
+[grism_1_6]
+[grism_1_7]
+[grism_1_8]
+[grism_1_9]
+[grism_1_10]
+
 [detector_0]
 model = E2V CCD231-84-1-E74 
 amplifiers = 2
