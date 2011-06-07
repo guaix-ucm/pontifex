@@ -79,21 +79,22 @@ class DatafactorySlave(Object):
             self.slaves[hostid]= (Server('%s:%d' % (host, port)), capabilities, True)
             _logger.info('Host registered %s %s %s %s', id, host, port, capabilities)
 
-    def pass_info(self, pid, n, tr, i):
+    def pass_info(self, pid, n, tr, i, workdir):
         _logger.info('Received observation number=%s, recipe=%s, instrument=%s', n, tr, i)
-        self.queue.put((pid, n, tr, i))
+        self.queue.put((pid, n, tr, i, workdir))
 
     def worker(self):
         while True:
             v = self.queue.get()
             if v is not None:
-                pid, oid, tr, i = v
+                pid, oid, tr, i, workdir = v
                 name = threading.current_thread().name
                 _logger.info('Processing observation number=%s, recipe=%s, instrument=%s', oid, tr, i)
-                time.sleep(10)
+                _logger.info('on directory %s', workdir)
+                time.sleep(20)
                 _logger.info('Finished')
                 self.queue.task_done()
-                self.rserver.receiver(self.cid, pid, oid)
+                self.rserver.receiver(self.cid, pid, oid, workdir)
             else:
                 _logger.info('Ending worker thread')
                 return

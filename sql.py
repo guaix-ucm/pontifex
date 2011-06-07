@@ -63,7 +63,7 @@ class DataProcessing(Base):
     obsblock = relation("ObsBlock", backref=backref("dataprocessing", uselist=False))
     status = Column(String(10))
     stamp = Column(DateTime)
-    hashdir = Column(Binary(16))
+    hashdir = Column(String(32))
 
 
 def get_unprocessed_obsblock(session):

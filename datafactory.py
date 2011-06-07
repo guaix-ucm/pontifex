@@ -84,7 +84,10 @@ class DatafactoryManager(Object):
             server, cap, idle = self.slaves[idx]
             if idle and instrument.lower() in cap:
                 _logger.info('Sending to server number=%s', idx)
-                server.pass_info(pid, oid, recipe, instrument)
+                m = hashlib.md5()
+                m.update(str(time.time()))
+                workdir = m.hexdigest()
+                server.pass_info(pid, oid, recipe, instrument, workdir)
                 self.nslaves -= 1
                 self.slaves[idx] = (server, cap, False)
                 return idx
@@ -128,8 +131,8 @@ class DatafactoryManager(Object):
                 _logger.info('Insert thread finished')
                 return
             else:
-                flag, pid, oid = val
-                if flag == 'workdone':
+                if val[0] == 'workdone':
+                    flag, pid, oid, workdir = val
                     _logger.info('Updating done work, obsblock %d', int(oid))
                     myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
                     myobsblock.status = 'DONE'
@@ -137,12 +140,10 @@ class DatafactoryManager(Object):
                     dp.obsId = oid
                     dp.status = 'DONE'
                     dp.stamp = datetime.datetime.utcnow()
-                    m = hashlib.md5()
-                    m.update(str(time.time()))
-                    dp.hashdir = m.digest()
+                    dp.hashdir = workdir
                     session_i.add(dp)
                 else:
-                    _logger.info('Updating failed work, obsblock %d', oid)
+                    _logger.info('Updating failed work, obsblock %d', val[2])
                     myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
                     myobsblock.status = 'FAILED'
                 session_i.commit()
@@ -162,9 +163,9 @@ class DatafactoryManager(Object):
                     _logger.info('Processing %s, %s, %d, %d in slave %d', ins, mod, pid, oid, cid)
 
 
-    def receiver(self, cid, pid, oid):
+    def receiver(self, cid, pid, oid, workdir):
         self.queue.task_done()
-        self.qback.put(('workdone', pid, oid))
+        self.qback.put(('workdone', pid, oid, workdir))
         self.nslaves += 1
         r = self.slaves[cid]
         self.slaves[cid] = (r[0], r[1], True)
