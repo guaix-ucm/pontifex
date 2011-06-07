@@ -60,7 +60,6 @@ class MegaraInstrumentSpectrograph(Object):
         self.data = None # buffer
         # Metadata in a dictionary
         self.meta = {}
-        _logger.info('Ready')
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument',
             in_signature='sd', out_signature='')

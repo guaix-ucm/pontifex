@@ -84,11 +84,11 @@ class SeqManager(Object):
         ins = self.instruments[name]
         ins_if = dbus.Interface(ins, dbus_interface='es.ucm.Pontifex.Instrument')
 
-        fw_i = dbus.SessionBus().get_object('es.ucm.Pontifex.Instrument.MEGARA', '/FilterWheel0')
-        fw_i_if = dbus.Interface(fw_i, dbus_interface='es.ucm.Pontifex.FilterWheel')
+        fw_i = dbus.SessionBus().get_object('es.ucm.Pontifex.Instrument.MEGARA', '/Spectrograph0/Wheel0')
+        fw_i_if = dbus.Interface(fw_i, dbus_interface='es.ucm.Pontifex.Wheel')
 
         self.db_i_if.start_obsblock(name, 'flat')
-        fw_i_if.set(filterpos)
+        fw_i_if.set_position(filterpos)
         for i in range(repeat):
             ins_if.expose('flat', exposure)
         self.db_i_if.end_obsblock()
@@ -125,8 +125,8 @@ class SeqManager(Object):
         test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/')
         test_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Instrument')
 
-        fw_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/FilterWheel0')
-        fw_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.FilterWheel')
+        fw_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/Wheel0')
+        fw_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Wheel')
 
 
         self.db_i_if.start_obsblock('test', 'flat')

@@ -89,6 +89,17 @@ class InstrumentDetector(Object):
         self.ls = ls
         return 0.0
 
+class Grism(Object):
+    def __init__(self, description, bus, ibusname, ipath, logger=None, cid=0):
+        name = BusName(ibusname, bus)
+        if ipath == '/':
+            path = '/Grism%d' % (cid,)
+        else:
+            path = '%s/Grism%d' % (ipath, cid)
+
+        super(Grism, self).__init__(name, path)
+        self.name = description.name
+
 class InstrumentWheel(Object):
     def __init__(self, description, bus, ibusname, ipath, logger=None, cid=0):
         name = BusName(ibusname, bus)
@@ -103,15 +114,10 @@ class InstrumentWheel(Object):
         self.fwpos = 0
         self.fwmax = len(description.grisms)
 
-
-        class WheelElement(object):
-            pass
-
         self.elements = []
 
-        for grism in description.grisms:
-            el = WheelElement()
-            el.name = grism.name
+        for cid, grism in enumerate(description.grisms):
+            el = Grism(grism, bus, ibusname, path, logger=logger, cid=cid)
             self.elements.append(el)
 
     @method(dbus_interface='es.ucm.Pontifex.Wheel',
@@ -121,9 +127,10 @@ class InstrumentWheel(Object):
         self.logger.info('Turning Wheel%d %d positions', self.cid, position)
         return self.fwpos
 
+
     @method(dbus_interface='es.ucm.Pontifex.Wheel',
             in_signature='i', out_signature='i')
-    def set(self, position):
+    def set_position(self, position):
         self.fwpos = (position % self.fwmax)
         self.logger.info('Setting Wheel%d to %d position', self.cid, self.fwpos)
         return self.fwpos
@@ -133,6 +140,11 @@ class InstrumentWheel(Object):
 
     def current(self):
         return self.elements[self.fwpos]
+
+    @method(dbus_interface='es.ucm.Pontifex.Wheel',
+            in_signature='', out_signature='o')
+    def current_element(self):
+        return self.current()._object_path
 
 class InstrumentShutter(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cid=0):
