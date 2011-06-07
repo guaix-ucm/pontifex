@@ -91,7 +91,7 @@ class MegaraInstrumentSpectrograph(Object):
         hdr['EXPOSED'] = self.meta['exposure']
         hdr['EXPTIME'] = self.meta['exposure']
         hdr['IMGTYP'] = self.meta['imgtyp']
-        hdr['GRISM'] = self.gw.fwpos
+        hdr['GRISM'] = self.gw.current().name
         hdr['OBSTYPE'] = self.meta['imgtyp']
         hdr['IMAGETY'] = self.meta['imgtyp']
         hdr['OBS_MODE'] = self.meta['imgtyp'].upper()

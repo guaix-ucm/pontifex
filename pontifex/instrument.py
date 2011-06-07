@@ -103,6 +103,17 @@ class InstrumentWheel(Object):
         self.fwpos = 0
         self.fwmax = len(description.grisms)
 
+
+        class WheelElement(object):
+            pass
+
+        self.elements = []
+
+        for grism in description.grisms:
+            el = WheelElement()
+            el.name = grism.name
+            self.elements.append(el)
+
     @method(dbus_interface='es.ucm.Pontifex.Wheel',
             in_signature='i', out_signature='i')
     def turn(self, position):
@@ -119,6 +130,9 @@ class InstrumentWheel(Object):
 
     def illum(self, ls):
         return ls
+
+    def current(self):
+        return self.elements[self.fwpos]
 
 class InstrumentShutter(Object):
     def __init__(self, bus, ibusname, ipath, logger=None, cid=0):

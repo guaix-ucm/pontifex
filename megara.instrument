@@ -13,9 +13,9 @@ detectors = 1
 elements = 11
 
 [grism_0_0]
-name = Nombre
+name = Nombre 0
 [grism_0_1]
-name = Nombre
+name = Nombre 1
 [grism_0_2]
 name = Nombre
 [grism_0_3]
