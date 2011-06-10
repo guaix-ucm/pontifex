@@ -13,27 +13,27 @@ detectors = 1
 elements = 11
 
 [grism_0_0]
-name = Nombre 0
+name = HR-R
 [grism_0_1]
-name = Nombre 1
+name = HR-I
 [grism_0_2]
-name = Nombre
+name = MR-U
 [grism_0_3]
-name = Nombre
+name = MR-B
 [grism_0_4]
-name = Nombre
+name = MR-V
 [grism_0_5]
-name = Nombre
+name = MR-O
 [grism_0_6]
-name = Nombre
+name = LR-U
 [grism_0_7]
-name = Nombre
+name = LR-B
 [grism_0_8]
-name = Nombre
+name = LR-G
 [grism_0_9]
-name = Nombre
+name = LR-R
 [grism_0_10]
-name = Nombre
+name = LR-I
 
 [wheel_1]
 [grism_1_0]

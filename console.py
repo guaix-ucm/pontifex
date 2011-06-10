@@ -5,7 +5,9 @@
 import os
 import cmd
 import readline
+import threading
 
+import gobject
 import dbus
 from dbus.service import Object, BusName, signal, method
 
@@ -119,4 +121,13 @@ class Console(cmd.Cmd):
 
 if __name__ == '__main__':
     console = Console()
-    console.cmdloop() 
+
+    loop = gobject.MainLoop()
+    gobject.threads_init()
+
+    td = threading.Thread(target=console.cmdloop())
+    td.start()
+    loop.run()
+
+
+
