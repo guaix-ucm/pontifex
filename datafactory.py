@@ -9,7 +9,7 @@ import logging.config
 from Queue import Queue
 import hashlib
 import datetime
-from xmlrpclib import Server, ProtocolError, Error
+from xmlrpclib import ServerProxy, ProtocolError, Error
 import os
 import os.path
 
@@ -39,7 +39,7 @@ _logger = logging.getLogger("DF")
 dbus_loop = DBusGMainLoop()
 dsession = SessionBus(mainloop=dbus_loop)
 
-df_server = Server('http://127.0.0.1:7080')
+df_server = ServerProxy('http://127.0.0.1:7080')
 
 class DatafactoryManager(Object):
     def __init__(self, bus, loop):
@@ -72,7 +72,7 @@ class DatafactoryManager(Object):
     def register(self, hostid, host, port, capabilities):
         if hostid not in self.slaves:
             self.nslaves += 1
-            self.slaves[hostid]= (Server('%s:%d' % (host, port)), capabilities, True)
+            self.slaves[hostid]= (ServerProxy('%s:%d' % (host, port)), capabilities, True)
             _logger.info('Host registered %s %s %s %s', hostid, host, port, capabilities)
 
     def init_workdir(self, hashdir):
