@@ -27,7 +27,7 @@ from dbins import datadir
 from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
 from txrServer import txrServer
 
-engine = create_engine('sqlite:///operation.db', echo=True)
+engine = create_engine('sqlite:///devdata.db', echo=True)
 Base.metadata.create_all(engine) 
 Session = sessionmaker(bind=engine)
 
@@ -139,20 +139,29 @@ class DatafactoryManager(Object):
                 return
             else:
                 if val[0] == 'workdone':
-                    flag, pid, oid, workdir = val
+                    flag, cid, pid, oid, workdir = val
                     _logger.info('Updating done work, obsblock %d', int(oid))
                     myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
                     myobsblock.status = 'DONE'
                     dp = DataProcessing()
                     dp.obsId = oid
-                    dp.status = 'DONE'
+                    dp.status = 2 # Done
                     dp.stamp = datetime.datetime.utcnow()
                     dp.hashdir = workdir
+                    #server = self.slaves[cid][0]
+                    dp.host = str(cid)
                     session_i.add(dp)
                 else:
-                    _logger.info('Updating failed work, obsblock %d', val[2])
+                    _logger.info('Updating failed work, obsblock %d', val[3])
                     myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
                     myobsblock.status = 'FAILED'
+                    dp = DataProcessing()
+                    dp.obsId = oid
+                    dp.status = 3 # FAILLED
+                    dp.stamp = datetime.datetime.utcnow()
+                    dp.hashdir = workdir
+                    dp.host = str(val[2])
+                    session_i.add(dp)
                 session_i.commit()
                 self.qback.task_done()
 
@@ -172,7 +181,7 @@ class DatafactoryManager(Object):
 
     def receiver(self, cid, pid, oid, workdir):
         self.queue.task_done()
-        self.qback.put(('workdone', pid, oid, workdir))
+        self.qback.put(('workdone', cid, pid, oid, workdir))
         self.nslaves += 1
         r = self.slaves[cid]
         self.slaves[cid] = (r[0], r[1], True)

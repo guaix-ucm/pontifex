@@ -18,7 +18,7 @@ class ObsRun(Base):
 
     def __init__(self, pi_data):
         self.piData = pi_data
-        self.status = 'IDLE'
+        self.status = 'RUNNING'
 
 class ObsBlock(Base):
     __tablename__ = 'obsblock'
@@ -61,14 +61,20 @@ class DataProcessing(Base):
     processingId = Column(Integer, primary_key=True)
     obsId = Column(Integer, ForeignKey('obsblock.obsId'))
     obsblock = relation("ObsBlock", backref=backref("dataprocessing", uselist=False))
-    status = Column(String(10))
+    status = Column(Integer, ForeignKey('dp_status_enum.dpenumId'), default=1)
+    st_enum = relation("DataProcessingStatusEnum")
     stamp = Column(DateTime)
     hashdir = Column(String(32))
+    host = Column(String(128))
+
+class DataProcessingStatusEnum(Base):
+    __tablename__ = 'dp_status_enum'
+    dpenumId = Column(Integer, primary_key=True)
+    status = Column(String(10), nullable=False, unique=True)
 
 
 def get_unprocessed_obsblock(session):
     return session.query(ProcessingBlockQueue)
-
 
 def get_last_image_index(session):
     try:

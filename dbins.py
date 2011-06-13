@@ -6,7 +6,8 @@ from sqlalchemy.orm import sessionmaker
     
 from sql import Base
 
-engine = create_engine('sqlite:///operation.db', echo=False)
+#engine = create_engine('sqlite:///operation.db', echo=False)
+engine = create_engine('sqlite:///devdata.db', echo=True)
 Base.metadata.create_all(engine) 
 Session = sessionmaker(bind=engine)
 session = Session()
