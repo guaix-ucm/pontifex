@@ -10,37 +10,33 @@ import threading
 import gobject
 import dbus
 from dbus.service import Object, BusName, signal, method
+from dbus import SessionBus
+from dbus.service import Object, BusName, signal, method
+from dbus.mainloop.glib import DBusGMainLoop
 
-def handle_hello_reply(r):
-    global hello_replied
-    hello_replied = True
-
-    print str(r)
+def handle_hello_reply():
+    print 'done'
 
 def handle_hello_error(e):
-    global failed
-    global hello_replied
-    hello_replied = True
-    failed = True
     print "HelloWorld raised an exception! That's not meant to happen..."
     print "\t", str(e)
 
 
 class Console(cmd.Cmd):
 
-    def __init__(self):
+    def __init__(self, dsession, loop):
         cmd.Cmd.__init__(self)
         self.prompt = "=>> "
         self.intro  = "Welcome to console!"  ## defaults to None
-        bus = dbus.SessionBus()
-        self.seq = bus.get_object('es.ucm.Pontifex.Sequencer', '/')
+
+        self.seq = dsession.get_object('es.ucm.Pontifex.Sequencer', '/')
         self.seq_if = dbus.Interface(self.seq, 
                                     dbus_interface='es.ucm.Pontifex.Sequencer.Console')
                                     
 
     def do_run(self, arg):
         """Run command"""
-        self.seq_if.console('run %s' % arg)
+        self.seq_if.console('run %s' % arg, reply_handler=handle_hello_reply, error_handler=handle_hello_error)
 
     def do_startobsrun(self, arg):
         """Start observing run"""
@@ -120,14 +116,23 @@ class Console(cmd.Cmd):
             print e.__class__, ":", e
 
 if __name__ == '__main__':
-    console = Console()
+    dbus_loop = DBusGMainLoop()
+    dsession = SessionBus(mainloop=dbus_loop)
 
     loop = gobject.MainLoop()
     gobject.threads_init()
+    #dbus.set_default_main_loop(loop)
+    console = Console(dsession, loop)
 
-    td = threading.Thread(target=console.cmdloop())
+    def fun():
+        console.cmdloop()
+        loop.quit()
+
+    td = threading.Thread(target=fun)
     td.start()
-    loop.run()
-
-
+    
+    try:
+        loop.run()
+    except KeyboardInterrupt:
+        console.do_exit(None)
 

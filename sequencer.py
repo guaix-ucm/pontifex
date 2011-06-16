@@ -16,6 +16,12 @@ logging.config.fileConfig("logging.conf")
 # create logger
 _logger = logging.getLogger("sequencer")
 
+
+
+def handle_image_error(e):
+    _logger.error("Exception! That's not meant to happen... %s", str(e))
+
+
 class SeqManager(Object):
     def __init__(self, bus, loop):
         name = BusName('es.ucm.Pontifex.Sequencer', bus)
@@ -48,6 +54,10 @@ class SeqManager(Object):
     def available_instruments(self):
         return self.instruments.keys()
 
+    def handle_image_reply(self):
+        _logger.info('Sequence finished')
+        self.db_i_if.end_obsblock()
+
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='i', out_signature='')
     def bias_megara(self, repeat):
@@ -58,9 +68,9 @@ class SeqManager(Object):
         ins_if = dbus.Interface(ins, dbus_interface='es.ucm.Pontifex.Instrument')
 
         self.db_i_if.start_obsblock(name, 'bias')
-        for i in range(repeat):
-            ins_if.expose('bias', 0.0)
-        self.db_i_if.end_obsblock()
+        ins_if.expose('bias', repeat, 0.0, reply_handler=self.handle_image_reply, 
+                            error_handler=handle_image_error)
+        
 
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='di', out_signature='')

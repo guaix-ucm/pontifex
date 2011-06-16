@@ -9,6 +9,9 @@ import logging
 import logging.config
 import tempfile
 import math
+from Queue import Queue
+import threading
+import os
 
 import pyfits
 import numpy
@@ -60,12 +63,13 @@ class MegaraInstrumentSpectrograph(Object):
         self.data = None # buffer
         # Metadata in a dictionary
         self.meta = {}
+        self.logger = logging.getLogger("instrument.megara.spec0")
 
-    @method(dbus_interface='es.ucm.Pontifex.Instrument',
-            in_signature='sd', out_signature='')
+#    @method(dbus_interface='es.ucm.Pontifex.Instrument',
+#            in_signature='sd', out_signature='')
     def expose(self, imgtyp, exposure):
         grismid = self.gw.fwpos
-        _logger.info('Exposing spectrograph %d, mode=%s, exposure=%6.1f, grism ID=%d', self.cid, imgtyp, exposure, grismid)
+        self.logger.info('Exposing spectrograph %d, mode=%s, exposure=%6.1f, grism ID=%d', self.cid, imgtyp, exposure, grismid)
 
         # ad hoc number included here
         ls = LigthSource(lambda x: 5e-19 * black_body(x, 5500), 2048, 300)
@@ -74,7 +78,7 @@ class MegaraInstrumentSpectrograph(Object):
         self.detector.illum(ls)
 
         self.detector.expose(exposure)
-        _logger.info('Reading out')
+        self.logger.info('Reading out')
         self.data = self.detector.readout()
 
         self.meta['exposure'] = exposure
@@ -86,7 +90,7 @@ class MegaraInstrumentSpectrograph(Object):
             return
         # Add headers, etc
         # This should run in a thread, probably...
-        _logger.info('Creating FITS HDU')
+        self.logger.info('Creating FITS HDU')
         hdr['EXPOSED'] = self.meta['exposure']
         hdr['EXPTIME'] = self.meta['exposure']
         hdr['IMGTYP'] = self.meta['imgtyp']
@@ -120,6 +124,7 @@ class MegaraInstrumentManager(InstrumentManager):
         self.header.update('ORIGIN', 'Pontifex')
         self.header.update('OBSERVER', 'Pontifex')        
 
+        self.queue = Queue()
         self.sps = []
         cid = 0
         st = MegaraInstrumentSpectrograph(description.spectrograph, 
@@ -135,31 +140,76 @@ class MegaraInstrumentManager(InstrumentManager):
         
         _logger.info('Ready')
 
-    @method(dbus_interface='es.ucm.Pontifex.Instrument',
-            in_signature='sd', out_signature='')
-    def expose(self, imgtyp, exposure):
-        _logger.info('Exposing image type=%s, exposure=%6.1f', imgtyp, exposure)
-        for sp in self.sps:
-            sp.expose(imgtyp, exposure)
-    
-        header = self.header.copy()
-        #hdr['AIRMASS'] = 1.23234
-        #hdr.update('RA', str(target.ra))    
-        #hdr.update('DEC', str(target.dec))
 
-        alldata = [sp.create_fits_hdu(header) for sp in self.sps]
-        self.create_fits_file(alldata)
+    def quit(self):
+        _logger.info('Ending')
+        self.queue.put(None)
+        
+
+    @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
+    def SequenceStarted(self):
+        _logger.info('Sequence started')
+
+    @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
+    def SequenceEnded(self):
+        _logger.info('Sequence ended')
+
+    @method(dbus_interface='es.ucm.Pontifex.Instrument',
+            in_signature='sid', out_signature='')
+    def expose(self, imgtyp, repeat, exposure):
+
+        self.queue.put((imgtyp, repeat, exposure))
+
+
+    def internal_expose(self, imgtyp, repeat, exposure):
+
+        #self.SequenceStarted()
+
+        for i in range(repeat):
+
+            _logger.info('Exposing image type=%s, exposure=%6.1f', imgtyp, exposure)
+            for sp in self.sps:
+                sp.expose(imgtyp, exposure)
+    
+            header = self.header.copy()
+            #hdr['AIRMASS'] = 1.23234
+            #hdr.update('RA', str(target.ra))    
+            #hdr.update('DEC', str(target.dec))
+    
+            alldata = [sp.create_fits_hdu(header) for sp in self.sps]
+            self.create_fits_file(alldata)
+
+        #self.SequenceEnded()
+
 
     def create_fits_file(self, alldata):
         _logger.info('Creating FITS data')
         hdulist = pyfits.HDUList(alldata)
         # Preparing to send binary data back to sequencer
-        fd, filepath = tempfile.mkstemp()
+        #return
+        #fd, filepath = tempfile.mkstemp()
+        # UUUgly hack
+        filepath = '/tmp/file1'
         hdulist.writeto(filepath, clobber=True)
-        self.dbi.store_file(filepath)
+        #os.close(fd)
+        _logger.info('Halll')  
+        #self.dbi.store_file(filepath)
 
     def version(self):
     	return '1.0'
+
+    def reader(self):
+        while True:
+            val = self.queue.get()
+            if val is None:
+                _logger.info('Consumer thread is finished')
+                return
+            else:
+                imgtyp, repeat, exposure = val
+                self.internal_expose(imgtyp, repeat, exposure)
+                _logger.info('i exp')
+                self.queue.task_done()
+                _logger.info('task done')
 
 loop = gobject.MainLoop()
 gobject.threads_init()
@@ -171,5 +221,10 @@ idescrip = numina3.parse_instrument('megara.instrument')
 
 im = MegaraInstrumentManager(idescrip, dsession, loop)
 
-loop.run()
+reader = threading.Thread(target=im.reader)
+reader.start()
 
+try:
+    loop.run()
+except KeyboardInterrupt:
+    im.quit()
