@@ -167,7 +167,7 @@ class MegaraInstrumentManager(InstrumentManager):
 
         for i in range(repeat):
 
-            _logger.info('Exposing image type=%s, exposure=%6.1f', imgtyp, exposure)
+            _logger.info('Exposing image %d of %d', i + 1, repeat)
             for sp in self.sps:
                 sp.expose(imgtyp, exposure)
     
@@ -184,16 +184,15 @@ class MegaraInstrumentManager(InstrumentManager):
 
     def create_fits_file(self, alldata):
         _logger.info('Creating FITS data')
-        hdulist = pyfits.HDUList(alldata)
-        # Preparing to send binary data back to sequencer
-        #return
+        #hdulist = pyfits.HDUList(alldata)
         #fd, filepath = tempfile.mkstemp()
-        # UUUgly hack
-        filepath = '/tmp/file1'
-        hdulist.writeto(filepath, clobber=True)
+        #hdulist.writeto(filepath, clobber=True)
         #os.close(fd)
-        _logger.info('Halll')  
+        #_logger.info('File: %s, proxy: %s', filepath, str(self.dbi))  
         #self.dbi.store_file(filepath)
+        dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
+        dd = dbi.test('test')
+        print dd
 
     def version(self):
     	return '1.0'
@@ -211,8 +210,8 @@ class MegaraInstrumentManager(InstrumentManager):
                 self.queue.task_done()
                 _logger.info('task done')
 
-loop = gobject.MainLoop()
 gobject.threads_init()
+loop = gobject.MainLoop()
 
 import numina3
 
@@ -221,7 +220,7 @@ idescrip = numina3.parse_instrument('megara.instrument')
 
 im = MegaraInstrumentManager(idescrip, dsession, loop)
 
-reader = threading.Thread(target=im.reader)
+reader = threading.Thread(target=im.reader, name='Reader')
 reader.start()
 
 try:

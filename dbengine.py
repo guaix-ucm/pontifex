@@ -67,6 +67,10 @@ class DatabaseManager(Object):
     def signal_end_obsrun(self, runid):
         _logger.info('ObsRun %d ended', runid)
 
+    @method(dbus_interface='es.ucm.Pontifex.DBengine',
+            in_signature='s', out_signature='s')
+    def test(self, test):
+        return test
 
     @method(dbus_interface='es.ucm.Pontifex.DBengine',
             in_signature='s', out_signature='i')
