@@ -78,7 +78,6 @@ class DatabaseManager(Object):
         if self.obsrun is None:
             _logger.info('Add ObsRun to database')
             self.obsrun = ObsRun(pidata)
-            self.obsrun.start = datetime.datetime.utcnow()
             session.add(self.obsrun)
             session.commit()
             runId = self.obsrun.runId
@@ -96,7 +95,6 @@ class DatabaseManager(Object):
             if self.ob is None:
                 _logger.info('Add ObsBlock to database')
                 self.ob = ObsBlock(instrument, mode)
-                self.ob.start = datetime.datetime.utcnow()
                 self.obsrun.obsblock.append(self.ob)
                 session.commit()
                 self.signal_start_obsblock(instrument, mode)
@@ -131,7 +129,6 @@ class DatabaseManager(Object):
             img = Images(filename)
             img.exposure = hdulist[0].header['EXPOSED']
             img.imgtype = hdulist[0].header['IMGTYP']
-            img.stamp = datetime.datetime.utcnow()
             self.ob.images.append(img)
             session.commit()
             self.index += 1
@@ -166,7 +163,6 @@ class DatabaseManager(Object):
             img = Images(filename)
             img.exposure = hdulist[0].header['EXPOSED']
             img.imgtype = hdulist[0].header['IMGTYP']
-            img.stamp = datetime.datetime.utcnow()
             self.ob.images.append(img)
             session.commit()
             self.index += 1

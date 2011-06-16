@@ -1,6 +1,8 @@
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
+from datetime import datetime
+
 from sqlalchemy import desc
 from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, ForeignKey, Float, Binary
 from sqlalchemy.orm import relation, backref
@@ -12,7 +14,7 @@ class ObsRun(Base):
     __tablename__ = 'obsrun'
     runId = Column(Integer, primary_key=True)
     piData = Column(String(20))
-    start = Column(DateTime)
+    start = Column(DateTime, default=datetime.utcnow)
     status = Column(String(10))
     end = Column(DateTime)
 
@@ -25,7 +27,7 @@ class ObsBlock(Base):
     obsId = Column(Integer, primary_key=True)
     instrument = Column(String(10))
     mode = Column(String(20))
-    start = Column(DateTime)
+    start = Column(DateTime, default=datetime.utcnow)
     end = Column(DateTime)
     runId = Column(Integer,  ForeignKey("obsrun.runId"))
 
@@ -42,7 +44,7 @@ class Images(Base):
     exposure = Column(Float)
     imgtype = Column(String(10))
     obsId = Column(Integer,  ForeignKey("obsblock.obsId"))
-    stamp = Column(DateTime)
+    stamp = Column(DateTime, default=datetime.utcnow)
   
     obsblock = relation(ObsBlock, backref=backref('images', order_by=imageId))
 
