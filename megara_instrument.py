@@ -124,7 +124,7 @@ class MegaraInstrumentManager(InstrumentManager):
         self.header.update('ORIGIN', 'Pontifex')
         self.header.update('OBSERVER', 'Pontifex')        
 
-        self.exposing = threading.Lock()
+        self.exposing = False
         self.sps = []
         cid = 0
         st = MegaraInstrumentSpectrograph(description.spectrograph, 
@@ -155,12 +155,13 @@ class MegaraInstrumentManager(InstrumentManager):
     @method(dbus_interface='es.ucm.Pontifex.Instrument',
             in_signature='sid', out_signature='b')
     def expose(self, imgtyp, repeat, exposure):
-        if self.exposing.acquire(False):
-            gobject.idle_add(self.internal_expose, imgtyp, repeat, exposure)           
-            _logger.info('Thread running')
+        if not self.exposing:
+            self.exposing = True
+            tid = gobject.idle_add(self.internal_expose, imgtyp, repeat, exposure)           
+            _logger.info('Thread running id %d', tid)
             return True
         else:
-            _logger.info('TBlocked')
+            _logger.info('Already exposing')
             return False
 
     def expose2(self, imgtyp, repeat, exposure):
@@ -190,9 +191,9 @@ class MegaraInstrumentManager(InstrumentManager):
             alldata = [sp.create_fits_hdu(header) for sp in self.sps]
             self.create_fits_file(alldata)
 
-        self.exposing.release()
-        self.SequenceEnded()
 
+        self.SequenceEnded()
+        self.exposing = False
         return False
 
     def create_fits_file(self, alldata):
