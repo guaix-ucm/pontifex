@@ -124,7 +124,7 @@ class MegaraInstrumentManager(InstrumentManager):
         self.header.update('ORIGIN', 'Pontifex')
         self.header.update('OBSERVER', 'Pontifex')        
 
-        self.queue = Queue()
+        self.exposing = threading.Lock()
         self.sps = []
         cid = 0
         st = MegaraInstrumentSpectrograph(description.spectrograph, 
@@ -143,9 +143,7 @@ class MegaraInstrumentManager(InstrumentManager):
 
     def quit(self):
         _logger.info('Ending')
-        self.queue.put(None)
         
-
     @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
     def SequenceStarted(self):
         _logger.info('Sequence started')
@@ -155,44 +153,56 @@ class MegaraInstrumentManager(InstrumentManager):
         _logger.info('Sequence ended')
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument',
-            in_signature='sid', out_signature='')
+            in_signature='sid', out_signature='b')
     def expose(self, imgtyp, repeat, exposure):
+        if self.exposing.acquire(False):
+            gobject.idle_add(self.internal_expose, imgtyp, repeat, exposure)           
+            _logger.info('Thread running')
+            return True
+        else:
+            _logger.info('TBlocked')
+            return False
 
-        self.queue.put((imgtyp, repeat, exposure))
+    def expose2(self, imgtyp, repeat, exposure):
+
+        if self.exposing:
+            _logger.info('Already exposing')
+            return False
+        else:
+
+            _logger.info('Finished expose')
+            return True
 
 
     def internal_expose(self, imgtyp, repeat, exposure):
-
-        #self.SequenceStarted()
+        self.SequenceStarted()
 
         for i in range(repeat):
 
-            _logger.info('Exposing image %d of %d', i + 1, repeat)
+            _logger.info('Exposing image type=%s, exposure=%6.1f', imgtyp, exposure)
             for sp in self.sps:
                 sp.expose(imgtyp, exposure)
     
             header = self.header.copy()
             #hdr['AIRMASS'] = 1.23234
             #hdr.update('RA', str(target.ra))    
-            #hdr.update('DEC', str(target.dec))
-    
+            #hdr.update('DEC', str(target.dec))    
             alldata = [sp.create_fits_hdu(header) for sp in self.sps]
             self.create_fits_file(alldata)
 
-        #self.SequenceEnded()
+        self.exposing.release()
+        self.SequenceEnded()
 
+        return False
 
     def create_fits_file(self, alldata):
         _logger.info('Creating FITS data')
-        #hdulist = pyfits.HDUList(alldata)
-        #fd, filepath = tempfile.mkstemp()
-        #hdulist.writeto(filepath, clobber=True)
-        #os.close(fd)
-        #_logger.info('File: %s, proxy: %s', filepath, str(self.dbi))  
-        #self.dbi.store_file(filepath)
-        dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
-        dd = dbi.test('test')
-        print dd
+        hdulist = pyfits.HDUList(alldata)
+        # Preparing to send binary data back to database
+        fd, filepath = tempfile.mkstemp()
+        hdulist.writeto(filepath, clobber=True)
+        os.close(fd)
+        self.dbi.store_file(filepath)
 
     def version(self):
     	return '1.0'
@@ -210,8 +220,8 @@ class MegaraInstrumentManager(InstrumentManager):
                 self.queue.task_done()
                 _logger.info('task done')
 
-gobject.threads_init()
 loop = gobject.MainLoop()
+gobject.threads_init()
 
 import numina3
 
@@ -220,8 +230,8 @@ idescrip = numina3.parse_instrument('megara.instrument')
 
 im = MegaraInstrumentManager(idescrip, dsession, loop)
 
-reader = threading.Thread(target=im.reader, name='Reader')
-reader.start()
+#reader = threading.Thread(target=im.reader)
+#reader.start()
 
 try:
     loop.run()

@@ -16,11 +16,8 @@ logging.config.fileConfig("logging.conf")
 # create logger
 _logger = logging.getLogger("sequencer")
 
-
-
 def handle_image_error(e):
     _logger.error("Exception! That's not meant to happen... %s", str(e))
-
 
 class SeqManager(Object):
     def __init__(self, bus, loop):
@@ -37,6 +34,7 @@ class SeqManager(Object):
                 shortname = i[27:]
                 _logger.info('Instrument %s', shortname)
                 proxy = bus.get_object(i, '/')
+                proxy.connect_to_signal('SequenceEnded', self.handle_seq_ended)
                 self.instruments[shortname] = proxy
 
         self.db_i = bus.get_object('es.ucm.Pontifex.DBengine', '/')
@@ -54,9 +52,12 @@ class SeqManager(Object):
     def available_instruments(self):
         return self.instruments.keys()
 
-    def handle_image_reply(self):
+    def handle_seq_ended(self):
         _logger.info('Sequence finished')
         self.db_i_if.end_obsblock()
+
+    def handle_image_reply(self, value):
+        _logger.info('Returning')
 
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='i', out_signature='')

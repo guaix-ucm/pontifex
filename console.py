@@ -123,16 +123,8 @@ if __name__ == '__main__':
     gobject.threads_init()
     #dbus.set_default_main_loop(loop)
     console = Console(dsession, loop)
+    gobject.idle_add(console.cmdloop())
 
-    def fun():
-        console.cmdloop()
-        loop.quit()
-
-    td = threading.Thread(target=fun)
-    td.start()
+    loop.run()
     
-    try:
-        loop.run()
-    except KeyboardInterrupt:
-        console.do_exit(None)
 
