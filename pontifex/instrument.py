@@ -73,9 +73,9 @@ class InstrumentDetector(Object):
         #    self.buffer[i:i+4,:] += val * exposure
         self.buffer[2046:2050,:] += val * exposure
         #
-        #self.buffer = poisson(self.buffer)
+        self.buffer = poisson(self.buffer)
         #self.buffer = normal(self.buffer, scale=numpy.sqrt(self.buffer))
-        #self.buffer += self.dark * exposure
+        self.buffer += self.dark * exposure
 
 
     def readout(self):        

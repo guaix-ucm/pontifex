@@ -99,15 +99,12 @@ class MegaraInstrumentSpectrograph(Object):
         self.detector.illum(ls)
 
         self.detector.i_expose(exposure)
-        #self.logger.info('Reading out')
-        #self.data = self.detector.readout()
+        self.logger.info('Reading out')
+        self.data = self.detector.readout()
 
         self.meta['exposure'] = exposure
         self.meta['imgtyp'] = str(imgtyp)
         self.meta['obsmode'] = str(imgtyp)
-
-
-
 
     def create_fits_hdu(self, hdr):
         if self.data is None:
@@ -166,8 +163,33 @@ class MegaraInstrumentManager(InstrumentManager):
         
         _logger.info('Ready')
 
+        self.q = Queue()
+        self.p = Queue()
+        
+        self.ts = []
+
+        for _, sp in enumerate(self.sps):
+            t = threading.Thread(target=self.worker, args=(sp, ))
+            t.start()
+            self.ts.append(t)
+
+    def worker(self, sp):
+        while True:
+            v = self.q.get()
+            if v is None:
+                _logger.info('Ending thread')
+                return
+            else:
+                imgtyp, exposure = v
+                sp.i_expose(imgtyp, exposure)    
+                header = self.header.copy()
+                data = sp.create_fits_hdu(header)
+                self.p.put((sp.cid, data))
+                self.q.task_done()
 
     def quit(self):
+        for idx, _ in enumerate(self.sps):
+            self.q.put(None)
         _logger.info('Ending')
         
     @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
@@ -196,37 +218,18 @@ class MegaraInstrumentManager(InstrumentManager):
         for i in range(repeat):
 
             _logger.info('Exposing %f seconds', exposure)
-            alldata = []
-            
-            q = Queue()
-            p = Queue()
             for idx, sp in enumerate(self.sps):
-                q.put((idx, sp))
+                self.q.put((imgtyp, exposure))
 
-            def worker():
-                while True:
-                    idx, sp = q.get()
-                    sp.i_expose(imgtyp, exposure)    
-                    #header = self.header.copy()
-                    #data = sp.create_fits_hdu(header)
-                    data = None
-                    p.put((idx, data))
-                    q.task_done()
-
-            for _, _ in enumerate(self.sps):
-                t = threading.Thread(target=worker)
-                t.daemon = True
-                t.start()
-
-            q.join()
+            self.q.join()
 
             alldata = [None] * len(self.sps)
             
-            while p.qsize():
-                i, hdu = p.get_nowait()
+            while self.p.qsize():
+                i, hdu = self.p.get_nowait()
                 alldata[i] = hdu
 
-            #self.create_fits_file(alldata)
+            self.create_fits_file(alldata)
 
         self.SequenceEnded()
         self.exposing = False
