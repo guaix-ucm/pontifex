@@ -59,18 +59,20 @@ class MegaraInstrumentSpectrograph(Object):
         self.gw = InstrumentWheel(description.wheels[0], bus, ibusname, path, _logger, cid=0)
 
         self.st = InstrumentShutter(bus, ibusname, path, _logger, cid=0)
+        logger = logging.getLogger("instrument.megara.spec%i.detector" % self.cid)
         self.detector = InstrumentDetector(description.detectors[0], bus, ibusname, 
-                                    path, _logger, cid=0)
+                                    path, logger, cid=0)
         self.data = None # buffer
         # Metadata in a dictionary
         self.meta = {}
         self.logger = logging.getLogger("instrument.megara.spec%i" % self.cid)
 
-#    @method(dbus_interface='es.ucm.Pontifex.Instrument',
-#            in_signature='sd', out_signature='')
     def expose(self, imgtyp, exposure):
+        return self.i_expose(imgtyp, exposure)
+
+    def i_expose2(self, imgtyp, exposure):
         grismid = self.gw.fwpos
-        self.logger.info('Exposing spectrograph %d, mode=%s, exposure=%6.1f, grism ID=%d', self.cid, imgtyp, exposure, grismid)
+        self.logger.info('Exposing')
 
         # ad hoc number included here
         ls = LigthSource(lambda x: 5e-19 * black_body(x, 5500), 2048, 300)
@@ -78,13 +80,34 @@ class MegaraInstrumentSpectrograph(Object):
         ls = self.gw.illum(ls)
         self.detector.illum(ls)
 
-        self.detector.expose(exposure)
+        self.detector.i_expose(exposure)
         self.logger.info('Reading out')
         self.data = self.detector.readout()
 
         self.meta['exposure'] = exposure
         self.meta['imgtyp'] = str(imgtyp)
         self.meta['obsmode'] = str(imgtyp)
+
+    def i_expose(self, imgtyp, exposure):
+        grismid = self.gw.fwpos
+        self.logger.info('Exposing')
+
+        # ad hoc number included here
+        ls = LigthSource(lambda x: 5e-19 * black_body(x, 5500), 2048, 300)
+        ls = self.st.illum(ls)
+        ls = self.gw.illum(ls)
+        self.detector.illum(ls)
+
+        self.detector.i_expose(exposure)
+        #self.logger.info('Reading out')
+        #self.data = self.detector.readout()
+
+        self.meta['exposure'] = exposure
+        self.meta['imgtyp'] = str(imgtyp)
+        self.meta['obsmode'] = str(imgtyp)
+
+
+
 
     def create_fits_hdu(self, hdr):
         if self.data is None:
@@ -172,7 +195,7 @@ class MegaraInstrumentManager(InstrumentManager):
 
         for i in range(repeat):
 
-            _logger.info('Exposing image type=%s, exposure=%6.1f', imgtyp, exposure)
+            _logger.info('Exposing %f seconds', exposure)
             alldata = []
             
             q = Queue()
@@ -183,9 +206,10 @@ class MegaraInstrumentManager(InstrumentManager):
             def worker():
                 while True:
                     idx, sp = q.get()
-                    sp.expose(imgtyp, exposure)    
-                    header = self.header.copy()
-                    data = sp.create_fits_hdu(header)
+                    sp.i_expose(imgtyp, exposure)    
+                    #header = self.header.copy()
+                    #data = sp.create_fits_hdu(header)
+                    data = None
                     p.put((idx, data))
                     q.task_done()
 
@@ -202,7 +226,7 @@ class MegaraInstrumentManager(InstrumentManager):
                 i, hdu = p.get_nowait()
                 alldata[i] = hdu
 
-            self.create_fits_file(alldata)
+            #self.create_fits_file(alldata)
 
         self.SequenceEnded()
         self.exposing = False

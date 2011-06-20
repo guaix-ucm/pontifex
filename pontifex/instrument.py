@@ -48,27 +48,35 @@ class InstrumentDetector(Object):
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
             in_signature='', out_signature='')
     def reset(self):
+        return self.i_reset()
+
+    def i_reset(self):
         self.buffer.fill(0)
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument.Detector',
             in_signature='d', out_signature='')
     def expose(self, exposure):
-        self.logger.info('exposing exposure=%6.1f', exposure)
+        return self.i_expose(exposure)
+
+    def i_expose(self, exposure):
+#        self.logger.info('exposing exposure=%6.1f', exposure)
         now = datetime.datetime.now()
         # Recording time of start of exposure
         self.meta['DATE-OBS'] = now.isoformat()
         self.meta['MDJ-OBS'] = datetime_to_mjd(now)
         #
         #
-        fun = lambda x: self.eff(x) * self.ls.sed(x) * x
-        val,_ = quad(fun, 200.0, 1000.0)
+        #fun = lambda x: self.eff(x) * self.ls.sed(x) * x
+        #val,_ = quad(fun, 200.0, 1000.0)
+        val = 100.0
         #for i in range(2, 4096, 6):
         #    self.buffer[i:i+4,:] += val * exposure
         self.buffer[2046:2050,:] += val * exposure
         #
-        self.buffer = poisson(self.buffer)
+        #self.buffer = poisson(self.buffer)
         #self.buffer = normal(self.buffer, scale=numpy.sqrt(self.buffer))
-        self.buffer += self.dark * exposure
+        #self.buffer += self.dark * exposure
+
 
     def readout(self):        
         data = self.buffer.copy()
@@ -84,6 +92,8 @@ class InstrumentDetector(Object):
         # readout destroys data
         self.buffer.fill(0)
         return data
+
+        i_readout = readout
 
     def illum(self, ls):
         self.ls = ls
