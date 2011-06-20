@@ -70,24 +70,6 @@ class MegaraInstrumentSpectrograph(Object):
     def expose(self, imgtyp, exposure):
         return self.i_expose(imgtyp, exposure)
 
-    def i_expose2(self, imgtyp, exposure):
-        grismid = self.gw.fwpos
-        self.logger.info('Exposing')
-
-        # ad hoc number included here
-        ls = LigthSource(lambda x: 5e-19 * black_body(x, 5500), 2048, 300)
-        ls = self.st.illum(ls)
-        ls = self.gw.illum(ls)
-        self.detector.illum(ls)
-
-        self.detector.i_expose(exposure)
-        self.logger.info('Reading out')
-        self.data = self.detector.readout()
-
-        self.meta['exposure'] = exposure
-        self.meta['imgtyp'] = str(imgtyp)
-        self.meta['obsmode'] = str(imgtyp)
-
     def i_expose(self, imgtyp, exposure):
         grismid = self.gw.fwpos
         self.logger.info('Exposing')
