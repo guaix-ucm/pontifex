@@ -150,7 +150,7 @@ class MegaraInstrumentManager(InstrumentManager):
 
     @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
     def SequenceEnded(self):
-        _logger.info('Sequence ended')
+        _logger.info('Sequence ended (emited)')
 
     @method(dbus_interface='es.ucm.Pontifex.Instrument',
             in_signature='sid', out_signature='b')
@@ -163,17 +163,6 @@ class MegaraInstrumentManager(InstrumentManager):
         else:
             _logger.info('Already exposing')
             return False
-
-    def expose2(self, imgtyp, repeat, exposure):
-
-        if self.exposing:
-            _logger.info('Already exposing')
-            return False
-        else:
-
-            _logger.info('Finished expose')
-            return True
-
 
     def internal_expose(self, imgtyp, repeat, exposure):
         self.SequenceStarted()

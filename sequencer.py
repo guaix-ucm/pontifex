@@ -57,7 +57,7 @@ class SeqManager(Object):
         self.db_i_if.end_obsblock()
 
     def handle_image_reply(self, value):
-        _logger.info('Returning')
+        _logger.info('Exposure process with id %i', value)
 
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='i', out_signature='')
@@ -68,9 +68,12 @@ class SeqManager(Object):
 
         ins_if = dbus.Interface(ins, dbus_interface='es.ucm.Pontifex.Instrument')
 
-        self.db_i_if.start_obsblock(name, 'bias')
-        ins_if.expose('bias', repeat, 0.0, reply_handler=self.handle_image_reply, 
+        check = self.db_i_if.start_obsblock(name, 'bias')
+        if check:
+            ins_if.expose('bias', repeat, 0.0, reply_handler=self.handle_image_reply, 
                             error_handler=handle_image_error)
+        else:
+            _logger.info('Current observing block has not finished yet')   
         
 
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
@@ -82,10 +85,13 @@ class SeqManager(Object):
 
         ins_if = dbus.Interface(ins, dbus_interface='es.ucm.Pontifex.Instrument')
 
-        self.db_i_if.start_obsblock(name, 'dark')
-        for i in range(repeat):
-            ins_if.expose('dark', exposure)
-        self.db_i_if.end_obsblock()
+        check = self.db_i_if.start_obsblock(name, 'dark')
+        if check:
+            for i in range(repeat):
+                ins_if.expose('dark', exposure)
+            self.db_i_if.end_obsblock()
+        else:
+            _logger.info('Current observing block has not finished')
 
     @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
             in_signature='dii', out_signature='')

@@ -26,34 +26,36 @@ class Service2(Object):
         self.dbi = dbus.Interface(self.db, dbus_interface='com.example.Service1')
 
     @method(dbus_interface='com.example.Service2',
-            in_signature='', out_signature='')
+            in_signature='', out_signature='i')
     def expose(self):
+
+        return self.internal_expose()
+
+    def internal_expose(self):
 
         def do_expose():
             print 'calling expose %d' % self.counter            
             self.counter += 1            
-            time.sleep(10)
+            time.sleep(5)
             dd = self.dbi.test('test')
-            print 'do expose'
-            #self.lock.release()
+            print 'exposing done'
             self.exposing = False
 
-        #self.lock.acquire()
-        print 'hola'
         if not self.exposing:
             self.exposing = True
             tid = gobject.idle_add(do_expose)        
-            print tid
+            return tid
         else:
-            print 0
+            print 'no exposing'
+            return 0
+
 
 bus = SessionBus(mainloop=DBusGMainLoop())
 gobject.threads_init()
 loop = gobject.MainLoop()
 
 im = Service2(bus, loop)
-im.expose()
-im.expose()
+
 try:
     loop.run()
 except:
