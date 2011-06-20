@@ -10,6 +10,9 @@ import logging.config
 import tempfile
 import math
 import os
+import threading
+from Queue import Queue
+from Queue import Empty
 
 import pyfits
 import numpy
@@ -168,16 +171,36 @@ class MegaraInstrumentManager(InstrumentManager):
         for i in range(repeat):
 
             _logger.info('Exposing image type=%s, exposure=%6.1f', imgtyp, exposure)
-            for sp in self.sps:
-                sp.expose(imgtyp, exposure)
-    
-            header = self.header.copy()
-            #hdr['AIRMASS'] = 1.23234
-            #hdr.update('RA', str(target.ra))    
-            #hdr.update('DEC', str(target.dec))    
-            alldata = [sp.create_fits_hdu(header) for sp in self.sps]
-            self.create_fits_file(alldata)
+            alldata = []
+            
+            q = Queue()
+            p = Queue()
+            for idx, sp in enumerate(self.sps):
+                q.put((idx, sp))
 
+            def worker():
+                while True:
+                    idx, sp = q.get()
+                    sp.expose(imgtyp, exposure)    
+                    header = self.header.copy()
+                    data = sp.create_fits_hdu(header)
+                    p.put((idx, data))
+                    q.task_done()
+
+            for _, _ in enumerate(self.sps):
+                t = threading.Thread(target=worker)
+                t.daemon = True
+                t.start()
+
+            q.join()
+
+            alldata = [None] * len(self.sps)
+            
+            while p.qsize():
+                i, hdu = p.get_nowait()
+                alldata[i] = hdu
+
+            self.create_fits_file(alldata)
 
         self.SequenceEnded()
         self.exposing = False
