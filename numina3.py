@@ -31,24 +31,28 @@ def parse_instrument(fd):
     config.read(fd)
 
     ins = InstrumentDescription()
+    ins.spectrographs = []
 
     # read instrument
     _logger.debug('reading %s', 'instrument')
     ins.name = config.get('instrument', 'name')
     ins.version = config.get('instrument', 'version')
     nspec = config.getint('instrument', 'spectrographs')
-    sp = SpectrographDescription()
 
-    nwheel = config.getint('spectrograph_0', 'wheels')
-    sp.wheels = []
-    dfunc = lambda x: 'wheel_%d' % x
-    for i in range(nwheel):
+    for sidx in range(nspec):
+        sp = SpectrographDescription()
+        _logger.debug('reading spectrograph_%i', sidx)
+
+        nwheel = config.getint('spectrograph_%i' % sidx, 'wheels')
+        sp.wheels = []
+        dfunc = lambda x: 'wheel_%d' % x
+  
         wheel = WheelDescription()
-        dlabel = dfunc(i)
+        dlabel = dfunc(sidx)
         _logger.debug('reading %s', dlabel)
         namp = config.getint(dlabel, 'elements')
 
-        afunc = lambda x: 'grism_%d_%d' % (i, x)
+        afunc = lambda x: 'grism_%d_%d' % (sidx, x)
         wheel.grisms = []
         sp.wheels.append(wheel)
 
@@ -59,40 +63,40 @@ def parse_instrument(fd):
             wheel.grisms.append(amp)
             _logger.debug('reading %s', alabel)
 
-    ndetect = config.getint('spectrograph_0', 'detectors')
-    dfunc = lambda x: 'detector_%d' % x
+        ndetect = config.getint('spectrograph_%i' % sidx, 'detectors')
+        dfunc = lambda x: 'detector_%d' % x
 
-    sp.detectors = []
+        sp.detectors = []
 
-    for i in range(ndetect):
-        det = DetectorDescription()
-        dlabel = dfunc(i)
-        _logger.debug('reading %s', dlabel)
-        namp = config.getint(dlabel, 'amplifiers')
+        for i in range(ndetect):
+            det = DetectorDescription()
+            dlabel = dfunc(sidx)
+            _logger.debug('reading %s', dlabel)
+            namp = config.getint(dlabel, 'amplifiers')
 
-        det.model = config.get(dlabel, 'model')
-        det.shape = eval(config.get(dlabel, 'shape'))
-        det.bias = config.getfloat(dlabel, 'bias')
-        det.dark = config.getfloat(dlabel, 'dark')
-        det.gain = config.getfloat(dlabel, 'gain')
-        det.ron = config.getfloat(dlabel, 'ron')
+            det.model = config.get(dlabel, 'model')
+            det.shape = eval(config.get(dlabel, 'shape'))
+            det.bias = config.getfloat(dlabel, 'bias')
+            det.dark = config.getfloat(dlabel, 'dark')
+            det.gain = config.getfloat(dlabel, 'gain')
+            det.ron = config.getfloat(dlabel, 'ron')
 
-        afunc = lambda x: 'amp_%d_%d' % (i, x)
-        amps = []
-        det.amps = amps
-        sp.detectors.append(det)
+            afunc = lambda x: 'amp_%d_%d' % (sidx, x)
+            amps = []
+            det.amps = amps
+            sp.detectors.append(det)
 
-        for j in range(namp):
-            amp = AmplifierDescription()
-            alabel = afunc(j)
-            amp.gain = config.getfloat(alabel, 'gain')
-            amp.ron = config.getfloat(alabel, 'ron')
-            shape = eval(config.get(alabel, 'shape'))
-            amp.shape = tuple(slice(*p) for p in shape)
-            amps.append(amp)
-            _logger.debug('reading %s', alabel)
+            for j in range(namp):
+                amp = AmplifierDescription()
+                alabel = afunc(j)
+                amp.gain = config.getfloat(alabel, 'gain')
+                amp.ron = config.getfloat(alabel, 'ron')
+                shape = eval(config.get(alabel, 'shape'))
+                amp.shape = tuple(slice(*p) for p in shape)
+                amps.append(amp)
+                _logger.debug('reading %s', alabel)
 
-    ins.spectrograph = sp
+        ins.spectrographs.append(sp)
 
     return ins
 

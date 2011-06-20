@@ -1,13 +1,15 @@
 [instrument]
 name = MEGARA
 version = 1
-spectrographs = 1
+spectrographs = 2
 
 [spectrograph_0]
 wheels = 1
 detectors = 1
 
 [spectrograph_1]
+wheels = 1
+detectors = 1
 
 [wheel_0]
 elements = 11
@@ -36,17 +38,30 @@ name = LR-R
 name = LR-I
 
 [wheel_1]
+elements = 11
+
 [grism_1_0]
+name = HR-R
 [grism_1_1]
+name = HR-I
 [grism_1_2]
+name = MR-U
 [grism_1_3]
+name = MR-B
 [grism_1_4]
+name = MR-V
 [grism_1_5]
+name = MR-O
 [grism_1_6]
+name = LR-U
 [grism_1_7]
+name = LR-B
 [grism_1_8]
+name = LR-G
 [grism_1_9]
+name = LR-R
 [grism_1_10]
+name = LR-I
 
 [detector_0]
 model = E2V CCD231-84-1-E74 

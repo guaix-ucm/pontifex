@@ -64,7 +64,7 @@ class MegaraInstrumentSpectrograph(Object):
         self.data = None # buffer
         # Metadata in a dictionary
         self.meta = {}
-        self.logger = logging.getLogger("instrument.megara.spec0")
+        self.logger = logging.getLogger("instrument.megara.spec%i" % self.cid)
 
 #    @method(dbus_interface='es.ucm.Pontifex.Instrument',
 #            in_signature='sd', out_signature='')
@@ -128,10 +128,12 @@ class MegaraInstrumentManager(InstrumentManager):
         self.exposing = False
         self.sps = []
         cid = 0
-        st = MegaraInstrumentSpectrograph(description.spectrograph, 
-                bus, self.busname, self.path, _logger, cid=cid)
-        self.sps.append(st)
+        
+        for idx, spec_desc in enumerate(description.spectrographs):
 
+            st = MegaraInstrumentSpectrograph(spec_desc,
+                bus, self.busname, self.path, _logger, cid=idx)
+            self.sps.append(st)
 
         self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
         self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
