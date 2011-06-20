@@ -106,7 +106,7 @@ class SeqManager(Object):
         check = self.db_i_if.start_obsblock(name, 'flat')
         if check:
             fw_i_if.set_position(filterpos)
-            ins_if.expose('dark', repeat, exposure, reply_handler=self.handle_image_reply, 
+            ins_if.expose('flat', repeat, exposure, reply_handler=self.handle_image_reply, 
                             error_handler=handle_image_error)
         else:
             _logger.info('Current observing block has not finished')
