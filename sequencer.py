@@ -87,9 +87,8 @@ class SeqManager(Object):
 
         check = self.db_i_if.start_obsblock(name, 'dark')
         if check:
-            for i in range(repeat):
-                ins_if.expose('dark', exposure)
-            self.db_i_if.end_obsblock()
+            ins_if.expose('dark', repeat, exposure, reply_handler=self.handle_image_reply, 
+                            error_handler=handle_image_error)
         else:
             _logger.info('Current observing block has not finished')
 
@@ -104,55 +103,13 @@ class SeqManager(Object):
         fw_i = dbus.SessionBus().get_object('es.ucm.Pontifex.Instrument.MEGARA', '/Spectrograph0/Wheel0')
         fw_i_if = dbus.Interface(fw_i, dbus_interface='es.ucm.Pontifex.Wheel')
 
-        self.db_i_if.start_obsblock(name, 'flat')
-        fw_i_if.set_position(filterpos)
-        for i in range(repeat):
-            ins_if.expose('flat', exposure)
-        self.db_i_if.end_obsblock()
-
-    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
-            in_signature='di', out_signature='')
-    def dark_test(self, exposure, repeat):
-        # what we need
-        bus = dbus.SessionBus()
-
-        self.db_i_if.start_obsblock('test', 'dark')
-        for i in range(repeat):
-            self.test_i_if.expose('dark', exposure)
-        self.db_i_if.end_obsblock()
-
-    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
-            in_signature='i', out_signature='')
-    def bias_test(self, repeat):
-        # what we need
-        bus = dbus.SessionBus()
-        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/')
-        test_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Instrument')
-
-        self.db_i_if.start_obsblock('test', 'bias')
-        for i in range(repeat):
-            test_i_if.expose('bias', 0)
-        self.db_i_if.end_obsblock()
-
-    @method(dbus_interface='es.ucm.Pontifex.ObservingModes',
-            in_signature='dii', out_signature='')
-    def flat_test(self, exposure, repeat, filterpos):
-        # what we need
-        bus = dbus.SessionBus()
-        test_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/')
-        test_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Instrument')
-
-        fw_i = bus.get_object('es.ucm.Pontifex.Instrument.Test', '/Wheel0')
-        fw_i_if = dbus.Interface(test_i, dbus_interface='es.ucm.Pontifex.Wheel')
-
-
-        self.db_i_if.start_obsblock('test', 'flat')
-        # Put the filter
-        #r = fw_i_if.set(filterpos)
-        for i in range(repeat):
-            test_i_if.expose('flat', exposure)
-        self.db_i_if.end_obsblock()
-        self.db_i_if.end_obsrun()
+        check = self.db_i_if.start_obsblock(name, 'flat')
+        if check:
+            fw_i_if.set_position(filterpos)
+            ins_if.expose('dark', repeat, exposure, reply_handler=self.handle_image_reply, 
+                            error_handler=handle_image_error)
+        else:
+            _logger.info('Current observing block has not finished')
 
     def parse_run_cmd(self, args):
         # arg0 -> instrument

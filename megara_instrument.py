@@ -9,8 +9,6 @@ import logging
 import logging.config
 import tempfile
 import math
-from Queue import Queue
-import threading
 import os
 
 import pyfits
@@ -197,19 +195,6 @@ class MegaraInstrumentManager(InstrumentManager):
     def version(self):
     	return '1.0'
 
-    def reader(self):
-        while True:
-            val = self.queue.get()
-            if val is None:
-                _logger.info('Consumer thread is finished')
-                return
-            else:
-                imgtyp, repeat, exposure = val
-                self.internal_expose(imgtyp, repeat, exposure)
-                _logger.info('i exp')
-                self.queue.task_done()
-                _logger.info('task done')
-
 loop = gobject.MainLoop()
 gobject.threads_init()
 
@@ -219,9 +204,6 @@ _logger.info('Loading instrument configuration')
 idescrip = numina3.parse_instrument('megara.instrument')
 
 im = MegaraInstrumentManager(idescrip, dsession, loop)
-
-#reader = threading.Thread(target=im.reader)
-#reader.start()
 
 try:
     loop.run()
