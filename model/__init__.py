@@ -21,4 +21,5 @@ datadir = os.path.abspath(_datadir)
 
 
 from sql import ObsBlock, ObsRun, ObsBlock, Images, ProcessingBlockQueue, DataProcessing
+from sql import RecipeParameters
 from sql import get_last_image_index, get_unprocessed_obsblock

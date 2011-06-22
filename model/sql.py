@@ -4,7 +4,9 @@
 from datetime import datetime
 
 from sqlalchemy import desc
-from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, ForeignKey, Float, Binary
+from sqlalchemy import Integer, String, DateTime, Float, Binary
+from sqlalchemy import Table, Column, MetaData, ForeignKey
+from sqlalchemy import PickleType
 from sqlalchemy.orm import relation, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -74,6 +76,11 @@ class DataProcessingStatusEnum(Base):
     dpenumId = Column(Integer, primary_key=True)
     status = Column(String(10), nullable=False, unique=True)
 
+class RecipeParameters(Base):
+    __tablename__ = 'dp_recipe_parameters'
+    instrument = Column(String(32), primary_key=True)
+    mode = Column(String(32), primary_key=True)
+    parameters = Column(PickleType, nullable=False)
 
 def get_unprocessed_obsblock(session):
     return session.query(ProcessingBlockQueue)
