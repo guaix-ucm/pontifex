@@ -17,41 +17,30 @@ class ObsRun(Base):
     runId = Column(Integer, primary_key=True)
     piData = Column(String(20))
     start = Column(DateTime, default=datetime.utcnow)
-    status = Column(String(10))
+    status = Column(String(10), default='running')
     end = Column(DateTime)
-
-    def __init__(self, pi_data):
-        self.piData = pi_data
-        self.status = 'RUNNING'
 
 class ObsBlock(Base):
     __tablename__ = 'obsblock'
     obsId = Column(Integer, primary_key=True)
-    instrument = Column(String(10))
-    mode = Column(String(20))
+    instrument = Column(String(10), nullable=False)
+    mode = Column(String(20), nullable=False)
     start = Column(DateTime, default=datetime.utcnow)
     end = Column(DateTime)
     runId = Column(Integer,  ForeignKey("obsrun.runId"))
 
     obsrun = relation(ObsRun, backref=backref('obsblock', order_by=obsId))
 
-    def __init__(self, instrument, mode):
-        self.instrument = instrument
-        self.mode = mode
-
 class Images(Base):
     __tablename__ = 'images'
     imageId = Column(Integer, primary_key=True)
     name = Column(String(10), unique=True, nullable=False)
-    exposure = Column(Float)
-    imgtype = Column(String(10))
+    exposure = Column(Float, nullable=False)
+    imgtype = Column(String(10), nullable=False)
     obsId = Column(Integer,  ForeignKey("obsblock.obsId"))
     stamp = Column(DateTime, default=datetime.utcnow)
   
     obsblock = relation(ObsBlock, backref=backref('images', order_by=imageId))
-
-    def __init__(self, name):
-        self.name = name
 
 class ProcessingBlockQueue(Base):
     __tablename__ = 'procqueue'
