@@ -176,7 +176,7 @@ class MegaraInstrumentManager(InstrumentManager):
         
     @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
     def SequenceStarted(self):
-        _logger.info('Sequence started')
+        _logger.info('Sequence started (emited)')
 
     @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
     def SequenceEnded(self):

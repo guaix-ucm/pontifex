@@ -19,15 +19,10 @@ from dbus.mainloop.glib import DBusGMainLoop
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
     
-from sql import Base
 from ptimer import PeriodicTimer
-from dbins import datadir
-from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
+from model import Session, datadir
+from model import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
 from txrServer import txrServer
-
-engine = create_engine('sqlite:///operation.db', echo=True)
-Base.metadata.create_all(engine) 
-Session = sessionmaker(bind=engine)
 
 logging.config.fileConfig("logging.conf")
 
@@ -73,11 +68,6 @@ class DatafactorySlave(Object):
 
     def version(self):
     	return '1.0'
-
-    def register(self, hostid, host, port, capabilities):
-        if hostid not in self.slaves:
-            self.slaves[hostid]= (Server('%s:%d' % (host, port)), capabilities, True)
-            _logger.info('Host registered %s %s %s %s', id, host, port, capabilities)
 
     def pass_info(self, pid, n, tr, i, workdir):
         _logger.info('Received observation number=%s, recipe=%s, instrument=%s', n, tr, i)

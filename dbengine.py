@@ -16,8 +16,8 @@ from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
 
-from dbins import session, datadir
-from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index
+from model import session, datadir
+from model import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index
 
 logging.config.fileConfig("logging.conf")
 

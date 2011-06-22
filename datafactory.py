@@ -21,15 +21,11 @@ from dbus.mainloop.glib import DBusGMainLoop
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
     
-from sql import Base
-from ptimer import PeriodicTimer
-from dbins import datadir
-from sql import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
-from txrServer import txrServer
 
-engine = create_engine('sqlite:///devdata.db', echo=True)
-Base.metadata.create_all(engine) 
-Session = sessionmaker(bind=engine)
+from ptimer import PeriodicTimer
+from model import Session, datadir
+from model import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
+from txrServer import txrServer
 
 logging.config.fileConfig("logging.conf")
 
@@ -78,6 +74,8 @@ class DatafactoryManager(Object):
     def init_workdir(self, hashdir):
         basedir = 'proc'
         os.mkdir(os.path.join(basedir, hashdir))
+        # copy here the images
+        # create the configuration for recipe
 
     def unregister(self, hostid):
         self.nslaves -= 1
