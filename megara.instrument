@@ -1,5 +1,5 @@
 [instrument]
-name = MEGARA
+name = megara
 version = 1
 spectrographs = 2
 

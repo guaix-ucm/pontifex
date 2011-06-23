@@ -8,6 +8,8 @@ from sql import Base
 
 #engine = create_engine('sqlite:///operation.db', echo=False)
 engine = create_engine('sqlite:///devdata.db', echo=True)
+engine.execute('pragma foreign_keys=on')
+
 Base.metadata.create_all(engine) 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -21,5 +23,5 @@ datadir = os.path.abspath(_datadir)
 
 
 from sql import ObsBlock, ObsRun, ObsBlock, Images, ProcessingBlockQueue, DataProcessing
-from sql import RecipeParameters
+from sql import RecipeParameters, Instruments
 from sql import get_last_image_index, get_unprocessed_obsblock

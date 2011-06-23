@@ -85,7 +85,7 @@ class DatabaseManager(Object):
             self.obsrun.piData = pidata
             session.add(self.obsrun)
             session.commit()
-            runId = self.obsrun.runId
+            runId = self.obsrun.id
             self.signal_start_obsrun(pidata, runId)
             return runId
         else:
@@ -100,9 +100,9 @@ class DatabaseManager(Object):
             if self.ob is None:
                 _logger.info('Add ObsBlock to database')
                 self.ob = ObsBlock()
-                self.ob.instrument = instrument
+                self.ob.insId = instrument.lower()
                 self.ob.mode = mode
-                self.obsrun.obsblock.append(self.ob)
+                self.obsrun.obsblocks.append(self.ob)
                 session.commit()
                 self.signal_start_obsblock(instrument, mode)
                 return True
@@ -203,7 +203,7 @@ class DatabaseManager(Object):
             self.obsrun.end = datetime.datetime.utcnow()
             self.obsrun.status = 'FINISHED'
             session.commit()
-            self.signal_end_obsrun(self.obsrun.runId)
+            self.signal_end_obsrun(self.obsrun.id)
             self.obsrun = None
             return True
         else:

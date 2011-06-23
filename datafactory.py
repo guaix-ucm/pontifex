@@ -116,8 +116,8 @@ class DatafactoryManager(Object):
             else:            
                 time.sleep(5)
                 for i in session_w.query(ProcessingBlockQueue).filter_by(status='NEW')[:self.nslaves]:
-                    _logger.info('Enqueueing job %d for obsblock %d', i.pblockId, i.obsId)
-                    self.queue.put((i.obsblock.instrument, i.obsblock.mode, i.pblockId, i.obsId))
+                    _logger.info('Enqueueing job %d for obsblock %d', i.id, i.obsId)
+                    self.queue.put((i.obsblock.instrument.name, i.obsblock.mode, i.id, i.obsId))
                     i.status = 'PENDING'
                     session_w.commit()
 
@@ -139,7 +139,7 @@ class DatafactoryManager(Object):
                 if val[0] == 'workdone':
                     flag, cid, pid, oid, workdir = val
                     _logger.info('Updating done work, obsblock %d', int(oid))
-                    myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
+                    myobsblock = session_i.query(ProcessingBlockQueue).filter_by(id=pid).one() 
                     myobsblock.status = 'DONE'
                     dp = DataProcessing()
                     dp.obsId = oid
@@ -151,7 +151,7 @@ class DatafactoryManager(Object):
                     session_i.add(dp)
                 else:
                     _logger.info('Updating failed work, obsblock %d', val[3])
-                    myobsblock = session_i.query(ProcessingBlockQueue).filter_by(pblockId=pid).one() 
+                    myobsblock = session_i.query(ProcessingBlockQueue).filter_by(id=pid).one() 
                     myobsblock.status = 'FAILED'
                     dp = DataProcessing()
                     dp.obsId = oid
