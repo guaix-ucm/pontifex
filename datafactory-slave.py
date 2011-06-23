@@ -9,7 +9,8 @@ import logging.config
 from Queue import Queue
 import hashlib
 import datetime
-from xmlrpclib import Server, ProtocolError, Error
+import uuid
+from xmlrpclib import ServerProxy, ProtocolError, Error
 
 import gobject
 import dbus
@@ -21,7 +22,9 @@ from sqlalchemy.orm import sessionmaker
     
 from ptimer import PeriodicTimer
 from model import Session, datadir
-from model import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
+from model import ObsRun, ObsBlock, Images, ProcessingBlockQueue 
+from model import get_last_image_index, get_unprocessed_obsblock
+from model import DataProcessing
 from txrServer import txrServer
 
 logging.config.fileConfig("logging.conf")
@@ -37,12 +40,14 @@ class DatafactorySlave(Object):
         name = BusName('es.ucm.Pontifex.DFP.Slave', bus)
         path = '/%d' % cid
         super(DatafactorySlave, self).__init__(name, path)
-        self.cid = cid
+        host = 'http://127.0.0.1'
+        port = 7090 + cid
+        uid = uuid.uuid5(uuid.NAMESPACE_URL, '%s:%d' % (host, port))
+        self.cid = uid.hex
         
         self.loop = loop
-
-        self.rserver = Server('http://127.0.0.1:7081')
-        self.rserver.register(self.cid, 'http://127.0.0.1', 7090 + self.cid, ['megara'])
+        self.rserver = ServerProxy('http://127.0.0.1:7081')
+        self.rserver.register(self.cid, host, port, ['megara'])
 
         self.timer = None
         self.repeat = 5

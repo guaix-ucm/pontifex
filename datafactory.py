@@ -12,6 +12,7 @@ import datetime
 from xmlrpclib import ServerProxy, ProtocolError, Error
 import os
 import os.path
+import uuid
 
 import gobject
 import dbus
@@ -80,7 +81,7 @@ class DatafactoryManager(Object):
     def unregister(self, hostid):
         self.nslaves -= 1
         del self.slaves[hostid]
-        _logger.info('Unregistering host %d', hostid)
+        _logger.info('Unregistering host %s', hostid)
 
     def find_server(self, pid, oid, recipe, instrument, slaves):
         _logger.info('Finding server for observation number=%d, mode=%s, instrument=%s', oid, recipe, instrument)
