@@ -2,6 +2,7 @@
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
+import sys
 import time
 import threading
 import logging
@@ -10,6 +11,7 @@ from Queue import Queue
 import hashlib
 import datetime
 import uuid
+import ConfigParser
 from xmlrpclib import ServerProxy, ProtocolError, Error
 
 import gobject
@@ -28,17 +30,15 @@ logging.config.fileConfig("logging.conf")
 # create logger
 _logger = logging.getLogger("DF slave")
 
+
 class DatafactorySlave(object):
-    def __init__(self, loop, cid=0):
+    def __init__(self, loop, master, host, port):
         super(DatafactorySlave, self).__init__()
-        host = 'http://127.0.0.1'
-        port = 7090 + cid
-        uid = uuid.uuid5(uuid.NAMESPACE_URL, '%s:%d' % (host, port))
+        uid = uuid.uuid5(uuid.NAMESPACE_URL, 'http://%s:%d' % (host, port))
         self.cid = uid.hex
-        
         self.loop = loop
-        self.rserver = ServerProxy('http://127.0.0.1:7081')
-        self.rserver.register(self.cid, host, port, ['megara'])
+        self.rserver = ServerProxy(master)
+        self.rserver.register(self.cid, 'http://%s' % host, port, ['megara'])
 
         self.timer = None
         self.repeat = 5
@@ -86,11 +86,21 @@ class DatafactorySlave(object):
 loop = gobject.MainLoop()
 gobject.threads_init()
 
-cid = 0
+if len(sys.argv) != 2:
+    sys.exit(1)
 
-im = DatafactorySlave(loop, cid=cid)
+cfgfile = sys.argv[1]
 
-tserver = txrServer(('localhost', 7090 + cid), allow_none=True, logRequests=False)
+config = ConfigParser.ConfigParser()
+config.read(cfgfile)
+
+masterurl = config.get('master', 'url')
+host = config.get('slave', 'host')
+port = config.getint('slave', 'port')
+
+im = DatafactorySlave(loop, masterurl, host, port)
+
+tserver = txrServer((host, port), allow_none=True, logRequests=False)
 tserver.register_function(im.pass_info)
 xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()

@@ -58,7 +58,7 @@ class DatafactoryManager(object):
         if hostid not in self.slaves:
             self.nslaves += 1
             self.slaves[hostid]= (ServerProxy('%s:%d' % (host, port)), capabilities, True)
-            _logger.info('Host registered %s %s %s %s', hostid, host, port, capabilities)
+            _logger.info('Host registered %s %s:%d %s', hostid, host, port, capabilities)
 
     def init_workdir(self, hashdir):
         basedir = 'proc'
