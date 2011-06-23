@@ -15,10 +15,6 @@ import os.path
 import uuid
 
 import gobject
-import dbus
-from dbus import SessionBus
-from dbus.service import Object, BusName, signal, method
-from dbus.mainloop.glib import DBusGMainLoop
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
     
@@ -33,16 +29,11 @@ logging.config.fileConfig("logging.conf")
 # create logger
 _logger = logging.getLogger("DF")
 
-dbus_loop = DBusGMainLoop()
-dsession = SessionBus(mainloop=dbus_loop)
-
 df_server = ServerProxy('http://127.0.0.1:7080')
 
-class DatafactoryManager(Object):
-    def __init__(self, bus, loop):
-        name = BusName('es.ucm.Pontifex.DFP', bus)
-        path = '/'
-        super(DatafactoryManager, self).__init__(name, path)
+class DatafactoryManager(object):
+    def __init__(self, loop):
+        super(DatafactoryManager, self).__init__()
 
         self.loop = loop
         self.doned = False
@@ -50,11 +41,8 @@ class DatafactoryManager(Object):
         self.qback = Queue()
         self.slaves = {}
         self.nslaves = 0
-        self.tslaves = threading.Semaphore(0)
         _logger.info('Started')
 
-
-    @method(dbus_interface='es.ucm.Pontifex.DFP')
     def quit(self):
         _logger.info('Ending')
         self.doned = True
@@ -88,7 +76,7 @@ class DatafactoryManager(Object):
         for idx in self.slaves:
             server, cap, idle = self.slaves[idx]
             if idle and instrument.lower() in cap:
-                _logger.info('Sending to server number=%s', idx)
+                _logger.info('Sending to server %s', idx)
                 m = hashlib.md5()
                 m.update(str(time.time()))
                 workdir = m.hexdigest()
@@ -102,7 +90,6 @@ class DatafactoryManager(Object):
             self.qback.put(('failed', pid, oid))
         
         return None
-
 
     def watchdog(self):
         session_w = Session()
@@ -175,8 +162,7 @@ class DatafactoryManager(Object):
                 
                 cid = self.find_server(pid, oid, mod, ins, self.slaves)
                 if cid is not None:
-                    _logger.info('Processing %s, %s, %d, %d in slave %d', ins, mod, pid, oid, cid)
-
+                    _logger.info('Processing %s, %s, %d, %d in slave %s', ins, mod, pid, oid, cid)
 
     def receiver(self, cid, pid, oid, workdir):
         self.queue.task_done()
@@ -188,7 +174,7 @@ class DatafactoryManager(Object):
 loop = gobject.MainLoop()
 gobject.threads_init()
 
-im = DatafactoryManager(dsession, loop)
+im = DatafactoryManager(loop)
 
 tserver = txrServer(('localhost', 7081), allow_none=True, logRequests=False)
 tserver.register_function(im.register)
@@ -207,8 +193,6 @@ inserter.start()
 
 consumer = threading.Thread(target=im.consumer)
 consumer.start()
-
-
 
 try:
     loop.run()

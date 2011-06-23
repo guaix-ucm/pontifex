@@ -13,10 +13,6 @@ import uuid
 from xmlrpclib import ServerProxy, ProtocolError, Error
 
 import gobject
-import dbus
-from dbus import SessionBus
-from dbus.service import Object, BusName, signal, method
-from dbus.mainloop.glib import DBusGMainLoop
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
     
@@ -32,14 +28,9 @@ logging.config.fileConfig("logging.conf")
 # create logger
 _logger = logging.getLogger("DF slave")
 
-dbus_loop = DBusGMainLoop()
-dsession = SessionBus(mainloop=dbus_loop)
-
-class DatafactorySlave(Object):
-    def __init__(self, bus, loop, cid=0):
-        name = BusName('es.ucm.Pontifex.DFP.Slave', bus)
-        path = '/%d' % cid
-        super(DatafactorySlave, self).__init__(name, path)
+class DatafactorySlave(object):
+    def __init__(self, loop, cid=0):
+        super(DatafactorySlave, self).__init__()
         host = 'http://127.0.0.1'
         port = 7090 + cid
         uid = uuid.uuid5(uuid.NAMESPACE_URL, '%s:%d' % (host, port))
@@ -58,10 +49,8 @@ class DatafactorySlave(Object):
 
         _logger.info('Waiting for commands')
         self.slaves = {}
-        self.session_w = Session()
 
 
-    @method(dbus_interface='es.ucm.Pontifex.DFP')
     def quit(self):
         _logger.info('Ending')
         self.rserver.unregister(self.cid)
@@ -99,7 +88,7 @@ gobject.threads_init()
 
 cid = 0
 
-im = DatafactorySlave(dsession, loop, cid=cid)
+im = DatafactorySlave(loop, cid=cid)
 
 tserver = txrServer(('localhost', 7090 + cid), allow_none=True, logRequests=False)
 tserver.register_function(im.pass_info)
