@@ -19,10 +19,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
     
 from ptimer import PeriodicTimer
-from model import Session, datadir
-from model import ObsRun, ObsBlock, Images, ProcessingBlockQueue 
-from model import get_last_image_index, get_unprocessed_obsblock
-from model import DataProcessing
 from txrServer import txrServer
 
 logging.config.fileConfig("logging.conf")
