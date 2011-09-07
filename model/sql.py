@@ -80,6 +80,15 @@ class RecipeParameters(Base):
     insId = Column(String(10), ForeignKey('instruments.name'))
     parameters = Column(PickleType, nullable=False)
 
+class ReductionResult(Base):
+    __tablename__ = 'dp_reduction_result'
+    id = Column(Integer, primary_key=True)
+    obsId = Column(Integer, ForeignKey('obsblock.id'))
+    obsblock = relationship("ObsBlock", backref=backref('dp_reduction_result', uselist=False))
+    status = Column(String(5))
+    other = Column(String(5))
+    picklable = Column(PickleType, nullable=False)
+
 def get_unprocessed_obsblock(session):
     return session.query(ProcessingBlockQueue)
 

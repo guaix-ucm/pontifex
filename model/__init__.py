@@ -6,8 +6,8 @@ from sqlalchemy.orm import sessionmaker
     
 from sql import Base
 
-#engine = create_engine('sqlite:///operation.db', echo=False)
-engine = create_engine('sqlite:///devdata.db', echo=True)
+engine = create_engine('sqlite:///devdata.db', echo=False)
+#engine = create_engine('sqlite:///devdata.db', echo=True)
 engine.execute('pragma foreign_keys=on')
 
 Base.metadata.create_all(engine) 
@@ -23,5 +23,5 @@ datadir = os.path.abspath(_datadir)
 
 
 from sql import ObsBlock, ObsRun, ObsBlock, Images, ProcessingBlockQueue, DataProcessing
-from sql import RecipeParameters, Instruments
+from sql import RecipeParameters, Instruments, ReductionResult
 from sql import get_last_image_index, get_unprocessed_obsblock
