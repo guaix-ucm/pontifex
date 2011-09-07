@@ -1,74 +1,72 @@
-#!/usr/bin/python
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
+# Processing observation number=2, recipe=bias, instrument=megara
 
-import os
+# Process obsblock id =2
 
-from model import session, datadir
-from model import ObsBlock, RecipeParameters
+import sys
+import logging
+import logging.config
+import importlib
 
-class Parameter(object):
-    def __init__(self, name=None, default=None, comment=None):
-        pass
+from numina import recipes
+from model import Session, datadir, ObsBlock, ReductionResult
 
-class Requeriment(object):
-    def __init__(self, name=None, default=None, comment=None):
-        pass
+logging.config.fileConfig("logging.conf")
 
-class Configuration(object):
-    def __init__(self, name=None, default=None, comment=None):
-        pass
-# 
-class MegaraBiasRecipe(object):
-    required_parameters = ['param1', 'param2']
+# create logger
+_logger = logging.getLogger("demo")
 
-class MegaraDarkRecipe(object):
-    required_parameters = []
-    master_bias = Requeriment(comment='Master bias images')
-    iterations = Parameter(comment='Iterations of the recipe')
+def myprint(i):
+    print i.insId
+    print i.mode
+    for im in i.images:
+        myprint2(im)
 
-class MegaraFlatRecipe(object):
-    required_parameters = []
+def myprint2(im):
+    print im.name
 
-_recipes = {'bias': MegaraBiasRecipe,
-            'dark': MegaraDarkRecipe,
-            'flat': MegaraFlatRecipe
-}
+def main(rb):
+    _logger.info('Creating Reduction Result')
+    rr = ReductionResult()
+    rr.reduction_block = rb
+    rr.other = 'Other info'
+    rr.picklable = {}
+    try:
+        recipe_name = recipes.find_recipe(rb.instrument.name, rb.mode)
+        _logger.info('recipe name is %s', recipe_name)
 
-def find_recipe(instrument, obsmode):
-    return _recipes[obsmode]
-    
+        # Find precomputed parameters for this recipe
+        _logger.info('loading precomputed parameters')
+        pp = recipes.find_parameters(recipe_name)
 
-obid = 1
-workdir = 'ff04c82288946d71e881ff42d02987e8'
+        module = importlib.import_module(recipe_name)
+        _logger.info('loading requeriments from system')
+        cp = {}
+        
+        for name, value in module.Recipe.requires():
+            cp[name] = value        
 
-if not os.path.exists(workdir):
-    os.makedirs(workdir)
+        _logger.info('creating recipe')
+        recipe = module.Recipe(pp, cp)
+        _logger.info('running recipe')
+        result = recipe.run(rb)
 
-print 'processing OB', obid
+    except ValueError as msg:
+        _logger.error('Something has happened: %s', str(msg))
+        rr.status = 'ERROR'
+    else:
+        _logger.info('recipe finished')
+        rr.status = 'OK'
 
-result = session.query(ObsBlock).filter_by(obsId=obid).one()
+    return rr
 
-os.chdir(workdir)
+session = Session()
 
-for im in result.images:
-    print 'copy image', im.name, 'here'
-    # fake copy
-    f = open(im.name, 'w')
-    f.close()
+rb  = session.query(ObsBlock).filter_by(id=2).first()
 
-print 'instrument', result.instrument
-print 'observing mode', result.mode
+rr = main(rb)
 
-Recipe = find_recipe(result.instrument, result.mode)
+_logger.info('result stored in database')
+session.add(rr)
+session.commit()
 
-print 'recipe for instrument', result.instrument, 'and mode', result.mode, 'is', Recipe
-
-obsblock = result
-
-# default parameters
-(params,) = session.query(RecipeParameters.parameters).filter_by(instrument=result.instrument).filter_by(mode=result.mode).one()
-print params
-
-rr = Recipe()
-rr.parameters = params
