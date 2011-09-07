@@ -71,7 +71,6 @@ class DatafactorySlave(object):
                 name = threading.current_thread().name
                 _logger.info('Processing observation number=%s, recipe=%s, instrument=%s', oid, tr, i)
                 _logger.info('on directory %s', workdir)
-                time.sleep(20)
                 _logger.info('Finished')
                 self.queue.task_done()
                 self.rserver.receiver(self.cid, pid, oid, workdir)
