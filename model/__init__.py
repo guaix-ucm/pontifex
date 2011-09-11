@@ -2,17 +2,18 @@ import os
 import os.path
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-    
-from sql import Base
+from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.ext.declarative import declarative_base
 
-engine = create_engine('sqlite:///devdata.db', echo=False)
-#engine = create_engine('sqlite:///devdata.db', echo=True)
-engine.execute('pragma foreign_keys=on')
+maker = sessionmaker(autoflush=True, autocommit=False)
+Session = scoped_session(maker)
 
-Base.metadata.create_all(engine) 
-Session = sessionmaker(bind=engine)
-session = Session()
+DeclarativeBase = declarative_base()
+
+metadata = DeclarativeBase.metadata
+
+def init_model(engine):
+    Session.configure(bind=engine)
 
 _datadir = 'data'
 
@@ -21,7 +22,7 @@ if not os.path.exists(_datadir):
 
 datadir = os.path.abspath(_datadir)
 
-
-from sql import ObsBlock, ObsRun, ObsBlock, Images, ProcessingBlockQueue, DataProcessing
-from sql import RecipeParameters, Instruments, ReductionResult
+from sql import ObservingBlock, ObservingRun, Image, ProcessingBlockQueue
+from sql import ObservingTask, Instrument, Users
+from dataproc import RecipeParameters, DataProcessingTask, DataProcessing
 from sql import get_last_image_index, get_unprocessed_obsblock
