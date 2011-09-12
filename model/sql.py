@@ -24,7 +24,7 @@ class Instrument(Base):
     name = Column(String(10), primary_key=True)
     parameters = Column(PickleType, nullable=False)
 
-    #obsruns = relationship("ObservingRun", backref='instrument')
+    obsruns = relationship("ObservingRun", backref='instrument')
     #recipes = relationship("RecipeParameters", backref="instrument")
 
 class ObservingRun(Base):
@@ -34,7 +34,7 @@ class ObservingRun(Base):
     start_time = Column(DateTime, default=datetime.utcnow)
     completion_time = Column(DateTime)
     state = Column(Enum('RUNNING', 'FINISHED'), default='RUNNING')
-    #instrument_id = Column(Integer,  ForeignKey("instrument.name"), nullable=False)
+    instrument_id = Column(Integer,  ForeignKey("instrument.name"), nullable=False)
 
     obsblocks = relationship("ObservingBlock", backref='obsrun')
 
@@ -50,13 +50,25 @@ class ObservingBlock(Base):
 
     images = relationship("Image", backref='observing_block')
 
+class ObservingResult(Base):
+    __tablename__ = 'observing_result'
+    id = Column(Integer, primary_key=True)
+    observing_mode = Column(String(20), nullable=False)
+    start_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completion_time = Column(DateTime)
+    obsblock_id = Column(Integer,  ForeignKey("observing_block.id"), nullable=False)
+    task_id = Column(Integer,  ForeignKey("observing_task.id"), nullable=False)
+
+    images = relationship("Image", backref='observing_result')
+
+
 class Image(Base):
     __tablename__ = 'image'
     id = Column(Integer, primary_key=True)
     name = Column(String(10), unique=True, nullable=False)
     exposure = Column(Float, nullable=False)
     imgtype = Column(String(10), nullable=False)
-    obsblock_id = Column(Integer,  ForeignKey("observing_block.id"), nullable=False)
+    obsblock_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
     stamp = Column(DateTime, default=datetime.utcnow)
 
 class ProcessingBlockQueue(Base):

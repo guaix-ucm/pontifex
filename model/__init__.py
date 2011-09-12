@@ -25,4 +25,5 @@ datadir = os.path.abspath(_datadir)
 from sql import ObservingBlock, ObservingRun, Image, ProcessingBlockQueue
 from sql import ObservingTask, Instrument, Users
 from dataproc import RecipeParameters, DataProcessingTask, DataProcessing
+from dataproc import ReductionResult
 from sql import get_last_image_index, get_unprocessed_obsblock

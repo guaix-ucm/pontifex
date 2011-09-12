@@ -9,9 +9,9 @@ from sqlalchemy import Table, Column, MetaData, ForeignKey
 from sqlalchemy import PickleType, Enum
 from sqlalchemy.orm import relationship, backref
 
-from model import DeclarativeBase as Base, metadata, Session
+from model import DeclarativeBase, metadata, Session
 
-class DataProcessingTask(Base):
+class DataProcessingTask(DeclarativeBase):
     __tablename__ = 'dp_task'
     id = Column(Integer, primary_key=True)
     host = Column(String(45), nullable=False)
@@ -23,11 +23,14 @@ class DataProcessingTask(Base):
     label = Column(String(45))
     waiting = Column(Boolean)
     awaited = Column(Boolean)
+    method = Column(String(45))
+    request = Column(String(45))
+    result = Column(String(45))
 
     children = relationship("DataProcessingTask",
                 backref=backref('parent', remote_side=[id]))
 
-class DataProcessing(Base):
+class DataProcessing(DeclarativeBase):
     __tablename__ = 'dp_reduction'
     id = Column(Integer, primary_key=True)
     #mrb_id = Column(Integer, ForeignKey('observing_task.id'))
@@ -35,15 +38,22 @@ class DataProcessing(Base):
     state = Column(Integer, nullable=False)
     task_id = Column(Integer, ForeignKey('dp_task.id'))
 
-class DataProcessingStatusEnum(Base):
+class DataProcessingStatusEnum(DeclarativeBase):
     __tablename__ = 'dp_status_enum'
     id = Column(Integer, primary_key=True)
     status = Column(String(10), nullable=False, unique=True)
 
-class RecipeParameters(Base):
+class RecipeParameters(DeclarativeBase):
     __tablename__ = 'dp_recipe_parameters'
     id = Column(Integer, primary_key=True)
     mode = Column(String(32), nullable=False)
     #insId = Column(String(10), ForeignKey('instrument.name'))
     parameters = Column(PickleType, nullable=False)
+
+class ReductionResult(DeclarativeBase):
+    __tablename__ = 'dp_reduction_result'
+    id = Column(Integer, primary_key=True)
+    state = Column(Integer)
+    other = Column(String(45))
+    picklable = Column(PickleType, nullable=False)
 

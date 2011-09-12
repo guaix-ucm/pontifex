@@ -25,79 +25,125 @@ user = session.query(Users).first()
 
 obsrun = ObservingRun()
 obsrun.pi_id = user.id
-obsrun.instrument_id = ins.name
+obsrun.instrument_id = 'emir'
 obsrun.state = 'FINISHED'
 obsrun.start_time = datetime.utcnow()
 session.add(obsrun)
 
-otask = ObservingTask()
-otask.state = 0
-otask.creation_time = datetime.utcnow()
-otask.start_time = datetime.utcnow()
-otask.completion_time = datetime.utcnow()
-otask.label = 'Bias-padre'
-
-ptask = DataProcessingTask()
-ptask.host = 'localhost'
-ptask.state = 0
-ptask.creation_time = datetime.utcnow()
-ptask.label = 'collect'
-
-session.add(ptask)
-session.add(otask)
-session.commit()
-
-otaskn = ObservingTask()
-otaskn.state = 0
-otaskn.creation_time = datetime.utcnow()
-otaskn.start_time = datetime.utcnow()
-otaskn.parent_id = otask.id
-otaskn.label = 'Bias-hijo'
-session.add(otaskn)
-pctask = DataProcessingTask()
-pctask.host = 'localhost'
-pctask.parent = ptask
-pctask.state = 0
-pctask.creation_time = datetime.utcnow()
-pctask.label = 'bias'
-
+# Observing block
 oblock = ObservingBlock()
-oblock.observing_mode = 'bias'
+oblock.observing_mode = 'mosaic'
 oblock.observer_id = user.id
 oblock.start_time = datetime.utcnow()
-oblock.task_id = otask.id
+#oblock.task_id = otask.id
 obsrun.obsblocks.append(oblock)
 session.add(oblock)
 
+# Observing tasks
+otask = ObservingTask()
+otask.state = 0
+otask.creation_time = datetime.utcnow()
+otask.label = 'mosaic-J-K'
+
+session.add(otask)
+
+otaskj = ObservingTask()
+otaskj.state = 0
+otaskj.creation_time = datetime.utcnow()
+otaskj.parent = otask
+otaskj.label = 'mosaic-J'
+session.add(otaskj)
+
+for i in range(1, 4):
+    otaskp = ObservingTask()
+    otaskp.state = 0
+    otaskp.creation_time = datetime.utcnow()
+    otaskp.parent = otaskj
+    otaskp.label = 'pointing%d' %i
+    session.add(otaskp)
+
+otaskk = ObservingTask()
+otaskk.state = 0
+otaskk.creation_time = datetime.utcnow()
+otaskk.parent_id = otask.id
+otaskk.label = 'mosaic-K'
+session.add(otaskk)
+
+for i in range(1, 4):
+    otaskp = ObservingTask()
+    otaskp.state = 0
+    otaskp.creation_time = datetime.utcnow()
+    otaskp.parent = otaskk
+    otaskp.label = 'pointing%d' %i
+    session.add(otaskp)
+
 dd = get_last_image_index(session)
 
-def new_image(number, exposure, imgtype, oblock):
+def new_image(number, exposure, imgtype, oresult):
     im = Image()
     im.name = 'r0%02d.fits' % number
     im.exposure = exposure
     im.imgtype = imgtype
-    im.observing_block = oblock
+    im.observing_result = oresult
     return im
 
-for i in range(10):
-    im = new_image(dd, 0.0, 'bias', oblock)
-    dd += 1
-    session.add(im)
+for (oj, ok) in zip(otaskj.children, otaskk.children):
 
-otaskn.completion_time = datetime.utcnow()
-otaskn.state = 1
-otask.completion_time = datetime.utcnow()
-otask.state = 1
+    for i in range(1, 4):
+        im = new_image(dd, 100, 'science', oj)
+        dd += 1
+        session.add(im)
+        oj.state = 1
+        oj.completion_time = datetime.utcnow()
+
+    for i in range(1, 4):
+        im = new_image(dd, 100, 'science', ok)
+        dd += 1
+        session.add(im)
+        ok.state = 1
+        ok.completion_time = datetime.utcnow()
+
+
+
+otaskj.completion_time = datetime.utcnow()
+otaskj.state = 1
+
+otaskk.completion_time = datetime.utcnow()
+otaskk.state = 1
+
 oblock.completion_time = datetime.utcnow()
 
 obsrun.completion_time = datetime.utcnow()
 obsrun.state = 'FINISHED'
 
-ptask.start_time = datetime.utcnow()
+ptask = DataProcessingTask()
+ptask.host = 'localhost'
+ptask.state = 0
+ptask.creation_time = datetime.utcnow()
+ptask.method = 'process'
+ptask.request = '{}'
+
+session.add(ptask)
+
+pctask = DataProcessingTask()
+pctask.host = 'localhost'
+pctask.parent = ptask
+pctask.state = 0
+pctask.creation_time = datetime.utcnow()
+pctask.method = 'processPointing'
+pctask.request = '{task=%s}' % otaskn.id
+
+otask.start_time = datetime.utcnow()
+otask.completion_time = datetime.utcnow()
+
+#ptask.start_time = datetime.utcnow()
 # task runs here
-pctask.start_time = datetime.utcnow()
+#pctask.start_time = datetime.utcnow()
 # task runs here
-pctask.completion_time = datetime.utcnow()
-ptask.completion_time = datetime.utcnow()
+#pctask.completion_time = datetime.utcnow()
+#ptask.completion_time = datetime.utcnow()
 
 session.commit()
+
+
+
