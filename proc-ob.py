@@ -14,54 +14,13 @@ from sqlalchemy import create_engine
 
 from numina import recipes
 import model
+import process
 from model import datadir, ObservingBlock, ReductionResult, DataProcessingTask
 
 logging.config.fileConfig("logging.conf")
 
 # create logger
 _logger = logging.getLogger("demo")
-
-
-class Tasks(object):
-    @staticmethod
-    def process(instrument, mode, rb):
-        _logger.info('Creating Reduction Result')
-        rr = ReductionResult()
-        rr.other = 'Other info'
-        rr.picklable = {}
-        try:
-            recipe_name = recipes.find_recipe(instrument, mode)
-            _logger.info('recipe name is %s', recipe_name)
-    
-            # Find precomputed parameters for this recipe
-            _logger.info('loading precomputed parameters')
-            pp = recipes.find_parameters(recipe_name)
-    
-            module = importlib.import_module(recipe_name)
-            _logger.info('loading requeriments from system')
-            cp = {}
-            
-            for name, value in module.Recipe.requires():
-                cp[name] = value        
-    
-            _logger.info('creating recipe')
-            recipe = module.Recipe(pp, cp)
-            _logger.info('running recipe')
-            result = recipe.run(rb)
-    
-        except ValueError as msg:
-            _logger.error('Something has happened: %s', str(msg))
-            rr.state = 1
-        else:
-            _logger.info('recipe finished')
-            rr.state = 0
-
-        return rr
-
-    @staticmethod
-    def processPointing():
-        print 'processPointing'
-        return 0
 
 def myprint(i):
     print i.insId
@@ -84,9 +43,7 @@ model.init_model(engine)
 model.metadata.create_all(engine)
 session = model.Session()
 
-rb  = session.query(ObservingBlock).filter_by(id=2).first()
 
-dbtasklist = session.query(DataProcessingTask).filter_by(parent=None)
 
 def print_leaves(node, pre=''):
     if node.children:
@@ -114,8 +71,6 @@ def find_open_leave(node):
         else:
             return None
 
-parents = session.query(DataProcessingTask).filter_by(parent=None, state=0)
-
 def fun(node):
     node.state = 1
 
@@ -126,25 +81,19 @@ def rec_set(node, fun):
         rec_set(c, fun)
     return fun
 
-tasks = []
+while True:
+    task = session.query(DataProcessingTask).filter_by(state=0).first()
 
-for dpt in parents:
-    rec_set(dpt, fun)
-    print_all(dpt)
-    r = find_open_leave(dpt)
-    r.state = 2 # assigned to be processed
-    tasks.append(r)
-    print_all(r)
+    if task is None:
+        break
 
-for task in tasks:
-    # run task
-    fun = getattr(Tasks, task.method)
-    val = fun()
-    task.state = 3 # Finished
-    task.completed_time = datetime.utcnow()
-
-    # Find next child of parent
-    # if not, parent itself
+    task.start_time = datetime.utcnow()
+    task.state = 1
+    fun = getattr(process, task.method)
+    kwds = eval(task.request)
+    result = fun(**kwds)
+    task.completion_time = datetime.utcnow()
+    task.state = 2
 
 
 #if rb is not None:
@@ -154,5 +103,5 @@ for task in tasks:
 #    session.add(rr)
 #else:
 #    _logger.info('no observing block')
-#    session.commit()
+session.commit()
 

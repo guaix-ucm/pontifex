@@ -48,7 +48,7 @@ class ObservingBlock(Base):
     observer_id = Column(Integer,  ForeignKey("users.id"), nullable=False)
     task_id = Column(Integer,  ForeignKey("observing_task.id"), nullable=False)
 
-    images = relationship("Image", backref='observing_block')
+    task = relationship("ObservingTask")
 
 class ObservingResult(Base):
     __tablename__ = 'observing_result'
@@ -68,7 +68,7 @@ class Image(Base):
     name = Column(String(10), unique=True, nullable=False)
     exposure = Column(Float, nullable=False)
     imgtype = Column(String(10), nullable=False)
-    obsblock_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
+    obsresult_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
     stamp = Column(DateTime, default=datetime.utcnow)
 
 class ProcessingBlockQueue(Base):
