@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 
 import model
 from model import ObservingRun, ObservingBlock, Image, Instrument, Users
-from model import ObservingTask, DataProcessingTask, ObservingResult
+from model import DataProcessingTask, ObservingResult
 from model import RecipeParameters, ProcessingBlockQueue
 from model import get_last_image_index
 
@@ -48,47 +48,41 @@ obsrun.obsblocks.append(oblock)
 session.add(oblock)
 
 # Observing tasks
-otask = ObservingTask()
+otask = ObservingResult()
 otask.state = 0
 otask.creation_time = datetime.utcnow()
 otask.label = 'collect'
 
 session.add(otask)
+
+# The result of this ob
 oblock.task = otask
 
 # One mosaic
-otaskj = ObservingTask()
+otaskj = ObservingResult()
 otaskj.state = 0
 otaskj.creation_time = datetime.utcnow()
 otaskj.parent = otask
 otaskj.label = 'mosaic'
 session.add(otaskj)
 
-# One pointing
-otaskp = ObservingTask()
-otaskp.state = 0
-otaskp.creation_time = datetime.utcnow()
-otaskp.parent = otaskj
-otaskp.label = 'pointing'
-session.add(otaskp)
+
 
 dd = get_last_image_index(session)
 
-
-
 for j in range(3):
 
-    # Exposing
-    obsre = ObservingResult()
-    obsre.observing_mode = 'dum'
-
-    obsre.obsblock_id = oblock.id
-    obsre.task_id = otaskp.id
-    session.add(obsre)
+    # One pointing
+    otaskp = ObservingResult()
+    otaskp.state = 0
+    otaskp.creation_time = datetime.utcnow()
+    otaskp.parent = otaskj
+    otaskp.label = 'pointing'
+    session.add(otaskp)
     session.commit()
 
     for i in range(3):
-        im = new_image(dd, 100, 'science', obsre)
+        im = new_image(dd, 100, 'science', otaskp)
         dd += 1
         session.add(im)
 
@@ -100,7 +94,11 @@ for j in range(3):
     ptask.state = 0
     ptask.creation_time = datetime.utcnow()
     ptask.method = 'processPointing'
-    ptask.request = '{"id":%d}' % obsre.id
+    request = {'id': otaskp.id,
+                'images': [image.name for image in otaskp.images],
+                'children': [],
+              }
+    ptask.request = str(request)
     session.add(ptask)
 
 # Create a reduction task, otaskp is complete
@@ -115,7 +113,11 @@ ptask.host = 'localhost'
 ptask.state = 0
 ptask.creation_time = datetime.utcnow()
 ptask.method = 'processMosaic'
-ptask.request = '{}'
+request = {'id': otaskj.id,
+    'children': [child.id for child in otaskj.children],
+    'images': [],
+              }
+ptask.request = str(request)
 session.add(ptask)
 
 otask.completion_time = datetime.utcnow()
@@ -128,7 +130,9 @@ ptask.host = 'localhost'
 ptask.state = 0
 ptask.creation_time = datetime.utcnow()
 ptask.method = 'processCollect'
-ptask.request = '{}'
+ptask.request = str({ 'id':otask.id,
+    'children': [child.id for child in otask.children],
+    'images': []})
 session.add(ptask)
 
 # OB finished

@@ -91,10 +91,24 @@ while True:
     task.state = 1
     fun = getattr(process, task.method)
     kwds = eval(task.request)
+    # get images...
+    # get children results
+    for child in kwds['children']:
+        _logger.info('query for result of ob id=%d', child)
+        rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
+        if rr is not None:
+            _logger.info('reduction result id is %d', rr.id)
     result = fun(**kwds)
     task.completion_time = datetime.utcnow()
     task.state = 2
 
+    if result['base'] == 'ReductionResult':
+        rr = ReductionResult()
+        rr.other = str({'rootdir': result['rootdir']})
+        rr.task_id = task.id
+        session.add(rr)
+
+    session.commit()
 
 #if rb is not None:
 #    rr = main(rb)
@@ -103,5 +117,5 @@ while True:
 #    session.add(rr)
 #else:
 #    _logger.info('no observing block')
-session.commit()
+    
 

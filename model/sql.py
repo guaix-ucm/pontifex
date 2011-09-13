@@ -46,21 +46,26 @@ class ObservingBlock(Base):
     completion_time = Column(DateTime)
     obsrun_id = Column(Integer,  ForeignKey("observing_run.id"), nullable=False)
     observer_id = Column(Integer,  ForeignKey("users.id"), nullable=False)
-    task_id = Column(Integer,  ForeignKey("observing_task.id"), nullable=False)
+    task_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
 
-    task = relationship("ObservingTask")
+    task = relationship("ObservingResult")
 
 class ObservingResult(Base):
     __tablename__ = 'observing_result'
     id = Column(Integer, primary_key=True)
-    observing_mode = Column(String(20), nullable=False)
-    start_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    state = Column(Integer)
+    create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
+    start_time = Column(DateTime)
     completion_time = Column(DateTime)
-    obsblock_id = Column(Integer,  ForeignKey("observing_block.id"), nullable=False)
-    task_id = Column(Integer,  ForeignKey("observing_task.id"), nullable=False)
+    parent_id = Column(Integer, ForeignKey('observing_result.id'))
+    label = Column(String(45))
+    waiting = Column(Boolean)
+    awaited = Column(Boolean)
+
+    children = relationship("ObservingResult",
+                backref=backref('parent', remote_side=[id]))
 
     images = relationship("Image", backref='observing_result')
-
 
 class Image(Base):
     __tablename__ = 'image'
@@ -79,20 +84,7 @@ class ProcessingBlockQueue(Base):
 
     obsblock = relationship("ObservingBlock", backref=backref("procqueue", uselist=False))
 
-class ObservingTask(Base):
-    __tablename__ = 'observing_task'
-    id = Column(Integer, primary_key=True)
-    state = Column(Integer)
-    create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
-    start_time = Column(DateTime)
-    completion_time = Column(DateTime)
-    parent_id = Column(Integer, ForeignKey('observing_task.id'))
-    label = Column(String(45))
-    waiting = Column(Boolean)
-    awaited = Column(Boolean)
 
-    children = relationship("ObservingTask",
-                backref=backref('parent', remote_side=[id]))
 
 def get_unprocessed_obsblock(session):
     return session.query(ProcessingBlockQueue)

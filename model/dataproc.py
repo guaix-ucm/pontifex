@@ -33,10 +33,19 @@ class DataProcessingTask(DeclarativeBase):
 class DataProcessing(DeclarativeBase):
     __tablename__ = 'dp_reduction'
     id = Column(Integer, primary_key=True)
-    #mrb_id = Column(Integer, ForeignKey('observing_task.id'))
+
     completion_time = Column(DateTime)
     state = Column(Integer, nullable=False)
     task_id = Column(Integer, ForeignKey('dp_task.id'))
+
+class ReductionResult(DeclarativeBase):
+    __tablename__ = 'dp_reduction_result'
+    id = Column(Integer, primary_key=True)
+    state = Column(Integer)
+    other = Column(String(45))
+    obsres_id = Column(Integer, ForeignKey('observing_result.id'))
+    task_id = Column(Integer, ForeignKey('dp_task.id'))
+    #picklable = Column(PickleType, nullable=False)
 
 class DataProcessingStatusEnum(DeclarativeBase):
     __tablename__ = 'dp_status_enum'
@@ -50,10 +59,4 @@ class RecipeParameters(DeclarativeBase):
     #insId = Column(String(10), ForeignKey('instrument.name'))
     parameters = Column(PickleType, nullable=False)
 
-class ReductionResult(DeclarativeBase):
-    __tablename__ = 'dp_reduction_result'
-    id = Column(Integer, primary_key=True)
-    state = Column(Integer)
-    other = Column(String(45))
-    picklable = Column(PickleType, nullable=False)
 
