@@ -66,8 +66,6 @@ otaskj.parent = otask
 otaskj.label = 'mosaic'
 session.add(otaskj)
 
-
-
 dd = get_last_image_index(session)
 
 for j in range(3):
@@ -97,6 +95,8 @@ for j in range(3):
     request = {'id': otaskp.id,
                 'images': [image.name for image in otaskp.images],
                 'children': [],
+                'instrument': ins.name,
+                'observing_mode': oblock.observing_mode,
               }
     ptask.request = str(request)
     session.add(ptask)
@@ -116,6 +116,8 @@ ptask.method = 'processMosaic'
 request = {'id': otaskj.id,
     'children': [child.id for child in otaskj.children],
     'images': [],
+                'instrument': ins.name,
+                'observing_mode': oblock.observing_mode,
               }
 ptask.request = str(request)
 session.add(ptask)
@@ -132,7 +134,9 @@ ptask.creation_time = datetime.utcnow()
 ptask.method = 'processCollect'
 ptask.request = str({ 'id':otask.id,
     'children': [child.id for child in otask.children],
-    'images': []})
+    'images': [],
+    'observing_mode': oblock.observing_mode,
+    'instrument': ins.name})
 session.add(ptask)
 
 # OB finished
