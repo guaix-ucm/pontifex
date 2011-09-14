@@ -4,6 +4,7 @@
 import logging
 import importlib
 import sys
+import json
 
 from . import recipes
 from . import model
@@ -12,6 +13,18 @@ _logger = logging.getLogger("demo")
 
 def main2(args=None):
     _logger.info('Args are %s', args)
+
+
+    with open('result.fits', 'w+') as fd:
+        pass
+
+    result = {'val1':1, 'val2': 2}
+
+
+    with open('result.json', 'w+') as fd:
+        json.dump(result, fd, indent=1)
+
+    return 0
 
 def main(rb):
 
