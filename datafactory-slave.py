@@ -18,6 +18,7 @@ import gobject
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
     
+from numina import main2
 from ptimer import PeriodicTimer
 from txrServer import txrServer
 
@@ -59,21 +60,22 @@ class DatafactorySlave(object):
     def version(self):
     	return '1.0'
 
-    def pass_info(self, pid, n, tr, i, workdir):
-        _logger.info('Received observation number=%s, recipe=%s, instrument=%s', n, tr, i)
-        self.queue.put((pid, n, tr, i, workdir))
+    def pass_info(self, taskid):
+        _logger.info('Received taskid=%d', taskid)
+        self.queue.put(taskid)
 
     def worker(self):
         while True:
-            v = self.queue.get()
-            if v is not None:
-                pid, oid, tr, i, workdir = v
+            taskid = self.queue.get()
+            if taskid is not None:
+                filename = 'task-control.json'
+                _logger.info('Processing taskid %d', taskid)
+                main2(['-d','--basedir', 'task/%s' % taskid, '--datadir', 'data', '--run', filename])
                 name = threading.current_thread().name
-                _logger.info('Processing observation number=%s, recipe=%s, instrument=%s', oid, tr, i)
-                _logger.info('on directory %s', workdir)
                 _logger.info('Finished')
+                state = 0
                 self.queue.task_done()
-                self.rserver.receiver(self.cid, pid, oid, workdir)
+                self.rserver.receiver(self.cid, state, taskid)
             else:
                 _logger.info('Ending worker thread')
                 return
@@ -102,6 +104,7 @@ xmls.start()
 
 worker = threading.Thread(target=im.worker)
 worker.start()
+
 try:
     loop.run()
 except KeyboardInterrupt:

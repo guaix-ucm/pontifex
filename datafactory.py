@@ -13,15 +13,20 @@ from xmlrpclib import ServerProxy, ProtocolError, Error
 import os
 import os.path
 import uuid
+from datetime import datetime
 
 import gobject
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-    
 
+
+import process
 from ptimer import PeriodicTimer
+import model
 from model import Session, datadir
-from model import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index, get_unprocessed_obsblock, DataProcessing
+from model import ObservingRun, ObservingBlock, Image
+from model import DataProcessingTask, ReductionResult
+from model import get_last_image_index, get_unprocessed_obsblock, DataProcessing
 from txrServer import txrServer
 
 logging.config.fileConfig("logging.conf")
@@ -63,7 +68,7 @@ class DatafactoryManager(object):
     def init_workdir(self, hashdir):
         basedir = 'proc'
         os.mkdir(os.path.join(basedir, hashdir))
-        # copy here the images
+        # copy here the Image
         # create the configuration for recipe
 
     def unregister(self, hostid):
@@ -71,23 +76,20 @@ class DatafactoryManager(object):
         del self.slaves[hostid]
         _logger.info('Unregistering host %s', hostid)
 
-    def find_server(self, pid, oid, recipe, instrument, slaves):
-        _logger.info('Finding server for observation number=%d, mode=%s, instrument=%s', oid, recipe, instrument)
+    def find_client(self, taskid):
+        _logger.info('Finding host for task=%d', taskid)
         for idx in self.slaves:
-            server, cap, idle = self.slaves[idx]
-            if idle and instrument.lower() in cap:
-                _logger.info('Sending to server %s', idx)
-                m = hashlib.md5()
-                m.update(str(time.time()))
-                workdir = m.hexdigest()
-                self.init_workdir(workdir)
-                server.pass_info(pid, oid, recipe, instrument, workdir)
+            host, cap, idle = self.slaves[idx]
+            if idle:
+                _logger.info('Sending to host %s', idx)
+
+                host.pass_info(taskid)
                 self.nslaves -= 1
-                self.slaves[idx] = (server, cap, False)
+                self.slaves[idx] = (host, cap, False)
                 return idx
         else:
-            _logger.info('No server for observation number=%d, mode=%s, instrument=%s', oid, recipe, instrument)
-            self.qback.put(('failed', pid, oid))
+            _logger.info('No server for taskid=%d', taskid)
+            self.qback.put(('failed', taskid))
         
         return None
 
@@ -95,27 +97,27 @@ class DatafactoryManager(object):
         session_w = Session()
         while True:
             if self.doned:
-                _logger.info('Cleaning up PENDING jobs')
-                for i in session_w.query(ProcessingBlockQueue).filter_by(status='PENDING'):
-                    i.status = 'NEW'
+                _logger.info('Cleaning up pending jobs')
+                for task in session_w.query(DataProcessingTask).filter_by(state=1):
+                    task.state = 1
                 session_w.commit()
                 _logger.info('Watchdog thread is finished')          
                 return
             else:            
-                time.sleep(5)
-                for i in session_w.query(ProcessingBlockQueue).filter_by(status='NEW')[:self.nslaves]:
-                    _logger.info('Enqueueing job %d for obsblock %d', i.id, i.obsId)
-                    self.queue.put((i.obsblock.instrument.name, i.obsblock.mode, i.id, i.obsId))
-                    i.status = 'PENDING'
+                time.sleep(POLL)                
+                for task in session_w.query(DataProcessingTask).filter_by(state=0)[:self.nslaves]:
+                    _logger.info('Enqueueing task %d ', task.id)
+                    task.status = 1
                     session_w.commit()
+                    self.queue.put(task.id)
 
     def inserter(self):
         session_i = Session()
         # clean up
-        q = session_i.query(ProcessingBlockQueue).filter_by(status='PENDING')
+        q = session_i.query(DataProcessingTask).filter_by(state=1)
         for i in q:
             _logger.info('Fixing job %d', i.obsId)
-            i.status = 'NEW'
+            i.state = 0
         session_i.commit()
 
         while True:
@@ -124,52 +126,75 @@ class DatafactoryManager(object):
                 _logger.info('Insert thread finished')
                 return
             else:
-                if val[0] == 'workdone':
-                    flag, cid, pid, oid, workdir = val
-                    _logger.info('Updating done work, obsblock %d', int(oid))
-                    myobsblock = session_i.query(ProcessingBlockQueue).filter_by(id=pid).one() 
-                    myobsblock.status = 'DONE'
-                    dp = DataProcessing()
-                    dp.obsId = oid
-                    dp.status = 2 # Done
-                    dp.stamp = datetime.datetime.utcnow()
-                    dp.hashdir = workdir
-                    #server = self.slaves[cid][0]
-                    dp.host = str(cid)
-                    session_i.add(dp)
+                tag, cid, state, taskid = val
+                _logger.info('Updating done work, ProcessingTask %d', int(taskid))
+                task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
+
+                task.completion_time = datetime.utcnow()
+                if tag == 'workdone':
+                    task.state = 3
+                    # Uhmmmmmm
+                    rr = ReductionResult()
+                    rr.other = str({})
+                    rr.task_id = task.id
+                    session_i.add(rr)
                 else:
-                    _logger.info('Updating failed work, obsblock %d', val[3])
-                    myobsblock = session_i.query(ProcessingBlockQueue).filter_by(id=pid).one() 
-                    myobsblock.status = 'FAILED'
-                    dp = DataProcessing()
-                    dp.obsId = oid
-                    dp.status = 3 # FAILLED
-                    dp.stamp = datetime.datetime.utcnow()
-                    dp.hashdir = workdir
-                    dp.host = str(val[2])
-                    session_i.add(dp)
+                    task.state = 4
+
                 session_i.commit()
                 self.qback.task_done()
 
     def consumer(self):
+        session = Session()
         while True:
-            val = self.queue.get()
-            if self.doned or val is None:
+            taskid = self.queue.get()
+            if self.doned or taskid is None:
                 _logger.info('Consumer thread is finished')
                 return
             else:
-                ins, mod, pid, oid = val
-                
-                cid = self.find_server(pid, oid, mod, ins, self.slaves)
-                if cid is not None:
-                    _logger.info('Processing %s, %s, %d, %d in slave %s', ins, mod, pid, oid, cid)
+                task = session.query(DataProcessingTask).filter_by(id=taskid).first()
+                task.start_time = datetime.utcnow()
+                task.state = 2
+                fun = getattr(process, task.method)
+                kwds = eval(task.request)
+                # get images...
+                # get children results
+                for child in kwds['children']:
+                    _logger.info('query for result of ob id=%d', child)
+                    rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
+                    if rr is not None:
+                        _logger.info('reduction result id is %d', rr.id)
+                try:
+                    fun(**kwds)
+                except OSError:
+                    task.completion_time = datetime.utcnow()
+                    task.state = 5
+                    session.commit()
+                    continue
 
-    def receiver(self, cid, pid, oid, workdir):
+                cid = self.find_client(taskid)
+                if cid is not None:
+                    _logger.info('Processing taskid=%d in host %s', taskid, cid)
+
+                task.completion_time = datetime.utcnow()
+                task.state = 3
+                session.commit()
+
+    def receiver(self, cid, state, taskid):
         self.queue.task_done()
-        self.qback.put(('workdone', cid, pid, oid, workdir))
+        self.qback.put(('workdone', cid, state, taskid))
         self.nslaves += 1
         r = self.slaves[cid]
         self.slaves[cid] = (r[0], r[1], True)
+
+
+engine = create_engine('sqlite:///devdata.db', echo=False)
+#engine = create_engine('sqlite:///devdata.db', echo=True)
+engine.execute('pragma foreign_keys=on')
+
+model.init_model(engine)
+model.metadata.create_all(engine)
+session = model.Session()
 
 loop = gobject.MainLoop()
 gobject.threads_init()
@@ -184,7 +209,7 @@ xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
 
 POLL = 5
-_logger.info('Polling database for new ObsBlocks every %d seconds', POLL)
+_logger.info('Polling database for new ProcessingTaskss every %d seconds', POLL)
 timer = threading.Thread(target=im.watchdog)
 timer.start()
 
