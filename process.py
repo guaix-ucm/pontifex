@@ -2,6 +2,10 @@
 import logging
 import time
 import hashlib
+import json
+import os
+
+from numina import main2
 
 _logger = logging.getLogger("demo")
 
@@ -10,14 +14,24 @@ def processPointing(**kwds):
     _logger.info('creating root directory')
     m = hashlib.md5()
     m.update(str(time.time()))
-    basedir = m.hexdigest()
+    basedir = str(kwds['id']) # m.hexdigest()
+    os.chdir('/home/spr/devel/pontifex-db/task')
     _logger.info('root directory is %s', basedir)
+    os.mkdir(basedir)
+    os.chdir(basedir)
     _logger.info('copying the images')
     for image in kwds['images']:
         _logger.info('copy %s', image)
 
     _logger.info('create config files, put them in root dir')
+
+    filename = 'task-control.json'
+    with open(filename, 'w+') as fp:
+        config = {'observing_result': {'id': kwds['id'], 'images': kwds['images']}}
+        json.dump(config, fp, indent=2)
+
     _logger.info('run the recipe')
+    main2(['-d','--basedir', basedir, '--datadir', 'data', '--run', filename])
     _logger.info('collect results')
 
     _logger.info('done')

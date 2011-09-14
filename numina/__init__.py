@@ -8,7 +8,10 @@ import sys
 from . import recipes
 from . import model
 
-_logger = logging.getLogger("numina")
+_logger = logging.getLogger("demo")
+
+def main2(args=None):
+    _logger.info('Args are %s', args)
 
 def main(rb):
 
