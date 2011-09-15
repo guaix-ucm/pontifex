@@ -35,7 +35,7 @@ class DatafactorySlave(object):
         self.cid = uid.hex
         self.loop = loop
         self.rserver = ServerProxy(master)
-        self.rserver.register(self.cid, 'http://%s' % host, port, ['megara'])
+        self.rserver.register(self.cid, 'http://%s' % host, port, ['emir', 'frida', 'megara'])
 
         self.timer = None
         self.repeat = 5

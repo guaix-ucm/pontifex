@@ -80,7 +80,7 @@ model.init_model(engine)
 model.metadata.create_all(engine)
 session = model.Session()
 
-ins = session.query(Instrument).first()
+ins = session.query(Instrument).filter_by(name='frida').first()
 user = session.query(Users).first()
 
 obsrun = create_obsrun(user.id, ins.name)
