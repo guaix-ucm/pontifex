@@ -137,8 +137,8 @@ class MegaraInstrumentManager(InstrumentManager):
                 bus, self.busname, self.path, _logger, cid=idx)
             self.sps.append(st)
 
-        self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
-        self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
+        #self.db = bus.get_object('es.ucm.Pontifex.DBengine', '/')
+        #self.dbi = dbus.Interface(self.db, dbus_interface='es.ucm.Pontifex.DBengine')
         # Metadata in a dictionary
 
         self.meta = {}
@@ -174,6 +174,10 @@ class MegaraInstrumentManager(InstrumentManager):
             self.q.put(None)
         _logger.info('Ending')
         
+    @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='s')
+    def ImageWritten(self, filepath):
+        _logger.info('Image written to %s', filepath)
+
     @signal(dbus_interface='es.ucm.Pontifex.Instrument', signature='')
     def SequenceStarted(self):
         _logger.info('Sequence started (emited)')
@@ -211,7 +215,8 @@ class MegaraInstrumentManager(InstrumentManager):
                 i, hdu = self.p.get_nowait()
                 alldata[i] = hdu
 
-            self.create_fits_file(alldata)
+            filepath = self.create_fits_file(alldata)
+            self.ImageWritten(filepath)
 
         self.SequenceEnded()
         self.exposing = False
@@ -224,7 +229,8 @@ class MegaraInstrumentManager(InstrumentManager):
         fd, filepath = tempfile.mkstemp()
         hdulist.writeto(filepath, clobber=True)
         os.close(fd)
-        self.dbi.store_file(filepath)
+        return filepath
+        #self.dbi.store_file(filepath)
 
     def version(self):
     	return '1.0'

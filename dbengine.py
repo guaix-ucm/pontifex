@@ -15,9 +15,12 @@ import dbus
 from dbus import SessionBus
 from dbus.service import Object, BusName, signal, method
 from dbus.mainloop.glib import DBusGMainLoop
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-from model import session, datadir
-from model import ObsRun, ObsBlock, Images, ProcessingBlockQueue, get_last_image_index
+import model
+from model import datadir
+from model import ObservingRun, ObservingBlock, Image, get_last_image_index
 
 logging.config.fileConfig("logging.conf")
 
@@ -28,6 +31,15 @@ dbus_loop = DBusGMainLoop()
 dsession = SessionBus(mainloop=dbus_loop)
 
 FORMAT = 's%05d.fits'
+
+engine = create_engine('sqlite:///devdata.db', echo=False)
+#engine = create_engine('sqlite:///devdata.db', echo=True)
+engine.execute('pragma foreign_keys=on')
+
+model.init_model(engine)
+model.metadata.create_all(engine)
+session = model.Session()
+
 
 class DatabaseManager(Object):
     def __init__(self, bus, loop):
@@ -81,8 +93,8 @@ class DatabaseManager(Object):
         '''
         if self.obsrun is None:
             _logger.info('Add ObsRun to database')
-            self.obsrun = ObsRun()
-            self.obsrun.piData = pidata
+            self.obsrun = ObservingRun()
+            self.obsrun.pi_id = 1
             session.add(self.obsrun)
             session.commit()
             runId = self.obsrun.id
@@ -99,7 +111,7 @@ class DatabaseManager(Object):
         if self.obsrun is not None:
             if self.ob is None:
                 _logger.info('Add ObsBlock to database')
-                self.ob = ObsBlock()
+                self.ob = ObservingBlock()
                 self.ob.insId = instrument.lower()
                 self.ob.mode = mode
                 self.obsrun.obsblocks.append(self.ob)

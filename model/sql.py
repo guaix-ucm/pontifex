@@ -42,11 +42,12 @@ class ObservingBlock(Base):
     __tablename__ = 'observing_block'
     id = Column(Integer, primary_key=True)
     observing_mode = Column(String(20), nullable=False)
-    start_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    create_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    start_time = Column(DateTime)
     completion_time = Column(DateTime)
     obsrun_id = Column(Integer,  ForeignKey("observing_run.id"), nullable=False)
     observer_id = Column(Integer,  ForeignKey("users.id"), nullable=False)
-    task_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
+    task_id = Column(Integer,  ForeignKey("observing_result.id"))
 
     task = relationship("ObservingResult")
 
