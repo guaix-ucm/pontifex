@@ -32,7 +32,7 @@ from txrServer import txrServer
 logging.config.fileConfig("logging.conf")
 
 # create logger
-_logger = logging.getLogger("DF")
+_logger = logging.getLogger("dfs")
 
 df_server = ServerProxy('http://127.0.0.1:7080')
 
@@ -116,7 +116,7 @@ class DatafactoryManager(object):
         # clean up
         q = session_i.query(DataProcessingTask).filter_by(state=1)
         for i in q:
-            _logger.info('Fixing job %d', i.obsId)
+            _logger.info('Fixing job %d', i.id)
             i.state = 0
         session_i.commit()
 
@@ -155,18 +155,18 @@ class DatafactoryManager(object):
                 task = session.query(DataProcessingTask).filter_by(id=taskid).first()
                 task.start_time = datetime.utcnow()
                 task.state = 2
-                fun = getattr(process, task.method)
-                kwds = eval(task.request)
-                # get images...
-                # get children results
-                for child in kwds['children']:
-                    _logger.info('query for result of ob id=%d', child)
-                    rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
-                    if rr is not None:
-                        _logger.info('reduction result id is %d', rr.id)
                 try:
-                    fun(**kwds)
-                except OSError:
+                    fun = getattr(process, task.method)
+                    kwds = eval(task.request)
+                    # get images...
+                    # get children results
+                    for child in kwds['children']:
+                        _logger.info('query for result of ob id=%d', child)
+                        rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
+                        if rr is not None:
+                            _logger.info('reduction result id is %d', rr.id)
+                        fun(**kwds)
+                except OSError, AttributeError:
                     task.completion_time = datetime.utcnow()
                     task.state = 5
                     session.commit()

@@ -25,7 +25,7 @@ from txrServer import txrServer
 logging.config.fileConfig("logging.conf")
 
 # create logger
-_logger = logging.getLogger("DF slave")
+_logger = logging.getLogger("slave")
 
 
 class DatafactorySlave(object):

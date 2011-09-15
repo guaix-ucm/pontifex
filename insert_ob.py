@@ -20,6 +20,58 @@ def new_image(number, exposure, imgtype, oresult):
     im.obsresult_id = oresult.id
     return im
 
+def create_obsrun(userid, insname):
+    obsrun = ObservingRun()
+    obsrun.pi_id = userid
+    obsrun.instrument_id = insname
+    obsrun.state = 'RUNNING'
+    obsrun.start_time = datetime.utcnow()
+    return obsrun
+
+def create_observing_block(mode, observer, parent):
+    oblock = ObservingBlock()
+    oblock.observing_mode = mode
+    oblock.observer_id = observer
+    parent.obsblocks.append(oblock)
+    return oblock
+
+def create_reduction_task(oblock, oresult):
+    ptask = DataProcessingTask()
+    ptask.host = 'localhost'
+    ptask.state = 1
+    ptask.creation_time = datetime.utcnow()
+    ptask.method = 'process%s' % oresult.label.capitalize()
+    request = {'id': oresult.id,
+                'images': [image.name for image in oresult.images],
+                'children': [],
+                'instrument': oblock.obsrun.instrument.name,
+                'observing_mode': oblock.observing_mode,
+              }
+    ptask.request = str(request)
+    session.add(ptask)
+    return ptask
+
+
+def create_reduction_tree(oresult, parent):
+
+    ptask = DataProcessingTask()
+    ptask.host = 'localhost'
+    ptask.state = 0
+    ptask.parent = parent
+    ptask.creation_time = datetime.utcnow()
+    ptask.method = 'process%S' % oresult.label
+#    request = {'id': otaskp.id,
+#                'images': [image.name for image in otaskp.images],
+#                'children': [],
+#                'instrument': ins.name,
+#                'observing_mode': oblock.observing_mode,
+#              }
+#    ptask.request = str(request)
+    session.add(ptask)
+    for child in oresult.children:
+        create_reduction_tree(child, ptask)
+    return ptask
+
 #engine = create_engine('sqlite:///devdata.db', echo=False)
 engine = create_engine('sqlite:///devdata.db', echo=True)
 engine.execute('pragma foreign_keys=on')
@@ -31,26 +83,49 @@ session = model.Session()
 ins = session.query(Instrument).first()
 user = session.query(Users).first()
 
-obsrun = ObservingRun()
-obsrun.pi_id = user.id
-obsrun.instrument_id = ins.name
-obsrun.state = 'RUNNING'
-obsrun.start_time = datetime.utcnow()
+obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
 
 # Observing block
-oblock = ObservingBlock()
-oblock.observing_mode = 'mosaic'
-oblock.observer_id = user.id
+oblock = create_observing_block('bias', user.id, obsrun)
+session.add(oblock)
+# The layout of observing tasks can be arbitrary...
+
+# Observing tasks (siblings)
+ores = ObservingResult()
+ores.state = 0
+ores.label = 'pointing'
+session.add(ores)
+oblock.task = ores
+
+# Create corresponding reduction tasks
+
+#ptask = create_reduction_tree(ores, None)
+
+# OB started
 oblock.start_time = datetime.utcnow()
-#oblock.task_id = otask.id
-obsrun.obsblocks.append(oblock)
+dd = get_last_image_index(session)
+
+for i in range(3):
+    im = new_image(dd, 0, 'bias', ores)
+    dd += 1
+    session.add(im)
+
+create_reduction_task(oblock, ores)
+
+# OB finished
+oblock.state = 1
+oblock.completion_time = datetime.utcnow()
+session.commit()
+
+# Observing block
+oblock = create_observing_block('mosaic', user.id, obsrun)
+oblock.start_time = datetime.utcnow()
 session.add(oblock)
 
-# Observing tasks
+# Observing tasks (siblings)
 otask = ObservingResult()
 otask.state = 0
-otask.creation_time = datetime.utcnow()
 otask.label = 'collect'
 
 session.add(otask)
