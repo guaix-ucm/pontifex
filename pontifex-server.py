@@ -19,7 +19,6 @@ import gobject
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-
 import process
 from ptimer import PeriodicTimer
 import model
@@ -36,8 +35,7 @@ _logger = logging.getLogger("pontifex.server")
 
 df_server = ServerProxy('http://127.0.0.1:7080')
 
-# 0, 1, 2, 3, 4, 5
-
+# Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 
 class DatafactoryManager(object):
@@ -69,12 +67,6 @@ class DatafactoryManager(object):
             self.slaves[hostid]= (ServerProxy('%s:%d' % (host, port)), capabilities, True)
             _logger.info('Host registered %s %s:%d %s', hostid, host, port, capabilities)
 
-    def init_workdir(self, hashdir):
-        basedir = 'proc'
-        os.mkdir(os.path.join(basedir, hashdir))
-        # copy here the Image
-        # create the configuration for recipe
-
     def unregister(self, hostid):
         self.nslaves -= 1
         del self.slaves[hostid]
@@ -94,7 +86,7 @@ class DatafactoryManager(object):
                 return idx
         else:
             _logger.info('No server for taskid=%d', taskid)
-            self.qback.put(('failed', 0, 1, taskid))
+            self.qback.put((0, 1, taskid))
         
         return None
 
@@ -191,7 +183,7 @@ class DatafactoryManager(object):
 
     def receiver(self, cid, state, taskid):
         self.queue.task_done()
-        self.qback.put(('workdone', cid, state, taskid))
+        self.qback.put((cid, state, taskid))
         self.nslaves += 1
         r = self.slaves[cid]
         self.slaves[cid] = (r[0], r[1], True)
