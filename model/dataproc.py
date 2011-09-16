@@ -14,11 +14,12 @@ from model import DeclarativeBase, metadata, Session
 class DataProcessingTask(DeclarativeBase):
     __tablename__ = 'dp_task'
     id = Column(Integer, primary_key=True)
-    host = Column(String(45), nullable=False)
+    host = Column(String(45))
     state = Column(Integer)
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
+    or_id = Column(Integer, ForeignKey('observing_result.id'))
     parent_id = Column(Integer, ForeignKey('dp_task.id'))
     label = Column(String(45))
     waiting = Column(Boolean)
@@ -26,6 +27,9 @@ class DataProcessingTask(DeclarativeBase):
     method = Column(String(45))
     request = Column(String(45))
     result = Column(String(45))
+
+    observing_result = relationship("ObservingResult",
+                backref=backref('tasks'))
 
     children = relationship("DataProcessingTask",
                 backref=backref('parent', remote_side=[id]))

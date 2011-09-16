@@ -37,20 +37,10 @@ def create_observing_block(mode, observer, parent):
 
 def create_reduction_task(oblock, oresult):
     ptask = DataProcessingTask()
-    ptask.host = 'localhost'
-    ptask.state = 1
-    ptask.creation_time = datetime.utcnow()
+    ptask.observing_result = oresult
+    ptask.state = 0
     ptask.method = 'process%s' % oresult.label.capitalize()
-    request = {'id': oresult.id,
-                'images': [image.name for image in oresult.images],
-                'children': [],
-                'instrument': oblock.obsrun.instrument.name,
-                'observing_mode': oblock.observing_mode,
-              }
-    ptask.request = str(request)
-    session.add(ptask)
     return ptask
-
 
 def create_reduction_tree(oresult, parent):
 
@@ -67,7 +57,6 @@ def create_reduction_tree(oresult, parent):
 #                'observing_mode': oblock.observing_mode,
 #              }
 #    ptask.request = str(request)
-    session.add(ptask)
     for child in oresult.children:
         create_reduction_tree(child, ptask)
     return ptask
@@ -91,7 +80,7 @@ oblock = create_observing_block('bias', user.id, obsrun)
 session.add(oblock)
 # The layout of observing tasks can be arbitrary...
 
-# Observing tasks (siblings)
+# Observing results (siblings)
 ores = ObservingResult()
 ores.state = 0
 ores.label = 'pointing'
@@ -99,11 +88,15 @@ session.add(ores)
 oblock.task = ores
 
 # Create corresponding reduction tasks
-
-#ptask = create_reduction_tree(ores, None)
+ptask = create_reduction_task(oblock, ores)
+session.add(ptask)
 
 # OB started
 oblock.start_time = datetime.utcnow()
+
+# OR started
+ores.start_time = datetime.utcnow()
+ores.state = 1
 dd = get_last_image_index(session)
 
 for i in range(3):
@@ -111,25 +104,28 @@ for i in range(3):
     dd += 1
     session.add(im)
 
-create_reduction_task(oblock, ores)
+# OR ended
+ores.completion_time = datetime.utcnow()
+ores.state = 2
+
+ptask.state = 1
+session.commit()
 
 # OB finished
 oblock.state = 1
 oblock.completion_time = datetime.utcnow()
 session.commit()
+# ------------------
 
-# Observing block
+# New Observing block
 oblock = create_observing_block('mosaic', user.id, obsrun)
-oblock.start_time = datetime.utcnow()
 session.add(oblock)
 
 # Observing tasks (siblings)
 otask = ObservingResult()
 otask.state = 0
 otask.label = 'collect'
-
 session.add(otask)
-
 # The result of this ob
 oblock.task = otask
 
@@ -154,64 +150,45 @@ for j in range(3):
     session.add(otaskp)
     session.commit()
 
+    # OB started
+    oblock.start_time = datetime.utcnow()
+    # OR started
+    otaskp.start_time = datetime.utcnow()
+    otaskp.state = 1
+
     for i in range(3):
         im = new_image(dd, 100, 'science', otaskp)
         dd += 1
         session.add(im)
 
-    otaskp.state = 1
+    # OR ended
+    otaskp.state = 2
     otaskp.completion_time = datetime.utcnow()
-
-    ptask = DataProcessingTask()
-    ptask.host = 'localhost'
-    ptask.state = 0
-    ptask.creation_time = datetime.utcnow()
-    ptask.method = 'processPointing'
-    request = {'id': otaskp.id,
-                'images': [image.name for image in otaskp.images],
-                'children': [],
-                'instrument': ins.name,
-                'observing_mode': oblock.observing_mode,
-              }
-    ptask.request = str(request)
+#    session.commit()
+    
+    # Create a reduction task, otaskp is complete
+    ptask = create_reduction_task(oblock, otaskp)
+    ptask.state = 1 # Complete
     session.add(ptask)
 
-# Create a reduction task, otaskp is complete
+
 
 otaskj.completion_time = datetime.utcnow()
-otaskj.state = 1
+otaskj.state = 2
 
 # Create a reduction task, otaskj is complete
 
-ptask = DataProcessingTask()
-ptask.host = 'localhost'
-ptask.state = 0
-ptask.creation_time = datetime.utcnow()
-ptask.method = 'processMosaic'
-request = {'id': otaskj.id,
-    'children': [child.id for child in otaskj.children],
-    'images': [],
-                'instrument': ins.name,
-                'observing_mode': oblock.observing_mode,
-              }
-ptask.request = str(request)
+ptask = create_reduction_task(oblock, otaskj)
+ptask.state = 1 # Complete
 session.add(ptask)
 
 otask.completion_time = datetime.utcnow()
-otask.state = 1
+otask.state = 2
 
 # Create a reduction task, otask is complete
 
-ptask = DataProcessingTask()
-ptask.host = 'localhost'
-ptask.state = 0
-ptask.creation_time = datetime.utcnow()
-ptask.method = 'processCollect'
-ptask.request = str({ 'id':otask.id,
-    'children': [child.id for child in otask.children],
-    'images': [],
-    'observing_mode': oblock.observing_mode,
-    'instrument': ins.name})
+ptask = create_reduction_task(oblock, otask)
+ptask.state = 1 # Complete
 session.add(ptask)
 
 # OB finished

@@ -32,9 +32,13 @@ from txrServer import txrServer
 logging.config.fileConfig("logging.conf")
 
 # create logger
-_logger = logging.getLogger("dfs")
+_logger = logging.getLogger("pontifex.server")
 
 df_server = ServerProxy('http://127.0.0.1:7080')
+
+# 0, 1, 2, 3, 4, 5
+
+CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 
 class DatafactoryManager(object):
     def __init__(self, loop):
@@ -76,20 +80,21 @@ class DatafactoryManager(object):
         del self.slaves[hostid]
         _logger.info('Unregistering host %s', hostid)
 
-    def find_client(self, taskid):
-        _logger.info('Finding host for task=%d', taskid)
+    def find_client(self, session, task):
+        _logger.info('Finding host for task=%d', task.id)
         for idx in self.slaves:
             host, cap, idle = self.slaves[idx]
             if idle:
                 _logger.info('Sending to host %s', idx)
-
-                host.pass_info(taskid)
+                task.state = PROCESSING
+                session.commit()
+                host.pass_info(task.id)
                 self.nslaves -= 1
                 self.slaves[idx] = (host, cap, False)
                 return idx
         else:
             _logger.info('No server for taskid=%d', taskid)
-            self.qback.put(('failed', taskid))
+            self.qback.put(('failed', 0, 1, taskid))
         
         return None
 
@@ -97,33 +102,34 @@ class DatafactoryManager(object):
         session_w = Session()
         while True:
             if self.doned:
-                _logger.info('Cleaning up pending jobs')
-                for task in session_w.query(DataProcessingTask).filter_by(state=1):
-                    task.state = 1
+                _logger.info('cleaning up pending jobs')
+                for task in session_w.query(DataProcessingTask).filter_by(state=ENQUEUED):
+                    task.state = COMPLETED
                 session_w.commit()
-                _logger.info('Watchdog thread is finished')          
+                _logger.info('watchdog finished')
                 return
             else:            
                 time.sleep(POLL)                
-                for task in session_w.query(DataProcessingTask).filter_by(state=0)[:self.nslaves]:
-                    _logger.info('Enqueueing task %d ', task.id)
-                    task.status = 1
+                for task in session_w.query(DataProcessingTask).filter_by(state=COMPLETED)[:self.nslaves]:
+                    _logger.info('enqueueing task %d ', task.id)
+                    task.state = ENQUEUED
+    
                     session_w.commit()
                     self.queue.put(task.id)
 
     def inserter(self):
         session_i = Session()
-        # clean up
-        q = session_i.query(DataProcessingTask).filter_by(state=1)
+        # clean up on startup
+        q = session_i.query(DataProcessingTask).filter_by(state=ENQUEUED)
         for i in q:
-            _logger.info('Fixing job %d', i.id)
-            i.state = 0
+            _logger.info('fixing job %d', i.id)
+            i.state = COMPLETED
         session_i.commit()
 
         while True:
             val = self.qback.get()
             if self.doned or val is None:
-                _logger.info('Insert thread finished')
+                _logger.info('inserter finished')
                 return
             else:
                 tag, cid, state, taskid = val
@@ -131,15 +137,15 @@ class DatafactoryManager(object):
                 task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
 
                 task.completion_time = datetime.utcnow()
-                if tag == 'workdone':
-                    task.state = 3
+                if state == 0:
+                    task.state = FINISHED
                     # Uhmmmmmm
                     rr = ReductionResult()
                     rr.other = str({})
                     rr.task_id = task.id
                     session_i.add(rr)
                 else:
-                    task.state = 4
+                    task.state = ERROR
 
                 session_i.commit()
                 self.qback.task_done()
@@ -149,15 +155,20 @@ class DatafactoryManager(object):
         while True:
             taskid = self.queue.get()
             if self.doned or taskid is None:
-                _logger.info('Consumer thread is finished')
+                _logger.info('consumer is finished')
                 return
             else:
                 task = session.query(DataProcessingTask).filter_by(id=taskid).first()
                 task.start_time = datetime.utcnow()
-                task.state = 2
+                print task.state
+                assert(task.state == ENQUEUED)
                 try:
                     fun = getattr(process, task.method)
-                    kwds = eval(task.request)
+                    #kwds = eval(task.request)
+                    kwds = {}
+                    kwds['id'] = task.or_id
+                    kwds['children'] = []
+                    kwds['images'] = []
                     # get images...
                     # get children results
                     for child in kwds['children']:
@@ -168,17 +179,15 @@ class DatafactoryManager(object):
                         fun(**kwds)
                 except OSError, AttributeError:
                     task.completion_time = datetime.utcnow()
-                    task.state = 5
+                    task.state = ERROR
                     session.commit()
                     continue
 
-                cid = self.find_client(taskid)
+                cid = self.find_client(session, task)
                 if cid is not None:
                     _logger.info('Processing taskid=%d in host %s', taskid, cid)
 
-                task.completion_time = datetime.utcnow()
-                task.state = 3
-                session.commit()
+
 
     def receiver(self, cid, state, taskid):
         self.queue.task_done()
@@ -210,13 +219,13 @@ xmls.start()
 
 POLL = 5
 _logger.info('Polling database for new ProcessingTaskss every %d seconds', POLL)
-timer = threading.Thread(target=im.watchdog)
+timer = threading.Thread(target=im.watchdog, name='timer')
 timer.start()
 
-inserter = threading.Thread(target=im.inserter)
+inserter = threading.Thread(target=im.inserter, name='inserter')
 inserter.start()
 
-consumer = threading.Thread(target=im.consumer)
+consumer = threading.Thread(target=im.consumer, name='consumer')
 consumer.start()
 
 try:
