@@ -124,7 +124,7 @@ class DatafactoryManager(object):
                 _logger.info('inserter finished')
                 return
             else:
-                tag, cid, state, taskid = val
+                cid, state, taskid = val
                 _logger.info('Updating done work, ProcessingTask %d', int(taskid))
                 task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
 
