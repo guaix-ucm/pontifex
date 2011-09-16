@@ -3,7 +3,7 @@ import logging
 import json
 import os
 
-_logger = logging.getLogger("demo")
+_logger = logging.getLogger("pontifex")
 
 def processPointing(**kwds):
     _logger.info('processPointing called wth kwds %s', kwds)
@@ -12,8 +12,10 @@ def processPointing(**kwds):
     basedir = str(kwds['id'])
     os.chdir('/home/spr/devel/pontifex-db/task')
     _logger.info('root directory is %s', basedir)
+
     os.mkdir(basedir)
     os.chdir(basedir)
+
     _logger.info('copying the images')
     for image in kwds['images']:
         _logger.info('copy %s', image)

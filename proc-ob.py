@@ -17,10 +17,10 @@ import model
 import process
 from model import datadir, ObservingBlock, ReductionResult, DataProcessingTask
 
-logging.config.fileConfig("logging.conf")
+logging.config.fileConfig("logging.ini")
 
 # create logger
-_logger = logging.getLogger("demo")
+_logger = logging.getLogger("pontifex")
 
 def myprint(i):
     print i.insId

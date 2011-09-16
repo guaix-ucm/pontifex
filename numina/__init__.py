@@ -5,24 +5,37 @@ import logging
 import importlib
 import sys
 import json
+import os
 
 from . import recipes
 from . import model
 
-_logger = logging.getLogger("demo")
+_logger = logging.getLogger("numina")
 
 def main2(args=None):
     _logger.info('Args are %s', args)
 
 
-    with open('result.fits', 'w+') as fd:
-        pass
+    try:
+        pwd = os.getcwd()
 
-    result = {'val1':1, 'val2': 2}
+        os.chdir(args[2])
 
 
-    with open('result.json', 'w+') as fd:
-        json.dump(result, fd, indent=1)
+        with open('result.fits', 'w+') as fd:
+            pass
+        
+        result = {'val1':1, 'val2': 2}
+
+
+        with open('result.json', 'w+') as fd:
+            json.dump(result, fd, indent=1)
+
+        os.chdir(pwd)
+    
+    except OSError as error:
+        _logger.error('%s', error)
+        return 1
 
     return 0
 

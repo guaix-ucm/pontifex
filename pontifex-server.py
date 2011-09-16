@@ -28,7 +28,7 @@ from model import DataProcessingTask, ReductionResult
 from model import get_last_image_index, get_unprocessed_obsblock, DataProcessing
 from txrServer import txrServer
 
-logging.config.fileConfig("logging.conf")
+logging.config.fileConfig("logging.ini")
 
 # create logger
 _logger = logging.getLogger("pontifex.server")
@@ -38,9 +38,9 @@ df_server = ServerProxy('http://127.0.0.1:7080')
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 
-class DatafactoryManager(object):
+class PontifexServer(object):
     def __init__(self, loop):
-        super(DatafactoryManager, self).__init__()
+        super(PontifexServer, self).__init__()
 
         self.loop = loop
         self.doned = False
@@ -85,8 +85,8 @@ class DatafactoryManager(object):
                 self.slaves[idx] = (host, cap, False)
                 return idx
         else:
-            _logger.info('No server for taskid=%d', taskid)
-            self.qback.put((0, 1, taskid))
+            _logger.info('No server for taskid=%d', task.id)
+            self.qback.put((0, 1, task.id))
         
         return None
 
@@ -131,7 +131,7 @@ class DatafactoryManager(object):
                 task.completion_time = datetime.utcnow()
                 if state == 0:
                     task.state = FINISHED
-                    # Uhmmmmmm
+
                     rr = ReductionResult()
                     rr.other = str({})
                     rr.task_id = task.id
@@ -152,13 +152,13 @@ class DatafactoryManager(object):
             else:
                 task = session.query(DataProcessingTask).filter_by(id=taskid).first()
                 task.start_time = datetime.utcnow()
-                print task.state
+
                 assert(task.state == ENQUEUED)
                 try:
                     fun = getattr(process, task.method)
                     #kwds = eval(task.request)
                     kwds = {}
-                    kwds['id'] = task.or_id
+                    kwds['id'] = task.id
                     kwds['children'] = []
                     kwds['images'] = []
                     # get images...
@@ -168,7 +168,7 @@ class DatafactoryManager(object):
                         rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
                         if rr is not None:
                             _logger.info('reduction result id is %d', rr.id)
-                        fun(**kwds)
+                    fun(**kwds)
                 except OSError, AttributeError:
                     task.completion_time = datetime.utcnow()
                     task.state = ERROR
@@ -200,7 +200,7 @@ session = model.Session()
 loop = gobject.MainLoop()
 gobject.threads_init()
 
-im = DatafactoryManager(loop)
+im = PontifexServer(loop)
 
 tserver = txrServer(('localhost', 7081), allow_none=True, logRequests=False)
 tserver.register_function(im.register)

@@ -22,15 +22,15 @@ from numina import main2
 from ptimer import PeriodicTimer
 from txrServer import txrServer
 
-logging.config.fileConfig("logging.conf")
+logging.config.fileConfig("logging.ini")
 
 # create logger
 _logger = logging.getLogger("pontifex.host")
 
 
-class DatafactorySlave(object):
+class PontifexHost(object):
     def __init__(self, loop, master, host, port):
-        super(DatafactorySlave, self).__init__()
+        super(PontifexHost, self).__init__()
         uid = uuid.uuid5(uuid.NAMESPACE_URL, 'http://%s:%d' % (host, port))
         self.cid = uid.hex
         self.loop = loop
@@ -69,15 +69,16 @@ class DatafactorySlave(object):
             taskid = self.queue.get()
             if taskid is not None:
                 filename = 'task-control.json'
-                _logger.info('Processing taskid %d', taskid)
-                main2(['-d','--basedir', 'task/%s' % taskid, '--datadir', 'data', '--run', filename])
-                name = threading.current_thread().name
-                _logger.info('Finished')
-                state = 0
+                _logger.info('processing taskid %d', taskid)
+                state = main2(['-d','--basedir', 'task/%s' % taskid, 
+                    '--datadir', 'data', '--run', filename])
+                
+                _logger.info('finished')
+                
                 self.queue.task_done()
                 self.rserver.receiver(self.cid, state, taskid)
             else:
-                _logger.info('Ending worker thread')
+                _logger.info('ending worker thread')
                 return
 
 loop = gobject.MainLoop()
@@ -95,7 +96,7 @@ masterurl = config.get('master', 'url')
 host = config.get('slave', 'host')
 port = config.getint('slave', 'port')
 
-im = DatafactorySlave(loop, masterurl, host, port)
+im = PontifexHost(loop, masterurl, host, port)
 
 tserver = txrServer((host, port), allow_none=True, logRequests=False)
 tserver.register_function(im.pass_info)
