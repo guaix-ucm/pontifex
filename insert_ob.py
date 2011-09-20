@@ -5,6 +5,8 @@
 from datetime import datetime
 
 from sqlalchemy import create_engine
+import pyfits
+import numpy
 
 import model
 from model import ObservingRun, ObservingBlock, Image, Instrument, Users
@@ -15,6 +17,8 @@ from model import get_last_image_index
 def new_image(number, exposure, imgtype, oresult):
     im = Image()
     im.name = 'r0%02d.fits' % number
+    data = numpy.zeros((1,1), dtype='int16')
+    pyfits.writeto('data/%s' % im.name, data)
     im.exposure = exposure
     im.imgtype = imgtype
     im.obsresult_id = oresult.id
