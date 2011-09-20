@@ -79,6 +79,7 @@ class PontifexServer(object):
             if idle:
                 _logger.info('Sending to host %s', idx)
                 task.state = PROCESSING
+                task.host = idx
                 session.commit()
                 host.pass_info(task.id)
                 self.nslaves -= 1
@@ -86,7 +87,7 @@ class PontifexServer(object):
                 return idx
         else:
             _logger.info('No server for taskid=%d', task.id)
-            self.qback.put((0, 1, task.id))
+            #self.qback.put((0, 1, task.id))
         
         return None
 
@@ -178,6 +179,10 @@ class PontifexServer(object):
                 cid = self.find_client(session, task)
                 if cid is not None:
                     _logger.info('Processing taskid=%d in host %s', taskid, cid)
+                else:
+                    self.queue.task_done()                    
+                    self.qback.put((0, 1, task.id))
+                session.commit()
 
 
 
@@ -192,6 +197,7 @@ class PontifexServer(object):
 engine = create_engine('sqlite:///devdata.db', echo=False)
 #engine = create_engine('sqlite:///devdata.db', echo=True)
 engine.execute('pragma foreign_keys=on')
+engine.execute('pragma timeout=5000')
 
 model.init_model(engine)
 model.metadata.create_all(engine)
