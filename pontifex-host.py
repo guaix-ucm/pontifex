@@ -14,7 +14,6 @@ import uuid
 import ConfigParser
 from xmlrpclib import ServerProxy, ProtocolError, Error
 
-import gobject
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
     
@@ -29,11 +28,10 @@ _logger = logging.getLogger("pontifex.host")
 
 
 class PontifexHost(object):
-    def __init__(self, loop, master, host, port):
+    def __init__(self, master, host, port):
         super(PontifexHost, self).__init__()
         uid = uuid.uuid5(uuid.NAMESPACE_URL, 'http://%s:%d' % (host, port))
         self.cid = uid.hex
-        self.loop = loop
         self.rserver = ServerProxy(master)
         self.rserver.register(self.cid, 'http://%s' % host, port, ['emir', 'frida', 'megara'])
 
@@ -55,7 +53,6 @@ class PontifexHost(object):
         self.qback.put(None)
         self.queue.put(None)
         self.queue.put(None)
-        self.loop.quit()
 
     def version(self):
     	return '1.0'
@@ -81,9 +78,6 @@ class PontifexHost(object):
                 _logger.info('ending worker thread')
                 return
 
-loop = gobject.MainLoop()
-gobject.threads_init()
-
 if len(sys.argv) != 2:
     sys.exit(1)
 
@@ -96,7 +90,7 @@ masterurl = config.get('master', 'url')
 host = config.get('slave', 'host')
 port = config.getint('slave', 'port')
 
-im = PontifexHost(loop, masterurl, host, port)
+im = PontifexHost(masterurl, host, port)
 
 tserver = txrServer((host, port), allow_none=True, logRequests=False)
 tserver.register_function(im.pass_info)
@@ -106,9 +100,10 @@ xmls.start()
 worker = threading.Thread(target=im.worker)
 worker.start()
 
-try:
-    loop.run()
-except KeyboardInterrupt:
-    im.quit()
-    tserver.shutdown()
+xmls.join()
+worker.join()
+
+# These two should be called in SIGTERM
+#    im.quit()
+#    tserver.shutdown()
 

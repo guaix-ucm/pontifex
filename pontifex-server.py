@@ -14,7 +14,6 @@ import os
 import os.path
 from datetime import datetime
 
-import gobject
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -38,10 +37,9 @@ df_server = ServerProxy('http://127.0.0.1:7080')
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 
 class PontifexServer(object):
-    def __init__(self, loop):
+    def __init__(self):
         super(PontifexServer, self).__init__()
 
-        self.loop = loop
         self.doned = False
         self.queue = Queue()
         self.qback = Queue()
@@ -56,7 +54,6 @@ class PontifexServer(object):
         self.qback.put(None)
         self.queue.put(None)
         self.queue.put(None)
-        self.loop.quit()
 
     def version(self):
     	return '1.0'
@@ -209,10 +206,7 @@ model.init_model(engine)
 model.metadata.create_all(engine)
 session = model.Session()
 
-loop = gobject.MainLoop()
-gobject.threads_init()
-
-im = PontifexServer(loop)
+im = PontifexServer()
 
 tserver = txrServer(('localhost', 7081), allow_none=True, logRequests=False)
 tserver.register_function(im.register)
@@ -223,7 +217,7 @@ xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
 
 POLL = 5
-_logger.info('Polling database for new ProcessingTaskss every %d seconds', POLL)
+_logger.info('Polling database for new ProcessingTasks every %d seconds', POLL)
 timer = threading.Thread(target=im.watchdog, args=(POLL, ), name='timer')
 timer.start()
 
@@ -233,9 +227,12 @@ inserter.start()
 consumer = threading.Thread(target=im.consumer, name='consumer')
 consumer.start()
 
-try:
-    loop.run()
-except KeyboardInterrupt:
-    im.quit()
-    tserver.shutdown()
+xmls.join()
+timer.join()
+inserter.join()
+consumer.join()
+
+# These two should be called in SIGTERM
+#im.quit()
+#tserver.shutdown()
 
