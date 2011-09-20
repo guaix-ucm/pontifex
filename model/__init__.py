@@ -16,11 +16,13 @@ def init_model(engine):
     Session.configure(bind=engine)
 
 _datadir = 'data'
+_taskdir = 'task'
 
 if not os.path.exists(_datadir):
     os.makedirs(_datadir)
 
 datadir = os.path.abspath(_datadir)
+taskdir = os.path.abspath(_taskdir)
 
 from sql import ObservingBlock, ObservingRun, Image, ProcessingBlockQueue
 from sql import Instrument, Users, ObservingResult

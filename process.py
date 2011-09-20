@@ -3,14 +3,16 @@ import logging
 import json
 import os
 
-_logger = logging.getLogger("pontifex")
+from model import taskdir
+
+_logger = logging.getLogger("pontifex.proc")
 
 def processPointing(**kwds):
     _logger.info('processPointing called wth kwds %s', kwds)
     _logger.info('creating root directory')
 
     basedir = str(kwds['id'])
-    os.chdir('/home/spr/devel/pontifex-db/task')
+    os.chdir(taskdir)
     _logger.info('root directory is %s', basedir)
 
     os.mkdir(basedir)
@@ -34,7 +36,7 @@ def processMosaic(**kwds):
     _logger.info('creating root directory')
 
     basedir = str(kwds['id'])
-    os.chdir('/home/spr/devel/pontifex-db/task')
+    os.chdir(taskdir)
     _logger.info('root directory is %s', basedir)
     os.mkdir(basedir)
     os.chdir(basedir)
@@ -56,7 +58,7 @@ def processCollect(**kwds):
     _logger.info('creating root directory')
 
     basedir = str(kwds['id'])
-    os.chdir('/home/spr/devel/pontifex-db/task')
+    os.chdir(taskdir)
     _logger.info('root directory is %s', basedir)
     os.mkdir(basedir)
     os.chdir(basedir)

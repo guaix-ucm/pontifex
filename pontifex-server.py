@@ -12,7 +12,6 @@ import datetime
 from xmlrpclib import ServerProxy, ProtocolError, Error
 import os
 import os.path
-import uuid
 from datetime import datetime
 
 import gobject
