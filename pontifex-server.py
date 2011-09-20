@@ -93,7 +93,7 @@ class PontifexServer(object):
         
         return None
 
-    def watchdog(self):
+    def watchdog(self, pollfreq):
         session_w = Session()
         while True:
             if self.doned:
@@ -104,7 +104,7 @@ class PontifexServer(object):
                 _logger.info('watchdog finished')
                 return
             else:            
-                time.sleep(POLL)                
+                time.sleep(pollfreq)                
                 for task in session_w.query(DataProcessingTask).filter_by(state=COMPLETED)[:self.nclient_hosts]:
                     _logger.info('enqueueing task %d ', task.id)
                     task.state = ENQUEUED
@@ -218,12 +218,13 @@ tserver = txrServer(('localhost', 7081), allow_none=True, logRequests=False)
 tserver.register_function(im.register)
 tserver.register_function(im.unregister)
 tserver.register_function(im.receiver)
+
 xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
 
 POLL = 5
 _logger.info('Polling database for new ProcessingTaskss every %d seconds', POLL)
-timer = threading.Thread(target=im.watchdog, name='timer')
+timer = threading.Thread(target=im.watchdog, args=(POLL, ), name='timer')
 timer.start()
 
 inserter = threading.Thread(target=im.inserter, name='inserter')
