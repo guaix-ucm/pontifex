@@ -3,23 +3,16 @@
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 import sys
-import time
 import threading
 import logging
 import logging.config
 from Queue import Queue
-import hashlib
-import datetime
 import uuid
 import ConfigParser
-from xmlrpclib import ServerProxy, ProtocolError, Error
+from xmlrpclib import ServerProxy
 import signal
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
     
 from numina import main2
-from ptimer import PeriodicTimer
 from txrServer import txrServer
 
 logging.config.fileConfig("logging.ini")
@@ -35,21 +28,14 @@ class PontifexHost(object):
         self.rserver = ServerProxy(master)
         self.rserver.register(self.cid, 'http://%s' % host, port, ['emir', 'frida', 'megara'])
 
-        self.timer = None
-        self.repeat = 5
         self.doned = False
         self.queue = Queue()
-        self.qback = Queue()
-        self.images = 0
 
         _logger.info('ready')
 
     def quit(self):
         _logger.info('ending')
         self.rserver.unregister(self.cid)
-        self.doned = True
-        self.qback.put(None)
-        self.queue.put(None)
         self.queue.put(None)
 
     def version(self):
@@ -93,19 +79,16 @@ im = PontifexHost(masterurl, host, port)
 tserver = txrServer((host, port), allow_none=True, logRequests=False)
 tserver.register_function(im.pass_info)
 
-# signal
-RUN = True
-
-def handler1(signum, frame):
-    global RUN
+# signal handler
+def handler(signum, frame):
     im.quit()
     tserver.shutdown()
-    RUN = False
+    im.doned = True
     sys.exit(0)
 
-# Set the signal handler and a 5-second alarm
-signal.signal(signal.SIGTERM, handler1)
-signal.signal(signal.SIGINT, handler1)
+# Set the signal handler on SIGTERM and SIGINT
+signal.signal(signal.SIGTERM, handler)
+signal.signal(signal.SIGINT, handler)
 
 xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
@@ -113,7 +96,7 @@ xmls.start()
 worker = threading.Thread(target=im.worker)
 worker.start()
 
-while RUN:
+while not im.doned:
     signal.pause()
 
 

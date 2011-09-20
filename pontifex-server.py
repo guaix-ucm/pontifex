@@ -7,9 +7,7 @@ import threading
 import logging
 import logging.config
 from Queue import Queue
-import datetime
-from xmlrpclib import ServerProxy, ProtocolError, Error
-import os
+from xmlrpclib import ServerProxy
 import os.path
 from datetime import datetime
 import signal
@@ -53,7 +51,6 @@ class PontifexServer(object):
         _logger.info('ending')
         self.doned = True
         self.qback.put(None)
-        self.queue.put(None)
         self.queue.put(None)
 
     def version(self):
@@ -213,19 +210,16 @@ tserver.register_function(im.register)
 tserver.register_function(im.unregister)
 tserver.register_function(im.receiver)
 
-# signal
-RUN = True
-
-def handler1(signum, frame):
-    global RUN
+# signal handler
+def handler(signum, frame):
     im.quit()
     tserver.shutdown()
-    RUN = False
+    im.doned = True
     sys.exit(0)
 
-# Set the signal handler and a 5-second alarm
-signal.signal(signal.SIGTERM, handler1)
-signal.signal(signal.SIGINT, handler1)
+# Set the signal handler on SIGTERM and SIGINT
+signal.signal(signal.SIGTERM, handler)
+signal.signal(signal.SIGINT, handler)
 
 xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
@@ -241,5 +235,5 @@ inserter.start()
 consumer = threading.Thread(target=im.consumer, name='consumer')
 consumer.start()
 
-while RUN:
+while not im.doned:
     signal.pause()
