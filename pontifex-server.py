@@ -45,6 +45,7 @@ class PontifexServer(object):
         self.doned = False
         self.queue = Queue()
         self.qback = Queue()
+        self.clientlock = threading.Lock()
         self.client_hosts = {}
         self.nclient_hosts = 0
         _logger.info('Started')
@@ -61,15 +62,17 @@ class PontifexServer(object):
     	return '1.0'
 
     def register(self, hostid, host, port, capabilities):
-        if hostid not in self.client_hosts:
-            self.nclient_hosts += 1
-            self.client_hosts[hostid]= (ServerProxy('%s:%d' % (host, port)), capabilities, True)
-            _logger.info('Host registered %s %s:%d %s', hostid, host, port, capabilities)
+        with self.clientlock:
+            if hostid not in self.client_hosts:
+                self.nclient_hosts += 1
+                self.client_hosts[hostid]= (ServerProxy('%s:%d' % (host, port)), capabilities, True)
+                _logger.info('Host registered %s %s:%d %s', hostid, host, port, capabilities)
 
     def unregister(self, hostid):
-        self.nclient_hosts -= 1
-        del self.client_hosts[hostid]
-        _logger.info('Unregistering host %s', hostid)
+        with self.clientlock:
+            self.nclient_hosts -= 1
+            del self.client_hosts[hostid]
+            _logger.info('Unregistering host %s', hostid)
 
     def find_client(self, session, task):
         _logger.info('Finding host for task=%d', task.id)
@@ -81,12 +84,12 @@ class PontifexServer(object):
                 task.host = idx
                 session.commit()
                 host.pass_info(task.id)
-                self.nclient_hosts -= 1
-                self.client_hosts[idx] = (host, cap, False)
+                with self.clientlock:
+                    self.nclient_hosts -= 1
+                    self.client_hosts[idx] = (host, cap, False)
                 return idx
         else:
             _logger.info('No server for taskid=%d', task.id)
-            #self.qback.put((0, 1, task.id))
         
         return None
 
@@ -188,9 +191,10 @@ class PontifexServer(object):
     def receiver(self, cid, state, taskid):
         self.queue.task_done()
         self.qback.put((cid, state, taskid))
-        self.nclient_hosts += 1
-        r = self.client_hosts[cid]
-        self.client_hosts[cid] = (r[0], r[1], True)
+        with self.clientlock:
+            self.nclient_hosts += 1
+            r = self.client_hosts[cid]
+            self.client_hosts[cid] = (r[0], r[1], True)
 
 
 engine = create_engine('sqlite:///devdata.db', echo=False)
