@@ -163,7 +163,7 @@ class PontifexServer(object):
                     kwds = {}
                     kwds['id'] = task.id
                     kwds['children'] = []
-                    kwds['images'] = []
+                    kwds['images'] = task.observing_result.images
                     # get images...
                     # get children results
                     for child in kwds['children']:
