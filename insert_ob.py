@@ -90,6 +90,8 @@ session.add(oblock)
 ores = ObservingResult()
 ores.state = 0
 ores.label = 'pointing'
+ores.mode = 'bias'
+ores.instrument_id = 'frida'
 session.add(ores)
 oblock.task = ores
 
@@ -131,6 +133,8 @@ session.add(oblock)
 otask = ObservingResult()
 otask.state = 0
 otask.label = 'collect'
+otask.instrument_id = 'frida'
+otask.mode = 'bias'
 session.add(otask)
 # The result of this ob
 oblock.task = otask
@@ -141,6 +145,9 @@ otaskj.state = 0
 otaskj.creation_time = datetime.utcnow()
 otaskj.parent = otask
 otaskj.label = 'mosaic'
+otaskj.mode = 'bias'
+otaskj.instrument_id = 'frida'
+
 session.add(otaskj)
 
 dd = get_last_image_index(session)
@@ -153,6 +160,8 @@ for j in range(3):
     otaskp.creation_time = datetime.utcnow()
     otaskp.parent = otaskj
     otaskp.label = 'pointing'
+    otaskp.mode = 'bias'
+    otaskp.instrument_id = 'frida'
     session.add(otaskp)
     session.commit()
 

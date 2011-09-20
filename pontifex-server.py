@@ -164,6 +164,9 @@ class PontifexServer(object):
                     kwds['id'] = task.id
                     kwds['children'] = []
                     kwds['images'] = task.observing_result.images
+                    kwds['mode'] = task.observing_result.mode
+                    kwds['instrument'] = task.observing_result.instrument_id
+
                     # get images...
                     # get children results
                     for child in kwds['children']:

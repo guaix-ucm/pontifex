@@ -15,12 +15,20 @@ _logger = logging.getLogger("numina")
 def main2(args=None):
     _logger.info('Args are %s', args)
 
-
     try:
         pwd = os.getcwd()
 
         os.chdir(args[2])
 
+        with open('task-control.json', 'r') as fd:
+            control = json.load(fd)
+
+        recipe_name = control['reduction']['recipe']
+        _logger.info('recipe name is %s', recipe_name)
+        module = importlib.import_module(recipe_name)
+
+        recipe = module.Recipe({}, {})
+        result = recipe.run(None)
 
         with open('result.fits', 'w+') as fd:
             pass
@@ -31,13 +39,15 @@ def main2(args=None):
         with open('result.json', 'w+') as fd:
             json.dump(result, fd, indent=1)
 
-        os.chdir(pwd)
+        result = 0
     
-    except OSError as error:
+    except (ImportError, ValueError, OSError) as error:
         _logger.error('%s', error)
-        return 1
+        result = 1
+    finally:
+        os.chdir(pwd)    
 
-    return 0
+    return result
 
 def main(rb):
 
