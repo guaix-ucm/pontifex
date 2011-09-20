@@ -13,6 +13,7 @@ import datetime
 import uuid
 import ConfigParser
 from xmlrpclib import ServerProxy, ProtocolError, Error
+import signal
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -25,7 +26,6 @@ logging.config.fileConfig("logging.ini")
 
 # create logger
 _logger = logging.getLogger("pontifex.host")
-
 
 class PontifexHost(object):
     def __init__(self, master, host, port):
@@ -42,12 +42,10 @@ class PontifexHost(object):
         self.qback = Queue()
         self.images = 0
 
-        _logger.info('Waiting for commands')
-        self.slaves = {}
-
+        _logger.info('ready')
 
     def quit(self):
-        _logger.info('Ending')
+        _logger.info('ending')
         self.rserver.unregister(self.cid)
         self.doned = True
         self.qback.put(None)
@@ -58,7 +56,7 @@ class PontifexHost(object):
     	return '1.0'
 
     def pass_info(self, taskid):
-        _logger.info('Received taskid=%d', taskid)
+        _logger.info('received taskid=%d', taskid)
         self.queue.put(taskid)
 
     def worker(self):
@@ -94,16 +92,28 @@ im = PontifexHost(masterurl, host, port)
 
 tserver = txrServer((host, port), allow_none=True, logRequests=False)
 tserver.register_function(im.pass_info)
+
+# signal
+RUN = True
+
+def handler1(signum, frame):
+    global RUN
+    im.quit()
+    tserver.shutdown()
+    RUN = False
+    sys.exit(0)
+
+# Set the signal handler and a 5-second alarm
+signal.signal(signal.SIGTERM, handler1)
+signal.signal(signal.SIGINT, handler1)
+
 xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
 
 worker = threading.Thread(target=im.worker)
 worker.start()
 
-xmls.join()
-worker.join()
+while RUN:
+    signal.pause()
 
-# These two should be called in SIGTERM
-#    im.quit()
-#    tserver.shutdown()
 

@@ -7,12 +7,13 @@ import threading
 import logging
 import logging.config
 from Queue import Queue
-import hashlib
 import datetime
 from xmlrpclib import ServerProxy, ProtocolError, Error
 import os
 import os.path
 from datetime import datetime
+import signal
+import sys
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -46,10 +47,10 @@ class PontifexServer(object):
         self.clientlock = threading.Lock()
         self.client_hosts = {}
         self.nclient_hosts = 0
-        _logger.info('Started')
+        _logger.info('ready')
 
     def quit(self):
-        _logger.info('Ending')
+        _logger.info('ending')
         self.doned = True
         self.qback.put(None)
         self.queue.put(None)
@@ -63,20 +64,20 @@ class PontifexServer(object):
             if hostid not in self.client_hosts:
                 self.nclient_hosts += 1
                 self.client_hosts[hostid]= (ServerProxy('%s:%d' % (host, port)), capabilities, True)
-                _logger.info('Host registered %s %s:%d %s', hostid, host, port, capabilities)
+                _logger.info('host registered %s %s:%d %s', hostid, host, port, capabilities)
 
     def unregister(self, hostid):
         with self.clientlock:
             self.nclient_hosts -= 1
             del self.client_hosts[hostid]
-            _logger.info('Unregistering host %s', hostid)
+            _logger.info('unregistering host %s', hostid)
 
     def find_client(self, session, task):
-        _logger.info('Finding host for task=%d', task.id)
+        _logger.info('finding host for task=%d', task.id)
         for idx in self.client_hosts:
             host, cap, idle = self.client_hosts[idx]
             if idle:
-                _logger.info('Sending to host %s', idx)
+                _logger.info('sending to host %s', idx)
                 task.state = PROCESSING
                 task.host = idx
                 session.commit()
@@ -86,7 +87,7 @@ class PontifexServer(object):
                     self.client_hosts[idx] = (host, cap, False)
                 return idx
         else:
-            _logger.info('No server for taskid=%d', task.id)
+            _logger.info('no server for taskid=%d', task.id)
         
         return None
 
@@ -125,7 +126,7 @@ class PontifexServer(object):
                 return
             else:
                 cid, state, taskid = val
-                _logger.info('Updating done work, ProcessingTask %d', int(taskid))
+                _logger.info('updating done work, ProcessingTask %d', int(taskid))
                 task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
 
                 task.completion_time = datetime.utcnow()
@@ -180,7 +181,7 @@ class PontifexServer(object):
 
                 cid = self.find_client(session, task)
                 if cid is not None:
-                    _logger.info('Processing taskid=%d in host %s', taskid, cid)
+                    _logger.info('processing taskid %d in host %s', taskid, cid)
                 else:
                     self.queue.task_done()                    
                     self.qback.put((0, 1, task.id))
@@ -200,7 +201,6 @@ class PontifexServer(object):
 engine = create_engine('sqlite:///devdata.db', echo=False)
 #engine = create_engine('sqlite:///devdata.db', echo=True)
 engine.execute('pragma foreign_keys=on')
-engine.execute('pragma timeout=5000')
 
 model.init_model(engine)
 model.metadata.create_all(engine)
@@ -213,11 +213,25 @@ tserver.register_function(im.register)
 tserver.register_function(im.unregister)
 tserver.register_function(im.receiver)
 
+# signal
+RUN = True
+
+def handler1(signum, frame):
+    global RUN
+    im.quit()
+    tserver.shutdown()
+    RUN = False
+    sys.exit(0)
+
+# Set the signal handler and a 5-second alarm
+signal.signal(signal.SIGTERM, handler1)
+signal.signal(signal.SIGINT, handler1)
+
 xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
 
 POLL = 5
-_logger.info('Polling database for new ProcessingTasks every %d seconds', POLL)
+_logger.info('polling database for new ProcessingTasks every %d seconds', POLL)
 timer = threading.Thread(target=im.watchdog, args=(POLL, ), name='timer')
 timer.start()
 
@@ -227,12 +241,5 @@ inserter.start()
 consumer = threading.Thread(target=im.consumer, name='consumer')
 consumer.start()
 
-xmls.join()
-timer.join()
-inserter.join()
-consumer.join()
-
-# These two should be called in SIGTERM
-#im.quit()
-#tserver.shutdown()
-
+while RUN:
+    signal.pause()
