@@ -60,6 +60,8 @@ class ObservingResult(Base):
     completion_time = Column(DateTime)
     parent_id = Column(Integer, ForeignKey('observing_result.id'))
     label = Column(String(45))
+    instrument_id = Column(Integer,  ForeignKey("instrument.name"), nullable=False)
+    mode = Column(String(45), nullable=False)
     waiting = Column(Boolean)
     awaited = Column(Boolean)
 

@@ -3,10 +3,14 @@
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 from datetime import datetime
+import os.path
 
 from sqlalchemy import create_engine
+import pyfits
+import numpy
 
 import model
+from model import datadir
 from model import ObservingRun, ObservingBlock, Image, Instrument, Users
 from model import DataProcessingTask, ObservingResult
 from model import RecipeParameters, ProcessingBlockQueue
@@ -15,6 +19,8 @@ from model import get_last_image_index
 def new_image(number, exposure, imgtype, oresult):
     im = Image()
     im.name = 'r0%02d.fits' % number
+    data = numpy.zeros((1,1), dtype='int16')
+    pyfits.writeto(os.path.join(datadir, im.name), data, clobber=True)
     im.exposure = exposure
     im.imgtype = imgtype
     im.obsresult_id = oresult.id
@@ -84,6 +90,8 @@ session.add(oblock)
 ores = ObservingResult()
 ores.state = 0
 ores.label = 'pointing'
+ores.mode = 'bias'
+ores.instrument_id = 'frida'
 session.add(ores)
 oblock.task = ores
 
@@ -125,6 +133,8 @@ session.add(oblock)
 otask = ObservingResult()
 otask.state = 0
 otask.label = 'collect'
+otask.instrument_id = 'frida'
+otask.mode = 'bias'
 session.add(otask)
 # The result of this ob
 oblock.task = otask
@@ -135,6 +145,9 @@ otaskj.state = 0
 otaskj.creation_time = datetime.utcnow()
 otaskj.parent = otask
 otaskj.label = 'mosaic'
+otaskj.mode = 'bias'
+otaskj.instrument_id = 'frida'
+
 session.add(otaskj)
 
 dd = get_last_image_index(session)
@@ -147,6 +160,8 @@ for j in range(3):
     otaskp.creation_time = datetime.utcnow()
     otaskp.parent = otaskj
     otaskp.label = 'pointing'
+    otaskp.mode = 'bias'
+    otaskp.instrument_id = 'frida'
     session.add(otaskp)
     session.commit()
 

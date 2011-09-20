@@ -13,8 +13,8 @@ import datetime
 import uuid
 import ConfigParser
 from xmlrpclib import ServerProxy, ProtocolError, Error
+import signal
 
-import gobject
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
     
@@ -27,13 +27,11 @@ logging.config.fileConfig("logging.ini")
 # create logger
 _logger = logging.getLogger("pontifex.host")
 
-
 class PontifexHost(object):
-    def __init__(self, loop, master, host, port):
+    def __init__(self, master, host, port):
         super(PontifexHost, self).__init__()
         uid = uuid.uuid5(uuid.NAMESPACE_URL, 'http://%s:%d' % (host, port))
         self.cid = uid.hex
-        self.loop = loop
         self.rserver = ServerProxy(master)
         self.rserver.register(self.cid, 'http://%s' % host, port, ['emir', 'frida', 'megara'])
 
@@ -44,24 +42,21 @@ class PontifexHost(object):
         self.qback = Queue()
         self.images = 0
 
-        _logger.info('Waiting for commands')
-        self.slaves = {}
-
+        _logger.info('ready')
 
     def quit(self):
-        _logger.info('Ending')
+        _logger.info('ending')
         self.rserver.unregister(self.cid)
         self.doned = True
         self.qback.put(None)
         self.queue.put(None)
         self.queue.put(None)
-        self.loop.quit()
 
     def version(self):
     	return '1.0'
 
     def pass_info(self, taskid):
-        _logger.info('Received taskid=%d', taskid)
+        _logger.info('received taskid=%d', taskid)
         self.queue.put(taskid)
 
     def worker(self):
@@ -81,9 +76,6 @@ class PontifexHost(object):
                 _logger.info('ending worker thread')
                 return
 
-loop = gobject.MainLoop()
-gobject.threads_init()
-
 if len(sys.argv) != 2:
     sys.exit(1)
 
@@ -96,19 +88,32 @@ masterurl = config.get('master', 'url')
 host = config.get('slave', 'host')
 port = config.getint('slave', 'port')
 
-im = PontifexHost(loop, masterurl, host, port)
+im = PontifexHost(masterurl, host, port)
 
 tserver = txrServer((host, port), allow_none=True, logRequests=False)
 tserver.register_function(im.pass_info)
+
+# signal
+RUN = True
+
+def handler1(signum, frame):
+    global RUN
+    im.quit()
+    tserver.shutdown()
+    RUN = False
+    sys.exit(0)
+
+# Set the signal handler and a 5-second alarm
+signal.signal(signal.SIGTERM, handler1)
+signal.signal(signal.SIGINT, handler1)
+
 xmls = threading.Thread(target=tserver.serve_forever)
 xmls.start()
 
 worker = threading.Thread(target=im.worker)
 worker.start()
 
-try:
-    loop.run()
-except KeyboardInterrupt:
-    im.quit()
-    tserver.shutdown()
+while RUN:
+    signal.pause()
+
 
