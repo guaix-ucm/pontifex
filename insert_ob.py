@@ -82,7 +82,7 @@ obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
 
 # Observing block
-oblock = create_observing_block('bias', user.id, obsrun)
+oblock = create_observing_block('dark', user.id, obsrun)
 session.add(oblock)
 # The layout of observing tasks can be arbitrary...
 
@@ -90,7 +90,7 @@ session.add(oblock)
 ores = ObservingResult()
 ores.state = 0
 ores.label = 'pointing'
-ores.mode = 'bias'
+ores.mode = 'dark'
 ores.instrument_id = 'frida'
 session.add(ores)
 oblock.task = ores
@@ -108,7 +108,7 @@ ores.state = 1
 dd = get_last_image_index(session)
 
 for i in range(3):
-    im = new_image(dd, 0, 'bias', ores)
+    im = new_image(dd, 0, 'dark', ores)
     dd += 1
     session.add(im)
 
@@ -134,7 +134,7 @@ otask = ObservingResult()
 otask.state = 0
 otask.label = 'collect'
 otask.instrument_id = 'frida'
-otask.mode = 'bias'
+otask.mode = 'direct_image'
 session.add(otask)
 # The result of this ob
 oblock.task = otask
@@ -145,7 +145,7 @@ otaskj.state = 0
 otaskj.creation_time = datetime.utcnow()
 otaskj.parent = otask
 otaskj.label = 'mosaic'
-otaskj.mode = 'bias'
+otaskj.mode = 'direct_image'
 otaskj.instrument_id = 'frida'
 
 session.add(otaskj)
@@ -160,7 +160,7 @@ for j in range(3):
     otaskp.creation_time = datetime.utcnow()
     otaskp.parent = otaskj
     otaskp.label = 'pointing'
-    otaskp.mode = 'bias'
+    otaskp.mode = 'direct_image'
     otaskp.instrument_id = 'frida'
     session.add(otaskp)
     session.commit()
