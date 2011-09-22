@@ -21,4 +21,5 @@ class Recipe:
     	_logger.info('starting dark reduction')
     	time.sleep(5)
     	_logger.info('dark reduction ended')
-        return 0
+        return {'result': {'dark_image': 0, 'qa': 1}}
+

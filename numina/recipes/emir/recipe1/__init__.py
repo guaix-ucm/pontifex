@@ -118,7 +118,7 @@ class Recipe(object):
             else:
                 break
 
-        return result
+        return {'result': {'direct_image': result , 'qa': 1}
 
     def create_superflat(self, images):
         name = naming.skyflat('comb', self.iteration)

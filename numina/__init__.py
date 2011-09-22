@@ -41,28 +41,34 @@ def main2(args=None):
         module = importlib.import_module(recipe_name)
 
         recipe = module.Recipe({}, {})
+        
         result = recipe.run(None)
 
         _recipe_logger.removeHandler(fh)
 
-        with open('result.fits', 'w+') as fd:
-            pass
+        if 'error' in result:
+            # we have an error here
+            code = 1
+            # error structure should go here
+        elif 'result' in result:
+
+            with open('result.fits', 'w+') as fd:
+                pass
         
-        result = {'val1':1, 'val2': 2}
+            with open('result.json', 'w+') as fd:
+                json.dump(result, fd, indent=1)
 
-
-        with open('result.json', 'w+') as fd:
-            json.dump(result, fd, indent=1)
-
-        result = 0
+            code = 0
+        else:
+            raise ValueError('Malformed recipe result')
     
     except (ImportError, ValueError, OSError) as error:
         _logger.error('%s', error)
-        result = 1
+        code = 1
     finally:
         os.chdir(pwd)    
 
-    return result
+    return code
 
 def main(rb):
 

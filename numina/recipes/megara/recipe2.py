@@ -14,4 +14,5 @@ class Recipe:
         return []
 
     def run(self, rb):
-        return 0
+        return {'result': {'direct_image': 0, 'qa': 1}}
+

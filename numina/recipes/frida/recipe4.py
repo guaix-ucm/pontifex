@@ -26,4 +26,5 @@ class Recipe:
         _logger.info('stacking science images')
     	time.sleep(5)
     	_logger.info('direct imaging reduction ended')
-        return 0
+        return {'result': {'direct_image': 0, 'qa': 1}}
+

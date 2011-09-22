@@ -18,7 +18,8 @@ class Recipe:
         return []
 
     def run(self, rb):
-	_logger.info('starting bias reduction')
-	time.sleep(5)
-	_logger.info('bias reduction ended')
-        return 0
+        _logger.info('starting bias reduction')
+	    time.sleep(5)
+	    _logger.info('bias reduction ended')
+        return {'result': {'bias_image': 0, 'qa': 1}}
+

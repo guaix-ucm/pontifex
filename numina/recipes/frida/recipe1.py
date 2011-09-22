@@ -21,4 +21,4 @@ class Recipe:
     	_logger.info('starting bias reduction')
     	time.sleep(5)
     	_logger.info('bias reduction ended')
-        return 0
+        return {'result': {'bias_image': 0, 'qa': 1}}
