@@ -12,6 +12,11 @@ from . import model
 
 _logger = logging.getLogger("numina")
 
+_recipe_logger = logging.getLogger('numina.recipes')
+
+_recipe_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
 def main2(args=None):
     _logger.info('Args are %s', args)
 
@@ -25,10 +30,20 @@ def main2(args=None):
 
         recipe_name = control['reduction']['recipe']
         _logger.info('recipe name is %s', recipe_name)
+
+        # Set custom logger
+        fh = logging.FileHandler('processing.log')
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(_recipe_formatter)
+
+        _recipe_logger.addHandler(fh)
+
         module = importlib.import_module(recipe_name)
 
         recipe = module.Recipe({}, {})
         result = recipe.run(None)
+
+        _recipe_logger.removeHandler(fh)
 
         with open('result.fits', 'w+') as fd:
             pass
