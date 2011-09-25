@@ -35,14 +35,14 @@ import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-import process
-from ptimer import PeriodicTimer
-import model
-from model import Session, datadir
-from model import ObservingRun, ObservingBlock, Image
-from model import DataProcessingTask, ReductionResult
-from model import get_last_image_index, get_unprocessed_obsblock, DataProcessing
-from txrServer import txrServer
+import pontifex.process as process
+from pontifex.ptimer import PeriodicTimer
+from pontifex.txrServer import txrServer
+import pontifex.model as model
+from pontifex.model import Session, datadir
+from pontifex.model import ObservingRun, ObservingBlock, Image
+from pontifex.model import DataProcessingTask, ReductionResult
+from pontifex.model import get_last_image_index, get_unprocessed_obsblock, DataProcessing
 
 logging.config.fileConfig("logging.ini")
 

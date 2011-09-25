@@ -43,8 +43,8 @@ if not os.path.exists(_datadir):
 datadir = os.path.abspath(_datadir)
 taskdir = os.path.abspath(_taskdir)
 
-from sql import ObservingBlock, ObservingRun, Image, ProcessingBlockQueue
-from sql import Instrument, Users, ObservingResult
-from dataproc import RecipeParameters, DataProcessingTask, DataProcessing
-from dataproc import ReductionResult
-from sql import get_last_image_index, get_unprocessed_obsblock
+from .sql import ObservingBlock, ObservingRun, Image, ProcessingBlockQueue
+from .sql import Instrument, Users, ObservingResult
+from .dataproc import RecipeParameters, DataProcessingTask, DataProcessing
+from .dataproc import ReductionResult
+from .sql import get_last_image_index, get_unprocessed_obsblock

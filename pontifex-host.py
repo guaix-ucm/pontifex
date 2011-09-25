@@ -32,7 +32,7 @@ from xmlrpclib import ServerProxy
 import signal
     
 from numina import main2
-from txrServer import txrServer
+from pontifex.txrServer import txrServer
 
 logging.config.fileConfig("logging.ini")
 

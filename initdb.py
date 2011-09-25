@@ -25,16 +25,16 @@ from datetime import datetime
 
 from sqlalchemy import create_engine
 
-import model
-from model import Users, Instrument
+from pontifex.model import Users, Instrument
+from pontifex.model import init_model, metadata, Session
 
 #engine = create_engine('sqlite:///devdata.db', echo=False)
 engine = create_engine('sqlite:///devdata.db', echo=True)
 engine.execute('pragma foreign_keys=on')
 
-model.init_model(engine)
-model.metadata.create_all(engine)
-session = model.Session()
+init_model(engine)
+metadata.create_all(engine)
+session = Session()
 
 user = Users()
 user.name = 'auto'

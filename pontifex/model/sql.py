@@ -28,7 +28,7 @@ from sqlalchemy import PickleType, Enum
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
-from model import DeclarativeBase as Base, metadata, Session
+from pontifex.model import DeclarativeBase as Base, metadata, Session
 
 class Users(Base):
     __tablename__ = 'users'

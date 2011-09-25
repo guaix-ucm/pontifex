@@ -28,7 +28,7 @@ from sqlalchemy import create_engine
 import pyfits
 import numpy
 
-import model
+import pontifex.model as model
 from model import datadir
 from model import ObservingRun, ObservingBlock, Image, Instrument, Users
 from model import DataProcessingTask, ObservingResult

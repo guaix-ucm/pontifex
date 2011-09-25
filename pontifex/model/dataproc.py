@@ -27,7 +27,7 @@ from sqlalchemy import Table, Column, MetaData, ForeignKey
 from sqlalchemy import PickleType, Enum
 from sqlalchemy.orm import relationship, backref
 
-from model import DeclarativeBase, metadata, Session
+from pontifex.model import DeclarativeBase, metadata, Session
 
 class DataProcessingTask(DeclarativeBase):
     __tablename__ = 'dp_task'
