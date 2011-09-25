@@ -30,7 +30,7 @@ More info here
 import logging
 import os.path
 
-from . import naming
+import naming
 
 __all__ = ['Recipe']
 

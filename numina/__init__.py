@@ -26,7 +26,6 @@ import json
 import os
 
 from . import recipes
-from . import model
 
 _logger = logging.getLogger("numina")
 
@@ -34,6 +33,13 @@ _recipe_logger = logging.getLogger('numina.recipes')
 
 _recipe_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+class ReductionResult(object):
+    def __init__(self):
+        self.id = None
+        self.reduction_block = None
+        self.other = None
+        self.status = 0
+        self.picklable = {}
 
 def main2(args=None):
     _logger.info('Args are %s', args)
@@ -91,7 +97,7 @@ def main2(args=None):
 def main(rb):
 
     _logger.info('Creating Reduction Result')
-    rr = model.ReductionResult()
+    rr = ReductionResult()
     rr.reduction_block = rb
     rr.other = 'Other info'
 
