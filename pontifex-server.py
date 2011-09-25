@@ -1,5 +1,24 @@
 #!/usr/bin/python
 
+#
+# Copyright 2011 Sergio Pascual
+# 
+# This file is part of Pontifex
+# 
+# Pontifex is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# PyEmir is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with PyEmir.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
 import time
@@ -60,28 +79,30 @@ class PontifexServer(object):
         with self.clientlock:
             if hostid not in self.client_hosts:
                 self.nclient_hosts += 1
-                self.client_hosts[hostid]= (ServerProxy('%s:%d' % (host, port)), capabilities, True)
+                self.client_hosts[hostid]= (ServerProxy('http://%s:%d' % (host, port)), (host, port), capabilities, True)
                 _logger.info('host registered %s %s:%d %s', hostid, host, port, capabilities)
 
     def unregister(self, hostid):
         with self.clientlock:
+            _logger.info('unregistering host %s', hostid)
             self.nclient_hosts -= 1
             del self.client_hosts[hostid]
-            _logger.info('unregistering host %s', hostid)
+
 
     def find_client(self, session, task):
         _logger.info('finding host for task=%d', task.id)
         for idx in self.client_hosts:
-            host, cap, idle = self.client_hosts[idx]
+            server, (host, port), cap, idle = self.client_hosts[idx]
             if idle:
-                _logger.info('sending to host %s', idx)
+
                 task.state = PROCESSING
-                task.host = idx
+                task.host = '%s:%d' % (host, port)
+                _logger.info('sending to host %s', task.host)
                 session.commit()
-                host.pass_info(task.id)
+                server.pass_info(task.id)
                 with self.clientlock:
                     self.nclient_hosts -= 1
-                    self.client_hosts[idx] = (host, cap, False)
+                    self.client_hosts[idx] = (server, (host, port), cap, False)
                 return idx
         else:
             _logger.info('no server for taskid=%d', task.id)
@@ -192,7 +213,7 @@ class PontifexServer(object):
         with self.clientlock:
             self.nclient_hosts += 1
             r = self.client_hosts[cid]
-            self.client_hosts[cid] = (r[0], r[1], True)
+            self.client_hosts[cid] = (r[0], r[1], r[2], True)
 
 
 engine = create_engine('sqlite:///devdata.db', echo=False)
