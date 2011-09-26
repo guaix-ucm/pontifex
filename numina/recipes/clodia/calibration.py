@@ -17,7 +17,7 @@
 # along with PyEmir.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-'''Calibration Recipes for Megara'''
+'''Calibration Recipes for Clodia'''
 
 import logging
 import time
@@ -25,11 +25,11 @@ import time
 import numpy
 import pyfits
 
-from numina import RecipeBase, __version__
+from numina import RecipeBase
 
 __all__ = ['BiasRecipe', 'DarkRecipe']
 
-_logger = logging.getLogger('numina.recipes.megara')
+_logger = logging.getLogger('numina.recipes.clodia')
 
 class BiasRecipe(RecipeBase):
 
@@ -41,12 +41,8 @@ class BiasRecipe(RecipeBase):
     def __init__(self, pp, cp):
         pass
 
-    @classmethod
-    def requires(cls):
-        return []
-
     def run(self, rb):
-        _logger.info('starting bias reduction')
+    	_logger.info('starting bias reduction')
 
         # Mock result        
         data = numpy.zeros((10, 10), dtype='float32')
@@ -67,7 +63,6 @@ class BiasRecipe(RecipeBase):
         _logger.info('bias reduction ended')
         return {'result': {'master_bias': hdulist, 'qa': 1}}
 
-
 class DarkRecipe(RecipeBase):
 
     __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
@@ -80,7 +75,6 @@ class DarkRecipe(RecipeBase):
 
     def run(self, rb):
         _logger.info('starting dark reduction')
-
         # Mock result        
         data = numpy.zeros((10, 10), dtype='float32')
 
@@ -99,5 +93,6 @@ class DarkRecipe(RecipeBase):
 
         _logger.info('dark reduction ended')
         return {'result': {'master_dark': hdulist, 'qa': 1}}
+
 
 

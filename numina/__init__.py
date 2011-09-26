@@ -29,6 +29,8 @@ import inspect
 
 import recipes
 
+__version__ = '0.4.1'
+
 _logger = logging.getLogger("numina")
 
 _recipe_logger = logging.getLogger('numina.recipes')
