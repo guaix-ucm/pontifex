@@ -31,6 +31,17 @@ __all__ = ['BiasRecipe', 'DarkRecipe']
 
 _logger = logging.getLogger('numina.recipes.megara')
 
+# FIXME: this should go to Numina somewhere
+class FITSHistoryHandler(logging.Handler):
+    '''Logging handler using HISTORY FITS cards'''
+    def __init__(self, header):
+        logging.Handler.__init__(self)
+        self.header = header
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.header.add_history(msg)
+
 class BiasRecipe(RecipeBase):
 
     __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
@@ -41,11 +52,14 @@ class BiasRecipe(RecipeBase):
     def __init__(self, pp, cp):
         pass
 
-    @classmethod
-    def requires(cls):
-        return []
-
     def run(self, rb):
+
+        history_header = pyfits.Header()
+
+        fh =  FITSHistoryHandler(history_header)
+        fh.setLevel(logging.INFO)
+        _logger.addHandler(fh)
+
         _logger.info('starting bias reduction')
 
         # Mock result        
@@ -56,6 +70,9 @@ class BiasRecipe(RecipeBase):
         # update hdu header with
         # reduction keywords
         hdr = hdu.header
+
+        _logger.info('adding headers')
+
         hdr.update('IMGTYP', 'BIAS', 'Image type')
         hdr.update('NUMTYP', 'MASTER_BIAS', 'Data product type')
         hdr.update('NUMXVER', __version__, 'Numina package version')
@@ -65,6 +82,9 @@ class BiasRecipe(RecipeBase):
         hdulist = pyfits.HDUList([hdu])
 
         _logger.info('bias reduction ended')
+
+        _logger.removeHandler(fh)
+
         return {'result': {'master_bias': hdulist, 'qa': 1}}
 
 
