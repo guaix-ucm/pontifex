@@ -17,12 +17,11 @@
 # along with PyEmir.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-__all__ = ['run']
+from numina import RecipeBase
 
-def run(rb, pp, cp):
-    return None
+__all__ = ['Recipe']
 
-class Recipe:
+class Recipe(RecipeBase):
     def __init__(self, pp, cp):
         pass
 

@@ -20,14 +20,15 @@
 import logging
 import time
 
-__all__ = ['run']
+from numina import RecipeBase
+
+__all__ = ['Recipe']
 
 _logger = logging.getLogger('numina.recipes.frida')
 
-def run(rb, pp, cp):
-    return None
 
-class Recipe:
+
+class Recipe(RecipeBase):
     def __init__(self, pp, cp):
         pass
 

@@ -20,14 +20,13 @@
 import logging
 import time
 
-__all__ = ['run']
+from numina import RecipeBase
+
+__all__ = ['Recipe']
 
 _logger = logging.getLogger('recipes.megara')
 
-def run(rb, pp, cp):
-    return None
-
-class Recipe:
+class Recipe(RecipeBase):
     def __init__(self, pp, cp):
         pass
 
@@ -37,7 +36,7 @@ class Recipe:
 
     def run(self, rb):
         _logger.info('starting bias reduction')
-	    time.sleep(5)
-	    _logger.info('bias reduction ended')
+        time.sleep(5)
+        _logger.info('bias reduction ended')
         return {'result': {'bias_image': 0, 'qa': 1}}
 

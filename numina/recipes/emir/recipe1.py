@@ -30,6 +30,8 @@ More info here
 import logging
 import os.path
 
+from numina import RecipeBase
+
 import naming
 
 __all__ = ['Recipe']
@@ -67,7 +69,7 @@ class ImageInformation:
     def __str__(self):
         return self.base
 
-class Recipe(object):
+class Recipe(RecipeBase):
     def __init__(self, parameters_p, parameters_q):
         self.pp = parameters_p
         self.pq = parameters_q
@@ -135,7 +137,7 @@ class Recipe(object):
             else:
                 break
 
-        return {'result': {'direct_image': result , 'qa': 1}
+        return {'result': {'direct_image': result , 'qa': 1}}
 
     def create_superflat(self, images):
         name = naming.skyflat('comb', self.iteration)

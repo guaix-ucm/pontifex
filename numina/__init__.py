@@ -24,8 +24,10 @@ import importlib
 import sys
 import json
 import os
+import pkgutil
+import inspect
 
-from . import recipes
+import recipes
 
 _logger = logging.getLogger("numina")
 
@@ -128,3 +130,33 @@ def main(rb):
         rr.picklable = {'result': result}
 
     return rr
+
+class RecipeBase(object):
+    '''Base class for all instrument recipes'''
+    pass
+
+def list_recipes():
+    '''List all defined recipes'''
+    return RecipeBase.__subclasses__() # pylint: disable-msgs=E1101
+    
+def recipes_by_obs_mode(obsmode):
+    for rclass in list_recipes():
+        if obsmode in rclass.capabilities:
+            yield rclass
+    
+def walk_modules(mod):
+    module = __import__(mod, fromlist="dummy")
+    for _, nmod, _ in pkgutil.walk_packages(path=module.__path__,
+                                                prefix=module.__name__ + '.'):
+        yield nmod
+        
+def init_recipe_system(modules):
+    '''Load all recipe classes in modules'''
+    for mod in modules:
+        for sub in walk_modules(mod):
+            __import__(sub, fromlist="dummy")
+
+
+
+
+
