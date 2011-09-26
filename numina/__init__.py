@@ -102,19 +102,22 @@ def main(rb):
     rr.other = 'Other info'
 
     try:
-        recipe_name = recipes.find_recipe(rb.instrument, rb.mode)
+        entry_point = recipes.find_recipe(rb.instrument, rb.mode)
+
+	mod, klass = entry_point.split(':')
 
         # Find precomputed parameters for this recipe
-        pp = recipes.find_parameters(recipe_name)
+        pp = recipes.find_parameters(entry_point)
 
-        module = importlib.import_module(recipe_name)
+        module = importlib.import_module(mod)
+	Recipe = getattr(module, klass)
 
         cp = {}
         
-        for name, value in module.Recipe.requires():
+        for name, value in Recipe.requires():
             cp[name] = value        
 
-        recipe = module.Recipe(pp, cp)
+        recipe = Recipe(pp, cp)
         result = recipe.run(rb)
 
     except ValueError as msg:

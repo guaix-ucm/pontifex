@@ -28,13 +28,18 @@ def find_recipe(instrument, mode):
         raise ValueError(msg)
 
     try:
-        repmod = mod.find_recipe(mode)
+        entry = mod.find_recipe(mode)
     except KeyError:
         msg = 'No recipe for mode %s' % mode
         raise ValueError(msg)
         
-    return '%s.%s' % (base, repmod)
+    return '%s.%s' % (base, entry)
 
 def find_parameters(recipe_name):
     # query somewhere for the precomputed parameters
     return {}
+
+if __name__ == '__main__':
+    from frida import find_recipe
+
+    print find_recipe('bias')

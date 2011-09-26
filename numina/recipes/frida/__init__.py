@@ -20,10 +20,10 @@
 __all__ = ['find_recipe']
 
 # equivalence
-_equiv = {'bias': 'recipe1',
-        'dark': 'recipe3',
-        'direct_image': 'recipe4',
-        'mosaic': 'recipe2'}
+_equiv = {'bias': 'recipe1:Recipe',
+        'dark': 'recipe3:Recipe',
+        'direct_image': 'recipe4:Recipe',
+        'mosaic': 'recipe2:Recipe'}
 
 def find_recipe(mode):
     return _equiv[mode]

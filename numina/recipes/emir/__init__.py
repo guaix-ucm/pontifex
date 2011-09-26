@@ -20,8 +20,8 @@
 __all__ = ['find_recipe']
 
 # equivalence
-_equiv = {'mode1': 'recipe1',
-    'mode2': 'recipe2'}
+_equiv = {'mode1': 'recipe1:Recipe',
+    'mode2': 'recipe2:Recipe'}
 
 def find_recipe(mode):
     return _equiv[mode]
