@@ -22,11 +22,17 @@ import time
 
 from numina import RecipeBase
 
-__all__ = ['Recipe']
+__all__ = ['BiasRecipe', 'DarkRecipe']
 
-_logger = logging.getLogger('recipes.megara')
+_logger = logging.getLogger('numina.recipes.megara')
 
-class Recipe(RecipeBase):
+class BiasRecipe(RecipeBase):
+
+    __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
+    __version__ = "0.1.0"
+    __requires__ = []
+    __provides__ = ['master_bias']
+
     def __init__(self, pp, cp):
         pass
 
@@ -38,5 +44,23 @@ class Recipe(RecipeBase):
         _logger.info('starting bias reduction')
         time.sleep(5)
         _logger.info('bias reduction ended')
-        return {'result': {'bias_image': 0, 'qa': 1}}
+        return {'result': {'master_bias': 0, 'qa': 1}}
+
+
+class DarkRecipe(RecipeBase):
+
+    __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
+    __version__ = "0.1.0"
+    __requires__ = ['master_bias']
+    __provides__ = ['master_dark']
+
+    def __init__(self, pp, cp):
+        pass
+
+    def run(self, rb):
+        _logger.info('starting bias reduction')
+        time.sleep(5)
+        _logger.info('bias reduction ended')
+        return {'result': {'master_dark': 0, 'qa': 1}}
+
 
