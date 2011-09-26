@@ -11,7 +11,7 @@ setup(name='pontifex',
       description='Pontifex automatic reduction system',
       packages=['pontifex', 'pontifex.model', 'numina', 'numina.recipes',
                 'numina.recipes.emir', 'numina.recipes.megara',
-                'numina.recipes.frida'],
+                'numina.recipes.frida', 'numina.recipes.clodia'],
       scripts=['scripts/pontifex-server.py', 'scripts/pontifex-host.py'],
       classifiers=[
                    "Programming Language :: Python",
