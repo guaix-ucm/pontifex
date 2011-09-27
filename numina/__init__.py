@@ -97,31 +97,31 @@ def main2(args=None):
 
     return code
 
-def main(rb):
+def main(block):
 
     _logger.info('Creating Reduction Result')
     rr = ReductionResult()
-    rr.reduction_block = rb
+    rr.reduction_block = block
     rr.other = 'Other info'
 
     try:
-        entry_point = recipes.find_recipe(rb.instrument, rb.mode)
+        entry_point = recipes.find_recipe(block.instrument, block.mode)
 
-	    mod, klass = entry_point.split(':')
+        mod, klass = entry_point.split(':')
 
         # Find precomputed parameters for this recipe
         pp = recipes.find_parameters(entry_point)
 
-        module = importlib.import_module(mod)
-	    Recipe = getattr(module, klass)
+        module = import_module(mod)
+        RecipeClass = getattr(module, klass)
 
         cp = {}
         
-        for name, value in Recipe.requires():
-            cp[name] = value        
+        for req in RecipeClass.__requires__:
+            print req.tag, req.comment
 
-        recipe = Recipe(pp, cp)
-        result = recipe.run(rb)
+        recipe = RecipeClass(pp, cp)
+        result = recipe.run(block)
 
     except ValueError as msg:
         _logger.error('Something has happened: %s', str(msg))
@@ -135,6 +135,25 @@ def main(rb):
 class RecipeBase(object):
     '''Base class for all instrument recipes'''
     pass
+
+class RecipeType(object):
+    def __init__(self, tag, comment='', default=None):
+        self.tag = tag
+        self.comment = comment
+        self.default = default
+
+class Keyword(RecipeType):
+    def __init__(self, tag, comment='', default=None):
+        RecipeType.__init__(self, tag, comment, default)        
+
+class Image(RecipeType):
+    def __init__(self, tag, comment='', default=None):
+        RecipeType.__init__(self, tag, comment, default)        
+
+class Map(RecipeType):
+    def __init__(self, tag, comment='', default=None):
+        RecipeType.__init__(self, tag, comment, default)        
+        
 
 def list_recipes():
     '''List all defined recipes'''

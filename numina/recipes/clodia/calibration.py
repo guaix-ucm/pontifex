@@ -25,18 +25,35 @@ import time
 import numpy
 import pyfits
 
-from numina import RecipeBase
+from numina import RecipeBase, Image, __version__
+from numina import Image, Keyword
 
 __all__ = ['BiasRecipe', 'DarkRecipe']
 
 _logger = logging.getLogger('numina.recipes.clodia')
 
+_imgtype_key = Keyword('imagetype_key', 
+                       comment='Name of image type header keyword',
+                       default='IMGTYP')
+
+_airmass_key = Keyword('airmass_key', 
+                       comment='Name of airmass header keyword',
+                       default='AIRMASS')
+
+_exposure_key = Keyword('exposure_key', 
+                       comment='Name of exposure header keyword',
+                       default='EXPOSED')
+
+_juliandate_key = Keyword('juliandate_key', 
+                       comment='Name of Julian date header keyword',
+                       default='MJD-OBS')
+
 class BiasRecipe(RecipeBase):
 
     __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
     __version__ = "0.1.0"
-    __requires__ = []
-    __provides__ = ['master_bias']
+    __requires__ = [_imgtype_key]
+    __provides__ = [Image('master_bias', comment='Master bias image')]
 
     def __init__(self, pp, cp):
         pass
@@ -67,8 +84,8 @@ class DarkRecipe(RecipeBase):
 
     __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
     __version__ = "0.1.0"
-    __requires__ = ['master_bias']
-    __provides__ = ['master_dark']
+    __requires__ = [_imgtype_key, Image('master_bias', comment='Master bias image')]
+    __provides__ = [Image('master_dark', comment='Master dark image')]
 
     def __init__(self, pp, cp):
         pass
