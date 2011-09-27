@@ -20,12 +20,11 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import importlib
 import sys
 import json
 import os
-import pkgutil
-import inspect
+from pkgutil import walk_packages
+from importlib import import_module
 
 import recipes
 
@@ -147,16 +146,16 @@ def recipes_by_obs_mode(obsmode):
             yield rclass
     
 def walk_modules(mod):
-    module = __import__(mod, fromlist="dummy")
-    for _, nmod, _ in pkgutil.walk_packages(path=module.__path__,
-                                                prefix=module.__name__ + '.'):
+    module = import_module(mod)
+    for _, nmod, _ in walk_packages(path=module.__path__,
+                                    prefix=module.__name__ + '.'):
         yield nmod
         
 def init_recipe_system(modules):
     '''Load all recipe classes in modules'''
     for mod in modules:
         for sub in walk_modules(mod):
-            __import__(sub, fromlist="dummy")
+            import_module(sub)
 
 class FITSHistoryHandler(logging.Handler):
     '''Logging handler using HISTORY FITS cards'''
