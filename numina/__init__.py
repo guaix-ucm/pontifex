@@ -108,13 +108,13 @@ def main(rb):
     try:
         entry_point = recipes.find_recipe(rb.instrument, rb.mode)
 
-	mod, klass = entry_point.split(':')
+	    mod, klass = entry_point.split(':')
 
         # Find precomputed parameters for this recipe
         pp = recipes.find_parameters(entry_point)
 
         module = importlib.import_module(mod)
-	Recipe = getattr(module, klass)
+	    Recipe = getattr(module, klass)
 
         cp = {}
         
@@ -158,6 +158,15 @@ def init_recipe_system(modules):
         for sub in walk_modules(mod):
             __import__(sub, fromlist="dummy")
 
+class FITSHistoryHandler(logging.Handler):
+    '''Logging handler using HISTORY FITS cards'''
+    def __init__(self, header):
+        logging.Handler.__init__(self)
+        self.header = header
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.header.add_history(msg)
 
 
 

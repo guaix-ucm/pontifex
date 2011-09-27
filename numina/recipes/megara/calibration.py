@@ -26,21 +26,11 @@ import numpy
 import pyfits
 
 from numina import RecipeBase, __version__
+from numina import FITSHistoryHandler
 
 __all__ = ['BiasRecipe', 'DarkRecipe']
 
 _logger = logging.getLogger('numina.recipes.megara')
-
-# FIXME: this should go to Numina somewhere
-class FITSHistoryHandler(logging.Handler):
-    '''Logging handler using HISTORY FITS cards'''
-    def __init__(self, header):
-        logging.Handler.__init__(self)
-        self.header = header
-
-    def emit(self, record):
-        msg = self.format(record)
-        self.header.add_history(msg)
 
 class BiasRecipe(RecipeBase):
 
