@@ -78,8 +78,9 @@ class ObservingResult(Base):
     completion_time = Column(DateTime)
     parent_id = Column(Integer, ForeignKey('observing_result.id'))
     label = Column(String(45))
-    instrument_id = Column(Integer,  ForeignKey("instrument.name"), nullable=False)
+    instrument_id = Column(String(10), ForeignKey("instrument.name"), nullable=False)
     mode = Column(String(45), nullable=False)
+
     waiting = Column(Boolean)
     awaited = Column(Boolean)
 
@@ -105,16 +106,15 @@ class ProcessingBlockQueue(Base):
 
     obsblock = relationship("ObservingBlock", backref=backref("procqueue", uselist=False))
 
-
-
 def get_unprocessed_obsblock(session):
     return session.query(ProcessingBlockQueue)
 
 def get_last_image_index(session):
+    number = 0
     try:
         name, = session.query(Image.name).order_by(desc(Image.stamp)).first()
         number = int(name[1:-5]) + 1
     except TypeError:
-        number = 0
+        number = 1
     return number
 

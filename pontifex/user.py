@@ -23,17 +23,19 @@
 import time
 import threading
 import logging
-import logging.config
 from Queue import Queue
 from xmlrpclib import ServerProxy
 import os.path
 from datetime import datetime
 import signal
 import sys
-
+import uuid
+import ConfigParser
+    
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from numina import main2
 import pontifex.process as process
 from pontifex.ptimer import PeriodicTimer
 from pontifex.txrServer import txrServer
@@ -43,12 +45,8 @@ from pontifex.model import ObservingRun, ObservingBlock, Image
 from pontifex.model import DataProcessingTask, ReductionResult
 from pontifex.model import get_last_image_index, get_unprocessed_obsblock, DataProcessing
 
-
-
 # create logger
-_logger = logging.getLogger("pontifex.server")
-
-
+_logger_s = logging.getLogger("pontifex.server")
 
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
@@ -63,10 +61,10 @@ class PontifexServer(object):
         self.clientlock = threading.Lock()
         self.client_hosts = {}
         self.nclient_hosts = 0
-        _logger.info('ready')
+        _logger_s.info('ready')
 
     def quit(self):
-        _logger.info('ending')
+        _logger_s.info('ending')
         self.doned = True
         self.qback.put(None)
         self.queue.put(None)
@@ -79,24 +77,24 @@ class PontifexServer(object):
             if hostid not in self.client_hosts:
                 self.nclient_hosts += 1
                 self.client_hosts[hostid]= (ServerProxy('http://%s:%d' % (host, port)), (host, port), capabilities, True)
-                _logger.info('host registered %s %s:%d %s', hostid, host, port, capabilities)
+                _logger_s.info('host registered %s %s:%d %s', hostid, host, port, capabilities)
 
     def unregister(self, hostid):
         with self.clientlock:
-            _logger.info('unregistering host %s', hostid)
+            _logger_s.info('unregistering host %s', hostid)
             self.nclient_hosts -= 1
             del self.client_hosts[hostid]
 
 
     def find_client(self, session, task):
-        _logger.info('finding host for task=%d', task.id)
+        _logger_s.info('finding host for task=%d', task.id)
         for idx in self.client_hosts:
             server, (host, port), cap, idle = self.client_hosts[idx]
             if idle:
 
                 task.state = PROCESSING
                 task.host = '%s:%d' % (host, port)
-                _logger.info('sending to host %s', task.host)
+                _logger_s.info('sending to host %s', task.host)
                 session.commit()
                 server.pass_info(task.id)
                 with self.clientlock:
@@ -104,7 +102,7 @@ class PontifexServer(object):
                     self.client_hosts[idx] = (server, (host, port), cap, False)
                 return idx
         else:
-            _logger.info('no server for taskid=%d', task.id)
+            _logger_s.info('no server for taskid=%d', task.id)
         
         return None
 
@@ -112,16 +110,16 @@ class PontifexServer(object):
         session_w = Session()
         while True:
             if self.doned:
-                _logger.info('cleaning up pending jobs')
+                _logger_s.info('cleaning up pending jobs')
                 for task in session_w.query(DataProcessingTask).filter_by(state=ENQUEUED):
                     task.state = COMPLETED
                 session_w.commit()
-                _logger.info('watchdog finished')
+                _logger_s.info('watchdog finished')
                 return
             else:            
                 time.sleep(pollfreq)                
                 for task in session_w.query(DataProcessingTask).filter_by(state=COMPLETED)[:self.nclient_hosts]:
-                    _logger.info('enqueueing task %d ', task.id)
+                    _logger_s.info('enqueueing task %d ', task.id)
                     task.state = ENQUEUED
     
                     session_w.commit()
@@ -132,18 +130,18 @@ class PontifexServer(object):
         # clean up on startup
         q = session_i.query(DataProcessingTask).filter_by(state=ENQUEUED)
         for i in q:
-            _logger.info('fixing job %d', i.id)
+            _logger_s.info('fixing job %d', i.id)
             i.state = COMPLETED
         session_i.commit()
 
         while True:
             val = self.qback.get()
             if self.doned or val is None:
-                _logger.info('inserter finished')
+                _logger_s.info('inserter finished')
                 return
             else:
                 cid, state, taskid = val
-                _logger.info('updating done work, ProcessingTask %d', int(taskid))
+                _logger_s.info('updating done work, ProcessingTask %d', int(taskid))
                 task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
 
                 task.completion_time = datetime.utcnow()
@@ -165,7 +163,7 @@ class PontifexServer(object):
         while True:
             taskid = self.queue.get()
             if self.doned or taskid is None:
-                _logger.info('consumer is finished')
+                _logger_s.info('consumer is finished')
                 return
             else:
                 task = session.query(DataProcessingTask).filter_by(id=taskid).first()
@@ -185,10 +183,10 @@ class PontifexServer(object):
                     # get images...
                     # get children results
                     for child in kwds['children']:
-                        _logger.info('query for result of ob id=%d', child)
+                        _logger_s.info('query for result of ob id=%d', child)
                         rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
                         if rr is not None:
-                            _logger.info('reduction result id is %d', rr.id)
+                            _logger_s.info('reduction result id is %d', rr.id)
                     fun(**kwds)
                 except OSError, AttributeError:
                     task.completion_time = datetime.utcnow()
@@ -198,7 +196,7 @@ class PontifexServer(object):
 
                 cid = self.find_client(session, task)
                 if cid is not None:
-                    _logger.info('processing taskid %d in host %s', taskid, cid)
+                    _logger_s.info('processing taskid %d in host %s', taskid, cid)
                 else:
                     self.queue.task_done()                    
                     self.qback.put((0, 1, task.id))
@@ -213,6 +211,97 @@ class PontifexServer(object):
             self.nclient_hosts += 1
             r = self.client_hosts[cid]
             self.client_hosts[cid] = (r[0], r[1], r[2], True)
+
+
+
+
+# create logger
+_logger = logging.getLogger("pontifex.host")
+
+class PontifexHost(object):
+    def __init__(self, master, host, port):
+        super(PontifexHost, self).__init__()
+        uid = uuid.uuid5(uuid.NAMESPACE_URL, 'http://%s:%d' % (host, port))
+        self.cid = uid.hex
+        self.host = host
+        self.port = port
+        self.rserver = ServerProxy(master)
+        self.rserver.register(self.cid, host, port, ['clodia'])
+
+        self.doned = False
+        self.queue = Queue()
+
+        _logger.info('ready')
+
+    def quit(self):
+        _logger.info('ending')
+        self.rserver.unregister(self.cid)
+        self.queue.put(None)
+
+    def version(self):
+    	return '1.0'
+
+    def pass_info(self, taskid):
+        _logger.info('received taskid=%d', taskid)
+        self.queue.put(taskid)
+
+    def worker(self):
+        while True:
+            taskid = self.queue.get()
+            if taskid is not None:
+                filename = 'task-control.json'
+                _logger.info('processing taskid %d', taskid)
+                print 'por aqui'
+                state = main2(['-d','--basedir', 'task/%s' % taskid, 
+                    '--datadir', 'data', '--run', filename])
+                
+                _logger.info('finished')
+                
+                self.queue.task_done()
+                self.rserver.receiver(self.cid, state, taskid)
+            else:
+                _logger.info('ending worker thread')
+                return
+
+
+def main_host():
+
+    if len(sys.argv) != 2:
+        sys.exit(1)
+
+    cfgfile = sys.argv[1]
+
+    config = ConfigParser.ConfigParser()
+    config.read(cfgfile)
+
+    masterurl = config.get('master', 'url')
+    host = config.get('slave', 'host')
+    port = config.getint('slave', 'port')
+
+    im = PontifexHost(masterurl, host, port)
+
+    tserver = txrServer((host, port), allow_none=True, logRequests=False)
+    tserver.register_function(im.pass_info)
+
+    # signal handler
+    def handler(signum, frame):
+        im.quit()
+        tserver.shutdown()
+        im.doned = True
+        sys.exit(0)
+
+    # Set the signal handler on SIGTERM and SIGINT
+    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGINT, handler)
+
+    xmls = threading.Thread(target=tserver.serve_forever)
+    xmls.start()
+
+    worker = threading.Thread(target=im.worker)
+    worker.start()
+
+    while not im.doned:
+        signal.pause()
 
 def main_server():
 
@@ -250,7 +339,7 @@ def main_server():
     xmls.start()
 
     POLL = 5
-    _logger.info('polling database for new ProcessingTasks every %d seconds', POLL)
+    _logger_s.info('polling database for new ProcessingTasks every %d seconds', POLL)
     timer = threading.Thread(target=im.watchdog, args=(POLL, ), name='timer')
     timer.start()
 

@@ -23,17 +23,19 @@
 
 from datetime import datetime
 import os.path
+import sys
+
 
 from sqlalchemy import create_engine
 import pyfits
 import numpy
 
 import pontifex.model as model
-from model import datadir
-from model import ObservingRun, ObservingBlock, Image, Instrument, Users
-from model import DataProcessingTask, ObservingResult
-from model import RecipeParameters, ProcessingBlockQueue
-from model import get_last_image_index
+from pontifex.model import datadir
+from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
+from pontifex.model import DataProcessingTask, ObservingResult
+from pontifex.model import RecipeParameters, ProcessingBlockQueue
+from pontifex.model import get_last_image_index
 
 def new_image(number, exposure, imgtype, oresult):
     im = Image()
@@ -94,7 +96,7 @@ model.init_model(engine)
 model.metadata.create_all(engine)
 session = model.Session()
 
-ins = session.query(Instrument).filter_by(name='frida').first()
+ins = session.query(Instrument).filter_by(name='clodia').first()
 user = session.query(Users).first()
 
 obsrun = create_obsrun(user.id, ins.name)
@@ -110,8 +112,11 @@ ores = ObservingResult()
 ores.state = 0
 ores.label = 'pointing'
 ores.mode = 'dark'
-ores.instrument_id = 'frida'
+ores.instrument_id = ins.name
+ores.waiting = True
+ores.awaited = False
 session.add(ores)
+
 oblock.task = ores
 
 # Create corresponding reduction tasks
@@ -124,6 +129,8 @@ oblock.start_time = datetime.utcnow()
 # OR started
 ores.start_time = datetime.utcnow()
 ores.state = 1
+session.commit()
+
 dd = get_last_image_index(session)
 
 for i in range(3):
@@ -135,6 +142,7 @@ for i in range(3):
 ores.completion_time = datetime.utcnow()
 ores.state = 2
 
+ptask.instrument_id = ins.name
 ptask.state = 1
 session.commit()
 
@@ -142,6 +150,7 @@ session.commit()
 oblock.state = 1
 oblock.completion_time = datetime.utcnow()
 session.commit()
+
 # ------------------
 
 # New Observing block
@@ -152,7 +161,7 @@ session.add(oblock)
 otask = ObservingResult()
 otask.state = 0
 otask.label = 'collect'
-otask.instrument_id = 'frida'
+otask.instrument_id = ins.name
 otask.mode = 'direct_image'
 session.add(otask)
 # The result of this ob
@@ -165,7 +174,7 @@ otaskj.creation_time = datetime.utcnow()
 otaskj.parent = otask
 otaskj.label = 'mosaic'
 otaskj.mode = 'direct_image'
-otaskj.instrument_id = 'frida'
+otaskj.instrument_id = ins.name
 
 session.add(otaskj)
 
@@ -180,7 +189,7 @@ for j in range(3):
     otaskp.parent = otaskj
     otaskp.label = 'pointing'
     otaskp.mode = 'direct_image'
-    otaskp.instrument_id = 'frida'
+    otaskp.instrument_id = ins.name
     session.add(otaskp)
     session.commit()
 

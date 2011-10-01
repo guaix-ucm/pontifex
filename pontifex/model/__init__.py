@@ -40,6 +40,9 @@ _taskdir = 'task'
 if not os.path.exists(_datadir):
     os.makedirs(_datadir)
 
+if not os.path.exists(_taskdir):
+    os.makedirs(_taskdir)
+
 datadir = os.path.abspath(_datadir)
 taskdir = os.path.abspath(_taskdir)
 

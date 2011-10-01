@@ -28,6 +28,8 @@ from importlib import import_module
 
 import recipes
 
+import pyfits
+
 __version__ = '0.4.1'
 
 _logger = logging.getLogger("numina")
@@ -55,8 +57,8 @@ def main2(args=None):
         with open('task-control.json', 'r') as fd:
             control = json.load(fd)
 
-        recipe_name = control['reduction']['recipe']
-        _logger.info('recipe name is %s', recipe_name)
+        entry_point = control['reduction']['recipe']
+        _logger.info('entry point is %s', entry_point)
 
         # Set custom logger
         fh = logging.FileHandler('processing.log')
@@ -65,11 +67,21 @@ def main2(args=None):
 
         _recipe_logger.addHandler(fh)
 
-        module = importlib.import_module(recipe_name)
+        mod, klass = entry_point.split(':')
 
-        recipe = module.Recipe({}, {})
-        
-        result = recipe.run(None)
+        module = import_module(mod)
+        RecipeClass = getattr(module, klass)
+
+        cp = {}
+        # Find precomputed parameters for this recipe
+        # pp = recipes.find_parameters(entry_point)
+        pp = {}
+
+        for req in RecipeClass.__requires__:
+            print req.tag, req.comment
+
+        recipe = RecipeClass(pp, cp)
+        result = recipe.run({})
 
         _recipe_logger.removeHandler(fh)
 
@@ -82,8 +94,15 @@ def main2(args=None):
             with open('result.fits', 'w+') as fd:
                 pass
         
+            class FitsEncoder(json.JSONEncoder):
+                def default(self, obj):
+                    if isinstance(obj, pyfits.core.PrimaryHDU):
+                        obj.writeto('result.fits')
+                        return 'result.fits'
+                    return json.JSONEncoder.default(self, obj)
+
             with open('result.json', 'w+') as fd:
-                json.dump(result, fd, indent=1)
+                json.dump(result, fd, indent=1, cls=FitsEncoder)
 
             code = 0
         else:

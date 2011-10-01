@@ -21,7 +21,9 @@ __all__ = ['find_recipe']
 
 # equivalence
 _equiv = {'bias': 'calibration:BiasRecipe',
-    'dark': 'calibration:DarkRecipe'}
+    'dark': 'calibration:DarkRecipe',
+    'direct_image': 'science:DirectImage',
+}
 
 def find_recipe(mode):
     return _equiv[mode]

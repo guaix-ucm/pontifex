@@ -63,4 +63,9 @@ ii.name = 'frida'
 ii.parameters = {}
 session.add(ii)
 
+ii = Instrument()
+ii.name = 'clodia'
+ii.parameters = {}
+session.add(ii)
+
 session.commit()
