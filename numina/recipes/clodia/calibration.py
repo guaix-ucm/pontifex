@@ -26,6 +26,7 @@ import numpy
 import pyfits
 
 from numina import RecipeBase, Image, __version__
+from numina import FITSHistoryHandler
 from numina import Image, Keyword
 
 __all__ = ['BiasRecipe', 'DarkRecipe']
@@ -59,6 +60,14 @@ class BiasRecipe(RecipeBase):
         pass
 
     def run(self, rb):
+
+        history_header = pyfits.Header()
+
+        fh =  FITSHistoryHandler(history_header)
+        fh.setLevel(logging.INFO)
+        _logger.addHandler(fh)
+
+
     	_logger.info('starting bias reduction')
 
         images = rb.images
@@ -83,6 +92,7 @@ class BiasRecipe(RecipeBase):
             # update hdu header with
             # reduction keywords
             hdr = hdu.header
+            hdr.update('FILENAME', 'master_bias.fits')
             hdr.update('IMGTYP', 'BIAS', 'Image type')
             hdr.update('NUMTYP', 'MASTER_BIAS', 'Data product type')
             hdr.update('NUMXVER', __version__, 'Numina package version')
@@ -92,10 +102,16 @@ class BiasRecipe(RecipeBase):
             hdulist = pyfits.HDUList([hdu])
 
             _logger.info('bias reduction ended')
+
+            # merge header with HISTORY log
+            hdr.ascardlist().extend(history_header.ascardlist())    
+
             return {'result': {'master_bias': hdulist, 'qa': 1}}
         except OSError as error:
             return {'error' : {'exception': str(error)}}
         finally:
+            _logger.removeHandler(fh)
+
             for hdulist in cdata:
                 hdulist.close()
 

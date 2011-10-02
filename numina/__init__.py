@@ -105,16 +105,15 @@ def main2(args=None):
             # we have an error here
             code = 1
             # error structure should go here
-        elif 'result' in result:
-
-            with open('result.fits', 'w+') as fd:
-                pass
-        
+        elif 'result' in result:        
             class FitsEncoder(json.JSONEncoder):
                 def default(self, obj):
                     if isinstance(obj, pyfits.core.PrimaryHDU):
-                        obj.writeto('result.fits')
-                        return 'result.fits'
+                        filename = 'result.fits'
+                        if obj.header.has_key('FILENAME'):
+                            filename = obj.header['FILENAME']
+                        obj.writeto(filename)
+                        return filename
                     return json.JSONEncoder.default(self, obj)
 
             with open('result.json', 'w+') as fd:
