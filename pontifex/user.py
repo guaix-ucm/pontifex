@@ -251,7 +251,6 @@ class PontifexHost(object):
             if taskid is not None:
                 filename = 'task-control.json'
                 _logger.info('processing taskid %d', taskid)
-                print 'por aqui'
                 state = main2(['-d','--basedir', 'task/%s' % taskid, 
                     '--datadir', 'data', '--run', filename])
                 
