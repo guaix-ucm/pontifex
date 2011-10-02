@@ -61,24 +61,43 @@ class BiasRecipe(RecipeBase):
     def run(self, rb):
     	_logger.info('starting bias reduction')
 
-        # Mock result        
-        data = numpy.zeros((10, 10), dtype='float32')
+        images = rb.images
 
-        hdu = pyfits.PrimaryHDU(data)
+        cdata = []
+
+        try:
+            for image in images:
+                hdulist = pyfits.open(image, memmap=True, mode='readonly')
+                cdata.append(hdulist)
+
+            _logger.info('stacking images')
+            data = numpy.zeros((10, 10), dtype='float32')
+            for hdulist in cdata:
+                data += hdulist['PRIMARY'].data
+
+            data /= len(cdata)
+            data += 2.0
+
+            hdu = pyfits.PrimaryHDU(data, header=cdata[0]['PRIMARY'].header)
     
-        # update hdu header with
-        # reduction keywords
-        hdr = hdu.header
-        hdr.update('IMGTYP', 'BIAS', 'Image type')
-        hdr.update('NUMTYP', 'MASTER_BIAS', 'Data product type')
-        hdr.update('NUMXVER', __version__, 'Numina package version')
-        hdr.update('NUMRNAM', 'BiasRecipe', 'Numina recipe name')
-        hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
+            # update hdu header with
+            # reduction keywords
+            hdr = hdu.header
+            hdr.update('IMGTYP', 'BIAS', 'Image type')
+            hdr.update('NUMTYP', 'MASTER_BIAS', 'Data product type')
+            hdr.update('NUMXVER', __version__, 'Numina package version')
+            hdr.update('NUMRNAM', 'BiasRecipe', 'Numina recipe name')
+            hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
         
-        hdulist = pyfits.HDUList([hdu])
+            hdulist = pyfits.HDUList([hdu])
 
-        _logger.info('bias reduction ended')
-        return {'result': {'master_bias': hdulist, 'qa': 1}}
+            _logger.info('bias reduction ended')
+            return {'result': {'master_bias': hdulist, 'qa': 1}}
+        except OSError as error:
+            return {'error' : {'exception': str(error)}}
+        finally:
+            for hdulist in cdata:
+                hdulist.close()
 
 class DarkRecipe(RecipeBase):
 

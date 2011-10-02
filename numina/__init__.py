@@ -46,6 +46,38 @@ class ReductionResult(object):
         self.status = 0
         self.picklable = {}
 
+class ObservingResult(object):
+    def __init__(self):
+        self.id = None
+        self.images = []
+
+def main_internal(entry_point, obsres):
+    _logger.info('entry point is %s', entry_point)
+
+    # Set custom logger
+    fh = logging.FileHandler('processing.log')
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(_recipe_formatter)
+
+    _recipe_logger.addHandler(fh)
+
+    mod, klass = entry_point.split(':')
+
+    module = import_module(mod)
+    RecipeClass = getattr(module, klass)
+
+    cp = {}
+    # Find precomputed parameters for this recipe
+    # pp = recipes.find_parameters(entry_point)
+    pp = {}
+    
+    recipe = RecipeClass(pp, cp)
+    
+    result = recipe.run(obsres)
+
+    _recipe_logger.removeHandler(fh)
+    return result
+
 def main2(args=None):
     _logger.info('Args are %s', args)
 
@@ -58,33 +90,17 @@ def main2(args=None):
             control = json.load(fd)
 
         entry_point = control['reduction']['recipe']
-        _logger.info('entry point is %s', entry_point)
 
-        # Set custom logger
-        fh = logging.FileHandler('processing.log')
-        fh.setLevel(logging.DEBUG)
-        fh.setFormatter(_recipe_formatter)
+        obsres = ObservingResult()
 
-        _recipe_logger.addHandler(fh)
+        obsres.__dict__ = control['observing_result']
 
-        mod, klass = entry_point.split(':')
-
-        module = import_module(mod)
-        RecipeClass = getattr(module, klass)
-
-        cp = {}
-        # Find precomputed parameters for this recipe
-        # pp = recipes.find_parameters(entry_point)
-        pp = {}
-
-        for req in RecipeClass.__requires__:
-            print req.tag, req.comment
-
-        recipe = RecipeClass(pp, cp)
-        result = recipe.run({})
-
-        _recipe_logger.removeHandler(fh)
-
+        # We are running arbitrary code here
+        try:
+            result = main_internal(entry_point, obsres)
+        except Exception as error:
+            result = {'error': str(error)}
+            
         if 'error' in result:
             # we have an error here
             code = 1
@@ -126,21 +142,7 @@ def main(block):
     try:
         entry_point = recipes.find_recipe(block.instrument, block.mode)
 
-        mod, klass = entry_point.split(':')
-
-        # Find precomputed parameters for this recipe
-        pp = recipes.find_parameters(entry_point)
-
-        module = import_module(mod)
-        RecipeClass = getattr(module, klass)
-
-        cp = {}
-        
-        for req in RecipeClass.__requires__:
-            print req.tag, req.comment
-
-        recipe = RecipeClass(pp, cp)
-        result = recipe.run(block)
+        result = main_internal(entry_point, block)
 
     except ValueError as msg:
         _logger.error('Something has happened: %s', str(msg))
