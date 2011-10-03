@@ -22,6 +22,7 @@ import json
 import os
 import os.path
 import shutil
+from importlib import import_module
 
 from model import taskdir, datadir
 import numina.recipes as recipes
@@ -50,14 +51,28 @@ def processPointing(**kwds):
 
     try:
         _logger.info('instrument=%s mode=%s', kwds['instrument'], kwds['mode'])
-        recipe_name = recipes.find_recipe(kwds['instrument'], kwds['mode'])
+        entry_point = recipes.find_recipe(kwds['instrument'], kwds['mode'])
     except ValueError:
-        recipe_name = 'dum'
+        entry_point = 'dum'
 
-    _logger.info('recipe name is %s', recipe_name)
+    _logger.info('recipe entry point is %s', entry_point)
+
+    mod, klass = entry_point.split(':')
+
+    module = import_module(mod)
+    RecipeClass = getattr(module, klass)
+
+    parameters = {}
+    for req in RecipeClass.__requires__:
+        _logger.info('recipe requires %s', req.tag)
+        parameters[req.tag] = req.default
+
+    for req in RecipeClass.__provides__:
+        _logger.info('recipe provides %s', req.tag)
+
 
     with open(filename, 'w+') as fp:
-        config = {'observing_result': {'id': kwds['id'], 'images': [image.name for image in kwds['images']]}, 'reduction': {'recipe': recipe_name}}
+        config = {'observing_result': {'id': kwds['id'], 'images': [image.name for image in kwds['images']]}, 'reduction': {'recipe': entry_point, 'parameters': parameters}}
         json.dump(config, fp, indent=2)
 
     return 0

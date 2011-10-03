@@ -31,7 +31,8 @@ import signal
 import sys
 import uuid
 import ConfigParser
-    
+import json
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -149,9 +150,25 @@ class PontifexServer(object):
                     task.state = FINISHED
 
                     rr = ReductionResult()
-                    rr.other = str({})
+
+                    with open('result.json') as fd:
+                        content = json.load(fd)
+
+                    # Read result.json
+                    # Store it here
+                    rr.other = str(content)
+                    # cd back
+                    #os.chdir(pwd)
                     rr.task_id = task.id
                     session_i.add(rr)
+
+                    result = content['result'].copy()
+                    
+                    # handle qa here
+                    result['qa']
+                    # delete once is handled
+                    del result['qa']
+
                 else:
                     task.state = ERROR
 
