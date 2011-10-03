@@ -51,6 +51,16 @@ class ObservingResult(object):
         self.id = None
         self.images = []
 
+class FitsEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, pyfits.core.PrimaryHDU):
+            filename = 'result.fits'
+            if obj.header.has_key('FILENAME'):
+                filename = obj.header['FILENAME']
+            obj.writeto(filename)
+            return filename
+        return json.JSONEncoder.default(self, obj)
+
 def main_internal(entry_point, obsres):
     _logger.info('entry point is %s', entry_point)
 
@@ -105,17 +115,7 @@ def main2(args=None):
             # we have an error here
             code = 1
             # error structure should go here
-        elif 'result' in result:        
-            class FitsEncoder(json.JSONEncoder):
-                def default(self, obj):
-                    if isinstance(obj, pyfits.core.PrimaryHDU):
-                        filename = 'result.fits'
-                        if obj.header.has_key('FILENAME'):
-                            filename = obj.header['FILENAME']
-                        obj.writeto(filename)
-                        return filename
-                    return json.JSONEncoder.default(self, obj)
-
+        elif 'result' in result:
             with open('result.json', 'w+') as fd:
                 json.dump(result, fd, indent=1, cls=FitsEncoder)
 
