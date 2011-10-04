@@ -20,7 +20,7 @@
 import importlib
 
 def find_recipe(instrument, mode):
-    base = 'numina.recipes.%s' % instrument
+    base = '%s.recipes' % instrument
     try:
         mod = importlib.import_module(base)
     except ImportError:
