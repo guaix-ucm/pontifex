@@ -219,8 +219,6 @@ class PontifexServer(object):
                     self.qback.put((0, 1, task.id))
                 session.commit()
 
-
-
     def receiver(self, cid, state, taskid):
         self.queue.task_done()
         self.qback.put((cid, state, taskid))
@@ -228,10 +226,7 @@ class PontifexServer(object):
             self.nclient_hosts += 1
             self.client_hosts[cid][3] = True
 
-
-
-
-# create logger
+# create logger for host
 _logger = logging.getLogger("pontifex.host")
 
 class PontifexHost(object):
