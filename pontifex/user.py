@@ -77,7 +77,7 @@ class PontifexServer(object):
         with self.clientlock:
             if hostid not in self.client_hosts:
                 self.nclient_hosts += 1
-                self.client_hosts[hostid]= (ServerProxy('http://%s:%d' % (host, port)), (host, port), capabilities, True)
+                self.client_hosts[hostid]= [ServerProxy('http://%s:%d' % (host, port)), (host, port), capabilities, True]
                 _logger_s.info('host registered %s %s:%d %s', hostid, host, port, capabilities)
 
     def unregister(self, hostid):
@@ -100,7 +100,7 @@ class PontifexServer(object):
                 server.pass_info(task.id)
                 with self.clientlock:
                     self.nclient_hosts -= 1
-                    self.client_hosts[idx] = (server, (host, port), cap, False)
+                    self.client_hosts[idx][3] = False
                 return idx
         else:
             _logger_s.info('no server for taskid=%d', task.id)
@@ -226,8 +226,7 @@ class PontifexServer(object):
         self.qback.put((cid, state, taskid))
         with self.clientlock:
             self.nclient_hosts += 1
-            r = self.client_hosts[cid]
-            self.client_hosts[cid] = (r[0], r[1], r[2], True)
+            self.client_hosts[cid][3] = True
 
 
 
