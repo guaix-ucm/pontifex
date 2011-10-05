@@ -36,6 +36,7 @@ def init_model(engine):
 
 _datadir = 'data'
 _taskdir = 'task'
+_productsdir = 'products'
 
 if not os.path.exists(_datadir):
     os.makedirs(_datadir)
@@ -43,8 +44,12 @@ if not os.path.exists(_datadir):
 if not os.path.exists(_taskdir):
     os.makedirs(_taskdir)
 
+if not os.path.exists(_productsdir):
+    os.makedirs(_productsdir)
+
 datadir = os.path.abspath(_datadir)
 taskdir = os.path.abspath(_taskdir)
+productsdir = os.path.abspath(_productsdir)
 
 from .sql import ObservingBlock, ObservingRun, Image, ProcessingBlockQueue
 from .sql import Instrument, Users, ObservingResult
