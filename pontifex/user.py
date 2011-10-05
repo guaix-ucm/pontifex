@@ -148,15 +148,21 @@ class PontifexServer(object):
                 task.completion_time = datetime.utcnow()
                 if state == 0:
                     task.state = FINISHED
-
-                    rr = ReductionResult()
+                    
+                    result = {}
+                    result['control'] = ['task-control.json']
+                    result['log'] = ['processing.log']
 
                     with open('result.json') as fd:
                         content = json.load(fd)
+                    result['images'] = ['master_bias.fits']
+
+                    task.result = str(result)
+                    rr = ReductionResult()
 
                     # Read result.json
                     # Store it here
-                    rr.other = str(content)
+                    rr.other = str(result)
                     # cd back
                     #os.chdir(pwd)
                     rr.task_id = task.id
