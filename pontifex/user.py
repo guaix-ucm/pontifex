@@ -141,23 +141,20 @@ class PontifexServer(object):
                 _logger_s.info('inserter finished')
                 return
             else:
-                cid, state, taskid = val
+                cid, result, taskid = val
                 _logger_s.info('updating done work, ProcessingTask %d', int(taskid))
                 task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
 
                 task.completion_time = datetime.utcnow()
-                if state == 0:
+                if 'error' not in result:
                     task.state = FINISHED
                     
-                    result = {}
-                    result['control'] = ['task-control.json']
-                    result['log'] = ['processing.log']
+                    results = {}
+                    results['control'] = ['task-control.json']
+                    results['log'] = ['processing.log']
+                    results['results'] = result['result']
 
-                    with open('result.json') as fd:
-                        content = json.load(fd)
-                    result['images'] = ['master_bias.fits']
-
-                    task.result = str(result)
+                    task.result = str(results)
                     rr = ReductionResult()
 
                     # Read result.json
@@ -167,14 +164,6 @@ class PontifexServer(object):
                     #os.chdir(pwd)
                     rr.task_id = task.id
                     session_i.add(rr)
-
-                    result = content['result'].copy()
-                    
-                    # handle qa here
-                    result['qa']
-                    # delete once is handled
-                    del result['qa']
-
                 else:
                     task.state = ERROR
 
@@ -225,9 +214,9 @@ class PontifexServer(object):
                     self.qback.put((0, 1, task.id))
                 session.commit()
 
-    def receiver(self, cid, state, taskid):
+    def receiver(self, cid, result, taskid):
         self.queue.task_done()
-        self.qback.put((cid, state, taskid))
+        self.qback.put((cid, result, taskid))
         with self.clientlock:
             self.nclient_hosts += 1
             self.client_hosts[cid][3] = True
@@ -268,13 +257,13 @@ class PontifexHost(object):
             if taskid is not None:
                 filename = 'task-control.json'
                 _logger.info('processing taskid %d', taskid)
-                state = main2(['-d','--basedir', 'task/%s' % taskid, 
+                result = main2(['-d','--basedir', 'task/%s' % taskid, 
                     '--datadir', 'data', '--run', filename])
                 
                 _logger.info('finished')
                 
                 self.queue.task_done()
-                self.rserver.receiver(self.cid, state, taskid)
+                self.rserver.receiver(self.cid, result, taskid)
             else:
                 _logger.info('ending worker thread')
                 return

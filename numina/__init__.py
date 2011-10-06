@@ -119,6 +119,9 @@ def main2(args=None):
             with open('result.json', 'w+') as fd:
                 json.dump(result, fd, indent=1, cls=FitsEncoder)
 
+            with open('result.json', 'r') as fd:
+                result = json.load(fd)
+
             code = 0
         else:
             raise ValueError('Malformed recipe result')
@@ -129,7 +132,7 @@ def main2(args=None):
     finally:
         os.chdir(pwd)    
 
-    return code
+    return result
 
 def main(block):
 
