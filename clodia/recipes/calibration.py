@@ -128,26 +128,63 @@ class DarkRecipe(RecipeBase):
                         version = "0.1.0"
                 )
 
-    def run(self, rb):
-        _logger.info('starting dark reduction')
-        # Mock result        
-        data = numpy.zeros((10, 10), dtype='float32')
 
-        hdu = pyfits.PrimaryHDU(data)
+    def run(self, block):
+
+        # HISTORY logger
+        history_header = pyfits.Header()
+
+        fh =  FITSHistoryHandler(history_header)
+        fh.setLevel(logging.INFO)
+        _logger.addHandler(fh)
+
+    	_logger.info('starting dark reduction')
+
+        try:
+            _logger.info('subtracting bias %s', str(self.parameters['master_bias']))
+            with pyfits.open(self.parameters['master_bias'], mode='readonly') as master_bias:
+                for image in block.images:
+                    with pyfits.open(image, memmap=True) as fd:
+                        data = fd['primary'].data
+                        data -= master_bias['primary'].data
+                
+
+            _logger.info('stacking images from block %d', block.id)
+
+            base = block.images[0]
+           
+            with pyfits.open(base, memmap=True) as fd:
+                data = fd['PRIMARY'].data.copy()
+                hdr = fd['PRIMARY'].header
+           
+            for image in block.images[1:]:
+                with pyfits.open(image, memmap=True) as fd:
+                    add_data = fd['primary'].data
+                    data += add_data
+
+            hdu = pyfits.PrimaryHDU(data, header=hdr)
     
-        # update hdu header with
-        # reduction keywords
-        hdr = hdu.header
-        hdr.update('IMGTYP', 'DARK', 'Image type')
-        hdr.update('NUMTYP', 'MASTER_DARK', 'Data product type')
-        hdr.update('NUMXVER', __version__, 'Numina package version')
-        hdr.update('NUMRNAM', 'DarkRecipe', 'Numina recipe name')
-        hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
-        
-        hdulist = pyfits.HDUList([hdu])
+            # update hdu header with
+            # reduction keywords
+            hdr = hdu.header
+            hdr.update('FILENAME', 'master_dark-%(block_id)d.fits' % self.environ)
+            hdr.update('IMGTYP', 'DARK', 'Image type')
+            hdr.update('NUMTYP', 'MASTER_DARK', 'Data product type')
+            hdr.update('NUMXVER', __version__, 'Numina package version')
+            hdr.update('NUMRNAM', 'DarkRecipe', 'Numina recipe name')
+            hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
 
-        _logger.info('dark reduction ended')
-        return {'products': {'master_dark': hdulist}}
+            hdulist = pyfits.HDUList([hdu])
 
+            _logger.info('dark reduction ended')
+
+            # merge final header with HISTORY log
+            hdr.ascardlist().extend(history_header.ascardlist())    
+
+            return {'products': {'master_dark': hdulist}}
+        except OSError as error:
+            return {'error' : {'exception': str(error)}}
+        finally:
+            _logger.removeHandler(fh)
 
 

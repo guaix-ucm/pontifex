@@ -63,7 +63,7 @@ class FitsEncoder(json.JSONEncoder):
             return filename
         return json.JSONEncoder.default(self, obj)
 
-def main_internal(entry_point, obsres):
+def main_internal(entry_point, obsres, parameters):
     _logger.info('entry point is %s', entry_point)
 
     # Set custom logger
@@ -79,11 +79,12 @@ def main_internal(entry_point, obsres):
     RecipeClass = getattr(module, klass)
 
     cp = {}
-    # Find precomputed parameters for this recipe
-    # pp = recipes.find_parameters(entry_point)
     pp = {}
     
     recipe = RecipeClass(pp, cp)
+
+    recipe.configure(parameters)
+
     try:
         result = recipe(obsres)
     finally:
@@ -102,6 +103,7 @@ def main2(args=None):
             control = json.load(fd)
 
         entry_point = control['reduction']['recipe']
+        parameters = control['reduction']['parameters']
 
         obsres = ObservingResult()
 
@@ -109,7 +111,7 @@ def main2(args=None):
 
         # We are running arbitrary code here
         try:
-            result = main_internal(entry_point, obsres)
+            result = main_internal(entry_point, obsres, parameters)
         except Exception as error:
             result = {'error': str(error)}
 
@@ -154,10 +156,19 @@ class RecipeBase(object):
         self.__author__ = author
         self.__version__ = version
         self.environ = {}
+        self.parameters = {}
     
-    def __call__(self, block):
+    def configure(self, parameters):
+        self.parameters = parameters
 
-        self.environ = {'block_id': block.id}
+    def __call__(self, block, environ=None):
+
+        self.environ = {}
+
+        if environ is not None:
+            self.environ.update(environ)
+
+        self.environ['block_id'] = block.id
 
         result = self.run(block)
 

@@ -32,6 +32,7 @@ import sys
 import uuid
 import ConfigParser
 import json
+import shutil
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -41,9 +42,9 @@ import pontifex.process as process
 from pontifex.ptimer import PeriodicTimer
 from pontifex.txrServer import txrServer
 import pontifex.model as model
-from pontifex.model import Session, datadir
+from pontifex.model import Session, datadir, productsdir
 from pontifex.model import ObservingRun, ObservingBlock, Image
-from pontifex.model import DataProcessingTask, ReductionResult
+from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
 from pontifex.model import get_last_image_index, get_unprocessed_obsblock, DataProcessing
 
 # create logger
@@ -163,6 +164,27 @@ class PontifexServer(object):
                     # cd back
                     #os.chdir(pwd)
                     rr.task_id = task.id
+
+                    # processing data products
+                    for prod, desc in result['products'].items():
+                        # FIXME: this is a hack
+                        # because fits files get a list of entries
+                        # instead of a single entry
+
+                        if isinstance(desc, list) and desc:
+                            mdesc = desc[0]
+                        dp = DataProduct()
+                        # FIXME, hardcoded instrument name
+                        dp.instrument = "clodia"
+                        dp.datatype = prod
+                        dp.reference = mdesc
+                        # copy or hardlink the file
+                        _logger.debug('copying product in %s', productsdir)
+                        shutil.copy(mdesc, productsdir)
+                        # in 'products'
+                        dp.task = task
+                        session_i.add(dp)
+
                     session_i.add(rr)
                 else:
                     task.state = ERROR
@@ -199,7 +221,7 @@ class PontifexServer(object):
                         rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
                         if rr is not None:
                             _logger_s.info('reduction result id is %d', rr.id)
-                    fun(**kwds)
+                    fun(session, **kwds)
                 except OSError, AttributeError:
                     task.completion_time = datetime.utcnow()
                     task.state = ERROR

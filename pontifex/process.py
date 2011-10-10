@@ -24,12 +24,16 @@ import os.path
 import shutil
 from importlib import import_module
 
-from model import taskdir, datadir
+from sqlalchemy import desc
+
+from model import taskdir, datadir, productsdir, DataProduct
+from model import Session
 import numina.recipes as recipes
+from numina import Image
 
 _logger = logging.getLogger("pontifex.proc")
 
-def processPointing(**kwds):
+def processPointing(session, **kwds):
     _logger.info('process called wth kwds %s', kwds)
     _logger.info('creating root directory')
 
@@ -50,11 +54,11 @@ def processPointing(**kwds):
     filename = 'task-control.json'
 
     try:
-        _logger.info('instrument=%s mode=%s', kwds['instrument'], kwds['mode'])
+        _logger.info('instrument=%(instrument)s mode=%(mode)s', kwds)
         entry_point = recipes.find_recipe(kwds['instrument'], kwds['mode'])
     except ValueError:
-        entry_point = 'dum'
-
+        return 1
+        
     _logger.info('recipe entry point is %s', entry_point)
 
     mod, klass = entry_point.split(':')
@@ -65,14 +69,30 @@ def processPointing(**kwds):
     parameters = {}
     for req in RecipeClass.__requires__:
         _logger.info('recipe requires %s', req.tag)
-        parameters[req.tag] = req.default
+        if isinstance(req, Image):
+            # query here
+            _logger.info('query for %s', req.tag)
+            # FIXME: this query should be updated
+            dps = session.query(DataProduct).filter_by(instrument='clodia', datatype=req.tag).order_by(desc(DataProduct.id)).first()
+            if dps is None:
+                _logger.warning("can't find %s", req.tag)
+                return 1
+            else:
+                parameters[req.tag] = dps.reference
+                _logger.debug('copy %s', dps.reference)
+                shutil.copy(os.path.join(productsdir, dps.reference), '.')
+        else:
+            parameters[req.tag] = req.default
 
     for req in RecipeClass.__provides__:
         _logger.info('recipe provides %s', req.tag)
 
 
     with open(filename, 'w+') as fp:
-        config = {'observing_result': {'id': kwds['id'], 'images': [image.name for image in kwds['images']]}, 'reduction': {'recipe': entry_point, 'parameters': parameters}}
+        config = {'observing_result': {'id': kwds['id'], 
+        'images': [image.name for image in kwds['images']]}, 
+        'reduction': {'recipe': entry_point, 'parameters': parameters}
+        }
         json.dump(config, fp, indent=2)
 
     return 0

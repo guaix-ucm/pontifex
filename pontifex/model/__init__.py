@@ -54,5 +54,5 @@ productsdir = os.path.abspath(_productsdir)
 from .sql import ObservingBlock, ObservingRun, Image, ProcessingBlockQueue
 from .sql import Instrument, Users, ObservingResult
 from .dataproc import RecipeParameters, DataProcessingTask, DataProcessing
-from .dataproc import ReductionResult
+from .dataproc import ReductionResult, DataProduct
 from .sql import get_last_image_index, get_unprocessed_obsblock
