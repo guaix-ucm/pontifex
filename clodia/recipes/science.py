@@ -50,13 +50,14 @@ _juliandate_key = Keyword('juliandate_key',
 
 class DirectImage(RecipeBase):
 
-    __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
-    __version__ = "0.1.0"
     __requires__ = [_imgtype_key]
     __provides__ = [Image('master_bias', comment='Master bias image')]
 
     def __init__(self, pp, cp):
-        pass
+        RecipeBase.__init__(self,
+                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version = "0.1.0"
+                )
 
     def run(self, rb):
     	_logger.info('starting direct image mode')
@@ -78,5 +79,5 @@ class DirectImage(RecipeBase):
         hdulist = pyfits.HDUList([hdu])
 
         _logger.info('direct image reduction ended')
-        return {'result': {'master_bias': hdulist, 'qa': 1}}
+        return {'products': {'master_bias': hdulist}}
 
