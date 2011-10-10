@@ -102,27 +102,28 @@ def main2(args=None):
         with open('task-control.json', 'r') as fd:
             control = json.load(fd)
 
-        entry_point = control['reduction']['recipe']
-        parameters = control['reduction']['parameters']
+        red_pars = control['reduction']
 
         obsres = ObservingResult()
-
         obsres.__dict__ = control['observing_result']
 
-        # We are running arbitrary code here
-        try:
-            result = main_internal(entry_point, obsres, parameters)
-        except Exception as error:
-            result = {'error': str(error)}
+        ins_pars = control['instrument']
 
+        entry_point = red_pars['recipe']
+        parameters = res_pars['parameters']
+
+        result = main_internal(entry_point, obsres, parameters)
+        
         with open('result.json', 'w+') as fd:
             json.dump(result, fd, indent=1, cls=FitsEncoder)
 
         with open('result.json', 'r') as fd:
             result = json.load(fd)
     
-    except (ImportError, ValueError, OSError) as error:
+    except Exception as error:
         _logger.error('%s', error)
+        result = {'error': {'type': exc.__class__.__name__, 
+                                    'message': str(e)}}
     finally:
         os.chdir(pwd)    
 
@@ -170,7 +171,13 @@ class RecipeBase(object):
 
         self.environ['block_id'] = block.id
 
-        result = self.run(block)
+        try:
+
+            result = self.run(block)
+
+        except Exception as exc:
+            result = {'error': {'type': exc.__class__.__name__, 
+                                'message': str(e)}}
 
         return result
 

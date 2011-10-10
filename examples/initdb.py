@@ -65,7 +65,13 @@ session.add(ii)
 
 ii = Instrument()
 ii.name = 'clodia'
-ii.parameters = {}
+ii.parameters = {
+                 'detectors': [[10, 10]],
+                 'imagetype_key': 'IMGTYP',
+                 'airmass_key': 'AIRMASS',
+                 'exposure_key': 'EXPOSED',
+                 'juliandate_key': 'MJD-OBS'
+                }
 session.add(ii)
 
 session.commit()

@@ -27,7 +27,7 @@ from importlib import import_module
 from sqlalchemy import desc
 
 from model import taskdir, datadir, productsdir, DataProduct
-from model import Session
+from model import Session, Instrument
 import numina.recipes as recipes
 from numina import Image
 
@@ -57,7 +57,8 @@ def processPointing(session, **kwds):
         _logger.info('instrument=%(instrument)s mode=%(mode)s', kwds)
         entry_point = recipes.find_recipe(kwds['instrument'], kwds['mode'])
     except ValueError:
-        return 1
+        _logger.warning('cannot find entry point')
+        raise
         
     _logger.info('recipe entry point is %s', entry_point)
 
@@ -73,10 +74,10 @@ def processPointing(session, **kwds):
             # query here
             _logger.info('query for %s', req.tag)
             # FIXME: this query should be updated
-            dps = session.query(DataProduct).filter_by(instrument='clodia', datatype=req.tag).order_by(desc(DataProduct.id)).first()
+            dps = session.query(DataProduct).filter_by(instrument=kwds['instrument'],   datatype=req.tag).order_by(desc(DataProduct.id)).first()
             if dps is None:
                 _logger.warning("can't find %s", req.tag)
-                return 1
+                raise ValueError
             else:
                 parameters[req.tag] = dps.reference
                 _logger.debug('copy %s', dps.reference)
@@ -87,11 +88,13 @@ def processPointing(session, **kwds):
     for req in RecipeClass.__provides__:
         _logger.info('recipe provides %s', req.tag)
 
+    instrument = session.query(Instrument).filter_by(name=kwds['instrument']).first()
 
     with open(filename, 'w+') as fp:
         config = {'observing_result': {'id': kwds['id'], 
         'images': [image.name for image in kwds['images']]}, 
-        'reduction': {'recipe': entry_point, 'parameters': parameters}
+        'reduction': {'recipe': entry_point, 'parameters': parameters},
+        'instrument': instrument.parameters,
         }
         json.dump(config, fp, indent=2)
 

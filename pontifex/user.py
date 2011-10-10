@@ -187,6 +187,9 @@ class PontifexServer(object):
 
                     session_i.add(rr)
                 else:
+                    _logger.warning('error in task %d', task.id)
+                    _logger.warning('error is task %d', result['error']['type'])
+                    task.result = str(results)
                     task.state = ERROR
 
                 session_i.commit()
@@ -221,10 +224,11 @@ class PontifexServer(object):
                         rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
                         if rr is not None:
                             _logger_s.info('reduction result id is %d', rr.id)
-                    fun(session, **kwds)
-                except OSError, AttributeError:
+                    val = fun(session, **kwds)
+                except Exception:
                     task.completion_time = datetime.utcnow()
                     task.state = ERROR
+                    _logger_s.warning('error creating root for task %d', taskid)
                     session.commit()
                     continue
 
