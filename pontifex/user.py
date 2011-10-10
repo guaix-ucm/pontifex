@@ -152,7 +152,7 @@ class PontifexServer(object):
                     results = {}
                     results['control'] = ['task-control.json']
                     results['log'] = ['processing.log']
-                    results['results'] = result['result']
+                    results['products'] = result['products']
 
                     task.result = str(results)
                     rr = ReductionResult()

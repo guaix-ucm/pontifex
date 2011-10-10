@@ -51,13 +51,15 @@ class ObservingResult(object):
         self.id = None
         self.images = []
 
+# FIXME: pyfits.core.HDUList is treated like a list
+# each extension is stored separately
 class FitsEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, pyfits.core.PrimaryHDU):
             filename = 'result.fits'
             if obj.header.has_key('FILENAME'):
                 filename = obj.header['FILENAME']
-            obj.writeto(filename)
+            obj.writeto(filename, clobber=True)
             return filename
         return json.JSONEncoder.default(self, obj)
 
@@ -82,10 +84,10 @@ def main_internal(entry_point, obsres):
     pp = {}
     
     recipe = RecipeClass(pp, cp)
-    
-    result = recipe.run(obsres)
-
-    _recipe_logger.removeHandler(fh)
+    try:
+        result = recipe(obsres)
+    finally:
+        _recipe_logger.removeHandler(fh)
     return result
 
 def main2(args=None):
@@ -110,25 +112,15 @@ def main2(args=None):
             result = main_internal(entry_point, obsres)
         except Exception as error:
             result = {'error': str(error)}
-            
-        if 'error' in result:
-            # we have an error here
-            code = 1
-            # error structure should go here
-        elif 'result' in result:
-            with open('result.json', 'w+') as fd:
-                json.dump(result, fd, indent=1, cls=FitsEncoder)
 
-            with open('result.json', 'r') as fd:
-                result = json.load(fd)
+        with open('result.json', 'w+') as fd:
+            json.dump(result, fd, indent=1, cls=FitsEncoder)
 
-            code = 0
-        else:
-            raise ValueError('Malformed recipe result')
+        with open('result.json', 'r') as fd:
+            result = json.load(fd)
     
     except (ImportError, ValueError, OSError) as error:
         _logger.error('%s', error)
-        code = 1
     finally:
         os.chdir(pwd)    
 
@@ -157,7 +149,19 @@ def main(block):
 
 class RecipeBase(object):
     '''Base class for all instrument recipes'''
-    pass
+
+    def __init__(self, author, version):
+        self.__author__ = author
+        self.__version__ = version
+        self.environ = {}
+    
+    def __call__(self, block):
+
+        self.environ = {'block_id': block.id}
+
+        result = self.run(block)
+
+        return result
 
 class RecipeType(object):
     def __init__(self, tag, comment='', default=None):

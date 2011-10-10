@@ -50,14 +50,16 @@ _juliandate_key = Keyword('juliandate_key',
                        default='MJD-OBS')
 
 class BiasRecipe(RecipeBase):
+    '''Process BIAS images and create MASTER_BIAS.'''
 
-    __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
-    __version__ = "0.1.0"
     __requires__ = [_imgtype_key]
     __provides__ = [Image('master_bias', comment='Master bias image')]
 
     def __init__(self, pp, cp):
-        pass
+        RecipeBase.__init__(self,
+                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version = "0.1.0"
+                )
 
     def run(self, rb):
 
@@ -66,7 +68,6 @@ class BiasRecipe(RecipeBase):
         fh =  FITSHistoryHandler(history_header)
         fh.setLevel(logging.INFO)
         _logger.addHandler(fh)
-
 
     	_logger.info('starting bias reduction')
 
@@ -92,13 +93,13 @@ class BiasRecipe(RecipeBase):
             # update hdu header with
             # reduction keywords
             hdr = hdu.header
-            hdr.update('FILENAME', 'master_bias.fits')
+            hdr.update('FILENAME', 'master_bias-%(block_id)d.fits' % self.environ)
             hdr.update('IMGTYP', 'BIAS', 'Image type')
             hdr.update('NUMTYP', 'MASTER_BIAS', 'Data product type')
             hdr.update('NUMXVER', __version__, 'Numina package version')
             hdr.update('NUMRNAM', 'BiasRecipe', 'Numina recipe name')
             hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
-        
+
             hdulist = pyfits.HDUList([hdu])
 
             _logger.info('bias reduction ended')
@@ -106,7 +107,7 @@ class BiasRecipe(RecipeBase):
             # merge header with HISTORY log
             hdr.ascardlist().extend(history_header.ascardlist())    
 
-            return {'result': {'master_bias': hdulist, 'qa': 1}}
+            return {'products': {'master_bias': hdulist}}
         except OSError as error:
             return {'error' : {'exception': str(error)}}
         finally:
