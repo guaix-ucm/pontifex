@@ -31,7 +31,7 @@ from numina import Image, Keyword
 
 __all__ = ['BiasRecipe', 'DarkRecipe']
 
-_logger = logging.getLogger('numina.recipes.clodia')
+_logger = logging.getLogger('clodia.recipes')
 
 _imgtype_key = Keyword('imagetype_key', 
                        comment='Name of image type header keyword',
@@ -80,7 +80,7 @@ class BiasRecipe(RecipeBase):
                 cdata.append(hdulist)
 
             _logger.info('stacking images')
-            data = numpy.zeros((10, 10), dtype='float32')
+            data = numpy.zeros(cdata[0]['PRIMARY'].data.shape, dtype='float32')
             for hdulist in cdata:
                 data += hdulist['PRIMARY'].data
 
