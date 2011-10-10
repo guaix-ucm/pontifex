@@ -117,14 +117,16 @@ class BiasRecipe(RecipeBase):
                 hdulist.close()
 
 class DarkRecipe(RecipeBase):
+    '''Process DARK images and provide MASTER_DARK. '''
 
-    __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
-    __version__ = "0.1.0"
     __requires__ = [_imgtype_key, Image('master_bias', comment='Master bias image')]
     __provides__ = [Image('master_dark', comment='Master dark image')]
 
     def __init__(self, pp, cp):
-        pass
+        RecipeBase.__init__(self,
+                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version = "0.1.0"
+                )
 
     def run(self, rb):
         _logger.info('starting dark reduction')
@@ -145,7 +147,7 @@ class DarkRecipe(RecipeBase):
         hdulist = pyfits.HDUList([hdu])
 
         _logger.info('dark reduction ended')
-        return {'result': {'master_dark': hdulist, 'qa': 1}}
+        return {'products': {'master_dark': hdulist}}
 
 
 
