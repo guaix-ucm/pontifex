@@ -25,6 +25,7 @@ import json
 import os
 from pkgutil import walk_packages
 from importlib import import_module
+import abc
 
 import recipes
 
@@ -153,6 +154,8 @@ def main(block):
 class RecipeBase(object):
     '''Base class for all instrument recipes'''
 
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self, author, version):
         self.__author__ = author
         self.__version__ = version
@@ -161,6 +164,10 @@ class RecipeBase(object):
     
     def configure(self, parameters):
         self.parameters = parameters
+
+    @abc.abstractmethod
+    def run(self, block):
+        return
 
     def __call__(self, block, environ=None):
 
