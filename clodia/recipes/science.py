@@ -50,8 +50,12 @@ _juliandate_key = Keyword('juliandate_key',
 
 class DirectImage(RecipeBase):
 
-    __requires__ = [_imgtype_key]
-    __provides__ = [Image('master_bias', comment='Master bias image')]
+    __requires__ = [_imgtype_key, 
+                    Image('master_bias'),
+                    Image('master_dark'),
+                    Image('master_flat')
+    ]
+    __provides__ = [Image('science')]
 
     def __init__(self, pp, cp):
         RecipeBase.__init__(self,
@@ -59,7 +63,7 @@ class DirectImage(RecipeBase):
                         version = "0.1.0"
                 )
 
-    def run(self, rb):
+    def run(self, block):
     	_logger.info('starting direct image mode')
 
         # Mock result        
@@ -70,14 +74,15 @@ class DirectImage(RecipeBase):
         # update hdu header with
         # reduction keywords
         hdr = hdu.header
-        hdr.update('IMGTYP', 'BIAS', 'Image type')
-        hdr.update('NUMTYP', 'MASTER_BIAS', 'Data product type')
+        hdr.update('FILENAME', 'science-%(block_id)d.fits' % self.environ)
+        hdr.update('IMGTYP', 'SCIENCE', 'Image type')
+        hdr.update('NUMTYP', 'SCIENCE', 'Data product type')
         hdr.update('NUMXVER', __version__, 'Numina package version')
-        hdr.update('NUMRNAM', 'BiasRecipe', 'Numina recipe name')
+        hdr.update('NUMRNAM', 'DirectImage', 'Numina recipe name')
         hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
         
         hdulist = pyfits.HDUList([hdu])
 
         _logger.info('direct image reduction ended')
-        return {'products': {'master_bias': hdulist}}
+        return {'products': {'science': hdulist}}
 
