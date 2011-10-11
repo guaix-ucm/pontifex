@@ -212,22 +212,23 @@ class PontifexServer(object):
 
                 assert(task.state == ENQUEUED)
                 try:
-                    fun = getattr(process, task.method)
+
                     #kwds = eval(task.request)
                     kwds = {}
                     kwds['id'] = task.id
-                    kwds['children'] = []
+                    kwds['children'] = task.children
                     kwds['images'] = task.observing_result.images
                     kwds['mode'] = task.observing_result.mode
                     kwds['instrument'] = task.observing_result.instrument_id
-
-                    # get images...
+                    print task.children
                     # get children results
-                    for child in kwds['children']:
-                        _logger_s.info('query for result of ob id=%d', child)
-                        rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
-                        if rr is not None:
-                            _logger_s.info('reduction result id is %d', rr.id)
+                    for child in task.children:
+                        print 'aaaaa', child.product
+#                        _logger_s.info('query for result of ob id=%d', child)
+#                        rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
+#                        if rr is not None:
+                         #   _logger_s.info('reduction result id is %d', rr.id)
+                    fun = getattr(process, task.method)
                     val = fun(session, **kwds)
                 except Exception:
                     task.completion_time = datetime.utcnow()
