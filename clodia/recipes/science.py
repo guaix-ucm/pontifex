@@ -30,7 +30,7 @@ from numina import Image, Keyword
 
 __all__ = ['DirectImage']
 
-_logger = logging.getLogger('numina.recipes.clodia')
+_logger = logging.getLogger('clodia.recipes')
 
 _imgtype_key = Keyword('imagetype_key', 
                        comment='Name of image type header keyword',
