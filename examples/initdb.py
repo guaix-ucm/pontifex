@@ -25,7 +25,7 @@ from datetime import datetime
 
 from sqlalchemy import create_engine
 
-from pontifex.model import Users, Instrument
+from pontifex.model import Users, Instrument, Channel
 from pontifex.model import init_model, metadata, Session
 
 #engine = create_engine('sqlite:///devdata.db', echo=False)
