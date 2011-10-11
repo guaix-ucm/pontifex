@@ -24,6 +24,7 @@ _equiv = {'bias': 'calibration:BiasRecipe',
     'dark': 'calibration:DarkRecipe',
     'flat': 'calibration:FlatRecipe',
     'direct_image': 'science:DirectImage',
+    'mosaic_image': 'science:MosaicImage',
 }
 
 def find_recipe(mode):
