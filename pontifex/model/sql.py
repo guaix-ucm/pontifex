@@ -28,16 +28,16 @@ from sqlalchemy import PickleType, Enum
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
-from pontifex.model import DeclarativeBase as Base, metadata, Session
+from pontifex.model import DeclarativeBase, metadata, Session
 
-class Users(Base):
+class Users(DeclarativeBase):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     status = Column(Integer, nullable=False)
     usertype = Column(Integer, nullable=False)
 
-class Instrument(Base):
+class Instrument(DeclarativeBase):
     __tablename__ = 'instrument'
     name = Column(String(10), primary_key=True)
     parameters = Column(PickleType, nullable=False)
@@ -45,7 +45,7 @@ class Instrument(Base):
     obsruns = relationship("ObservingRun", backref='instrument')
     #recipes = relationship("RecipeParameters", backref="instrument")
 
-class ObservingRun(Base):
+class ObservingRun(DeclarativeBase):
     __tablename__ = 'observing_run'
     id = Column(Integer, primary_key=True)
     pi_id = Column(Integer, ForeignKey('users.id'))
@@ -56,7 +56,7 @@ class ObservingRun(Base):
 
     obsblocks = relationship("ObservingBlock", backref='obsrun')
 
-class ObservingBlock(Base):
+class ObservingBlock(DeclarativeBase):
     __tablename__ = 'observing_block'
     id = Column(Integer, primary_key=True)
     observing_mode = Column(String(20), nullable=False)
@@ -69,7 +69,7 @@ class ObservingBlock(Base):
 
     task = relationship("ObservingResult")
 
-class ObservingResult(Base):
+class ObservingResult(DeclarativeBase):
     __tablename__ = 'observing_result'
     id = Column(Integer, primary_key=True)
     state = Column(Integer)
@@ -89,7 +89,7 @@ class ObservingResult(Base):
 
     images = relationship("Image", backref='observing_result')
 
-class Image(Base):
+class Image(DeclarativeBase):
     __tablename__ = 'image'
     id = Column(Integer, primary_key=True)
     name = Column(String(10), unique=True, nullable=False)
@@ -98,7 +98,7 @@ class Image(Base):
     obsresult_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
     stamp = Column(DateTime, default=datetime.utcnow)
 
-class ProcessingBlockQueue(Base):
+class ProcessingBlockQueue(DeclarativeBase):
     __tablename__ = 'procqueue'
     id = Column(Integer, primary_key=True)
     obsId = Column(Integer, ForeignKey('observing_block.id'))
