@@ -102,92 +102,54 @@ user = session.query(Users).first()
 obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
 
-# New Observing block
-oblock = create_observing_block('mosaic', user.id, obsrun)
+# Observing block
+oblock = create_observing_block('bias', user.id, obsrun)
 session.add(oblock)
+# The layout of observing tasks can be arbitrary...
 
-# Observing tasks (siblings)
-otask = ObservingResult()
-otask.state = 0
-otask.label = 'collect'
-otask.instrument_id = ins.name
-otask.mode = 'null'
-session.add(otask)
+# Observing results (siblings)
+ores = ObservingResult()
+ores.state = 0
+ores.label = 'pointing'
+ores.mode = 'bias'
+ores.instrument_id = ins.name
+ores.waiting = True
+ores.awaited = False
+session.add(ores)
 
-# The result of this ob
-oblock.task = otask
-root_a_task = create_reduction_task(oblock, otask)
-session.add(root_a_task)
-session.commit()
+oblock.task = ores
 
-# One mosaic
-otaskj = ObservingResult()
-otaskj.state = 0
-otaskj.creation_time = datetime.utcnow()
-otaskj.parent = otask
-otaskj.label = 'mosaic'
-otaskj.mode = 'mosaic_image'
-otaskj.instrument_id = ins.name
+# Create corresponding reduction tasks
+ptask = create_reduction_task(oblock, ores)
+session.add(ptask)
 
-root_p_task = create_reduction_task(oblock, otaskj)
-root_p_task.parent = root_a_task
+# OB started
+oblock.start_time = datetime.utcnow()
 
-session.add(root_p_task)
-session.add(otaskj)
+# OR started
+ores.start_time = datetime.utcnow()
+ores.state = 1
 session.commit()
 
 dd = get_last_image_index(session)
 
-for j in range(3):
+for i in range(3):
+    im = new_image(dd, 0, 'bias', ores)
+    dd += 1
+    session.add(im)
 
-    # One pointing
-    otaskp = ObservingResult()
-    otaskp.state = 0
-    otaskp.creation_time = datetime.utcnow()
-    otaskp.parent = otaskj
-    otaskp.label = 'pointing'
-    otaskp.mode = 'direct_image'
-    otaskp.instrument_id = ins.name
-    session.add(otaskp)
-    session.commit()
+# OR ended
+ores.completion_time = datetime.utcnow()
+ores.state = 2
 
-    # OB started
-    oblock.start_time = datetime.utcnow()
-    # OR started
-    otaskp.start_time = datetime.utcnow()
-    otaskp.state = 1
-
-    for i in range(3):
-        im = new_image(dd, 100, 'science', otaskp)
-        dd += 1
-        session.add(im)
-
-    # OR ended
-    otaskp.state = 2
-    otaskp.completion_time = datetime.utcnow()
-#    session.commit()
-    
-    # Create a reduction task, otaskp is complete
-    ptask = create_reduction_task(oblock, otaskp)
-    ptask.state = 1 # Complete
-    ptask.parent = root_p_task
-    session.add(ptask)
-    session.commit()
-
-otaskj.completion_time = datetime.utcnow()
-otaskj.state = 2
-
-# Create a reduction task, otaskj is complete
-
-root_p_task.state = 1 # Complete
-
-otask.completion_time = datetime.utcnow()
-otask.state = 2
-
-root_a_task.state = 1 # Complete
+ptask.instrument_id = ins.name
+ptask.state = 1
+session.commit()
 
 # OB finished
+oblock.state = 1
 oblock.completion_time = datetime.utcnow()
+session.commit()
 
 # OR finished
 obsrun.completion_time = datetime.utcnow()
