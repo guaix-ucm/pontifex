@@ -86,3 +86,50 @@ class DirectImage(RecipeBase):
         _logger.info('direct image reduction ended')
         return {'products': {'science': hdulist}}
 
+class MosaicImage(RecipeBase):
+
+    __requires__ = [_imgtype_key]
+    __provides__ = [Image('mosaic')]
+
+    def __init__(self, pp, cp):
+        RecipeBase.__init__(self,
+                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version = "0.1.0"
+                )
+
+    def run(self, block):
+    	_logger.info('starting mosaic mode')
+
+        # Mock result        
+        data = numpy.zeros((10, 10), dtype='float32')
+
+        hdu = pyfits.PrimaryHDU(data)
+    
+        # update hdu header with
+        # reduction keywords
+        hdr = hdu.header
+        hdr.update('FILENAME', 'mosaic-%(block_id)d.fits' % self.environ)
+        hdr.update('IMGTYP', 'SCIENCE', 'Image type')
+        hdr.update('NUMTYP', 'MOSAIC', 'Data product type')
+        hdr.update('NUMXVER', __version__, 'Numina package version')
+        hdr.update('NUMRNAM', 'MosaicImage', 'Numina recipe name')
+        hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
+        
+        hdulist = pyfits.HDUList([hdu])
+
+        _logger.info('mosaic reduction ended')
+        return {'products': {'mosaic': hdulist}}
+
+
+class Null(RecipeBase):
+
+    def __init__(self, pp, cp):
+        RecipeBase.__init__(self,
+                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version = "0.1.0"
+                )
+
+    def run(self, block):
+        return {'products': {}}
+
+
