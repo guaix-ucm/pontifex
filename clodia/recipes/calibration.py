@@ -246,7 +246,7 @@ class FlatRecipe(RecipeBase):
             data[:] = 1.0
 
             hdu = pyfits.PrimaryHDU(data, header=hdr)
-    
+
             # update hdu header with
             # reduction keywords
             hdr = hdu.header

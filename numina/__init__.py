@@ -110,7 +110,7 @@ def main2(args=None):
         ins_pars = control['instrument']
 
         entry_point = red_pars['recipe']
-        parameters = res_pars['parameters']
+        parameters = red_pars['parameters']
 
         result = main_internal(entry_point, obsres, parameters)
         
@@ -122,8 +122,8 @@ def main2(args=None):
     
     except Exception as error:
         _logger.error('%s', error)
-        result = {'error': {'type': exc.__class__.__name__, 
-                                    'message': str(e)}}
+        result = {'error': {'type': error.__class__.__name__, 
+                                    'message': str(error)}}
     finally:
         os.chdir(pwd)    
 

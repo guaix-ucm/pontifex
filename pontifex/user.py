@@ -147,10 +147,12 @@ class PontifexServer(object):
                 task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
 
                 task.completion_time = datetime.utcnow()
+
+                results = {}
+
                 if 'error' not in result:
                     task.state = FINISHED
                     
-                    results = {}
                     results['control'] = ['task-control.json']
                     results['log'] = ['processing.log']
                     results['products'] = result['products']
@@ -187,8 +189,10 @@ class PontifexServer(object):
 
                     session_i.add(rr)
                 else:
+                    results['error'] = result['error']
                     _logger.warning('error in task %d', task.id)
-                    _logger.warning('error is task %d', result['error']['type'])
+                    _logger.warning('error is %s', results['error']['type'])
+                    _logger.warning('message is %s', results['error']['message'])
                     task.result = str(results)
                     task.state = ERROR
 
