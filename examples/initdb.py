@@ -48,6 +48,14 @@ user.status = 1
 user.usertype = 1
 session.add(user)
 
+channel = Channel()
+channel.name = 'default'
+session.add(channel)
+
+channel = Channel()
+channel.name = 'fast'
+session.add(channel)
+
 ii = Instrument()
 ii.name = 'megara'
 ii.parameters = {}

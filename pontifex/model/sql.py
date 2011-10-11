@@ -37,6 +37,11 @@ class Users(DeclarativeBase):
     status = Column(Integer, nullable=False)
     usertype = Column(Integer, nullable=False)
 
+class Channel(DeclarativeBase):
+    __tablename__ = 'channel'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+
 class Instrument(DeclarativeBase):
     __tablename__ = 'instrument'
     name = Column(String(10), primary_key=True)
