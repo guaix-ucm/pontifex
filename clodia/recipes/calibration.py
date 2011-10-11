@@ -187,4 +187,84 @@ class DarkRecipe(RecipeBase):
         finally:
             _logger.removeHandler(fh)
 
+class FlatRecipe(RecipeBase):
+    '''Process FLAT images and provide MASTER_FLAT. '''
+
+    __requires__ = [_imgtype_key, Image('master_bias'),
+                    Image('master_dark')]
+    __provides__ = [Image('master_flat')]
+
+    def __init__(self, pp, cp):
+        RecipeBase.__init__(self,
+                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version = "0.1.0"
+                )
+
+
+    def run(self, block):
+
+        # HISTORY logger
+        history_header = pyfits.Header()
+
+        fh =  FITSHistoryHandler(history_header)
+        fh.setLevel(logging.INFO)
+        _logger.addHandler(fh)
+
+    	_logger.info('starting flat reduction')
+
+        try:
+            _logger.info('subtracting bias %s', str(self.parameters['master_bias']))
+            with pyfits.open(self.parameters['master_bias'], mode='readonly') as master_bias:
+                for image in block.images:
+                    with pyfits.open(image, memmap=True) as fd:
+                        data = fd['primary'].data
+                        data -= master_bias['primary'].data
+                
+
+            _logger.info('subtracting dark %s', str(self.parameters['master_dark']))
+            with pyfits.open(self.parameters['master_dark'], mode='readonly') as master_dark:
+                for image in block.images:
+                    with pyfits.open(image, memmap=True) as fd:
+                        data = fd['primary'].data
+                        data -= master_dark['primary'].data
+
+
+            _logger.info('stacking images from block %d', block.id)
+
+            base = block.images[0]
+           
+            with pyfits.open(base, memmap=True) as fd:
+                data = fd['PRIMARY'].data.copy()
+                hdr = fd['PRIMARY'].header
+           
+            for image in block.images[1:]:
+                with pyfits.open(image, memmap=True) as fd:
+                    add_data = fd['primary'].data
+                    data += add_data
+
+            # Normalize flat to mean 1.0
+            data[:] = 1.0
+
+            hdu = pyfits.PrimaryHDU(data, header=hdr)
+    
+            # update hdu header with
+            # reduction keywords
+            hdr = hdu.header
+            hdr.update('FILENAME', 'master_flat-%(block_id)d.fits' % self.environ)
+            hdr.update('IMGTYP', 'FALT', 'Image type')
+            hdr.update('NUMTYP', 'MASTER_FLAT', 'Data product type')
+            hdr.update('NUMXVER', __version__, 'Numina package version')
+            hdr.update('NUMRNAM', 'FlatRecipe', 'Numina recipe name')
+            hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
+
+            hdulist = pyfits.HDUList([hdu])
+
+            _logger.info('flat reduction ended')
+
+            # merge final header with HISTORY log
+            hdr.ascardlist().extend(history_header.ascardlist())    
+
+            return {'products': {'master_flat': hdulist}}
+        finally:
+            _logger.removeHandler(fh)
 
