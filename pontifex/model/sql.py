@@ -91,6 +91,8 @@ class ObservingResult(DeclarativeBase):
 
     children = relationship("ObservingResult",
                 backref=backref('parent', remote_side=[id]))
+    
+    context = relationship('ContextValue', secondary='observing_result_context', backref='observing_result')
 
     images = relationship("Image", backref='observing_result')
 
@@ -119,6 +121,13 @@ class ContextDescription(DeclarativeBase):
     instrument_id = Column(String(10), ForeignKey("instrument.name"), nullable=False)
     name = Column(String(250), nullable=False)
     description = Column(String(250))
+
+observing_result_context = Table(
+    'observing_result_context', DeclarativeBase.metadata,
+    Column('observing_result_id', Integer, ForeignKey('observing_result.id'), primary_key=True),
+    Column('context_id', Integer, ForeignKey('context_value.id'), primary_key=True)
+    )
+
 
 class ContextValue(DeclarativeBase):
     __tablename__ = 'context_value'

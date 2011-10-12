@@ -35,6 +35,7 @@ from pontifex.model import datadir
 from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
 from pontifex.model import DataProcessingTask, ObservingResult
 from pontifex.model import RecipeParameters, ProcessingBlockQueue
+from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import get_last_image_index
 
 def new_image(number, exposure, imgtype, oresult):
@@ -99,6 +100,9 @@ session = model.Session()
 ins = session.query(Instrument).filter_by(name='clodia').first()
 user = session.query(Users).first()
 
+context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
+ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
+
 obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
 
@@ -115,6 +119,7 @@ ores.mode = 'dark'
 ores.instrument_id = ins.name
 ores.waiting = True
 ores.awaited = False
+ores.context.append(ccdmode)
 session.add(ores)
 
 oblock.task = ores

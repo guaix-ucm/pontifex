@@ -35,6 +35,7 @@ from pontifex.model import datadir
 from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
 from pontifex.model import DataProcessingTask, ObservingResult
 from pontifex.model import RecipeParameters, ProcessingBlockQueue
+from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import get_last_image_index
 
 def new_image(number, exposure, imgtype, oresult):
@@ -102,6 +103,12 @@ user = session.query(Users).first()
 obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
 
+context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
+ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
+
+context2 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='filter0').first()
+filtermode = session.query(ContextValue).filter_by(definition=context2, value='315').first()
+
 # New Observing block
 oblock = create_observing_block('mosaic', user.id, obsrun)
 session.add(oblock)
@@ -128,6 +135,8 @@ otaskj.creation_time = datetime.utcnow()
 otaskj.parent = otask
 otaskj.label = 'mosaic'
 otaskj.mode = 'mosaic_image'
+otaskj.context.append(ccdmode)
+otaskj.context.append(filtermode)
 otaskj.instrument_id = ins.name
 
 root_p_task = create_reduction_task(oblock, otaskj)
@@ -149,6 +158,8 @@ for j in range(3):
     otaskp.label = 'pointing'
     otaskp.mode = 'direct_image'
     otaskp.instrument_id = ins.name
+    otaskp.context.append(ccdmode)
+    otaskp.context.append(filtermode)
     session.add(otaskp)
     session.commit()
 
