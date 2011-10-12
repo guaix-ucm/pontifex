@@ -122,6 +122,8 @@ class MosaicImage(RecipeBase):
 
 
 class Null(RecipeBase):
+    __requires__ = []
+    __provides__ = []
 
     def __init__(self, pp, cp):
         RecipeBase.__init__(self,
