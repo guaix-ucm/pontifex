@@ -17,13 +17,26 @@
 # along with PyEmir.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import datetime
+import logging
+import time
 
-# MJD 0 is 1858-11-17 00:00:00.00 
-_MJDREF = datetime.datetime(year=1858, month=11, day=17)
+from numina import RecipeBase
 
-def datetime_to_mjd(dt):
-    diff = dt - _MJDREF
-    result  = diff.days + (diff.seconds + diff.microseconds / 1e6) / 86400.0
-    return result
+__all__ = ['Recipe']
+
+_logger = logging.getLogger('numina.recipes.frida')
+
+class Recipe(RecipeBase):
+    def __init__(self, pp, cp):
+        pass
+
+    @classmethod
+    def requires(cls):
+        return []
+
+    def run(self, rb):
+    	_logger.info('starting dark reduction')
+    	time.sleep(5)
+    	_logger.info('dark reduction ended')
+        return {'result': {'dark_image': 0, 'qa': 1}}
 

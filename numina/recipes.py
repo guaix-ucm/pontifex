@@ -17,13 +17,29 @@
 # along with PyEmir.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import datetime
+import importlib
 
-# MJD 0 is 1858-11-17 00:00:00.00 
-_MJDREF = datetime.datetime(year=1858, month=11, day=17)
+def find_recipe(instrument, mode):
+    base = '%s.recipes' % instrument
+    try:
+        mod = importlib.import_module(base)
+    except ImportError:
+        msg = 'No instrument %s' % instrument
+        raise ValueError(msg)
 
-def datetime_to_mjd(dt):
-    diff = dt - _MJDREF
-    result  = diff.days + (diff.seconds + diff.microseconds / 1e6) / 86400.0
-    return result
+    try:
+        entry = mod.find_recipe(mode)
+    except KeyError:
+        msg = 'No recipe for mode %s' % mode
+        raise ValueError(msg)
+        
+    return '%s.%s' % (base, entry)
 
+def find_parameters(recipe_name):
+    # query somewhere for the precomputed parameters
+    return {}
+
+if __name__ == '__main__':
+    from frida import find_recipe
+
+    print find_recipe('bias')

@@ -17,13 +17,12 @@
 # along with PyEmir.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import datetime
+__all__ = ['find_recipe']
 
-# MJD 0 is 1858-11-17 00:00:00.00 
-_MJDREF = datetime.datetime(year=1858, month=11, day=17)
+# equivalence
+_equiv = {'mode1': 'recipe1:Recipe',
+    'mode2': 'recipe2:Recipe'}
 
-def datetime_to_mjd(dt):
-    diff = dt - _MJDREF
-    result  = diff.days + (diff.seconds + diff.microseconds / 1e6) / 86400.0
-    return result
+def find_recipe(mode):
+    return _equiv[mode]
 

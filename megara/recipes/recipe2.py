@@ -17,13 +17,18 @@
 # along with PyEmir.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import datetime
+from numina import RecipeBase
 
-# MJD 0 is 1858-11-17 00:00:00.00 
-_MJDREF = datetime.datetime(year=1858, month=11, day=17)
+__all__ = ['Recipe']
 
-def datetime_to_mjd(dt):
-    diff = dt - _MJDREF
-    result  = diff.days + (diff.seconds + diff.microseconds / 1e6) / 86400.0
-    return result
+class Recipe(RecipeBase):
+    def __init__(self, pp, cp):
+        pass
+
+    @classmethod
+    def requires(cls):
+        return []
+
+    def run(self, rb):
+        return {'result': {'direct_image': 0, 'qa': 1}}
 
