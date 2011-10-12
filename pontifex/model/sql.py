@@ -120,6 +120,15 @@ class ContextDescription(DeclarativeBase):
     name = Column(String(250), nullable=False)
     description = Column(String(250))
 
+class ContextValue(DeclarativeBase):
+    __tablename__ = 'context_value'
+
+    id = Column(Integer, primary_key=True)
+#    description_id = Column(Integer, ForeignKey("context_description.id"), nullable=False)
+    description_id = Column(Integer, ForeignKey("context_description.id"))
+    value = Column(String(250), nullable=False)
+
+    definition = relationship("ContextDescription", backref=backref("values"))
 
 def get_unprocessed_obsblock(session):
     return session.query(ProcessingBlockQueue)
