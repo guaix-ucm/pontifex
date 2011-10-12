@@ -117,6 +117,7 @@ session.add(otask)
 # The result of this ob
 oblock.task = otask
 root_a_task = create_reduction_task(oblock, otask)
+root_a_task.waiting = True
 session.add(root_a_task)
 session.commit()
 
@@ -131,7 +132,7 @@ otaskj.instrument_id = ins.name
 
 root_p_task = create_reduction_task(oblock, otaskj)
 root_p_task.parent = root_a_task
-
+root_p_task.waiting = True
 session.add(root_p_task)
 session.add(otaskj)
 session.commit()
@@ -171,6 +172,7 @@ for j in range(3):
     ptask = create_reduction_task(oblock, otaskp)
     ptask.state = 1 # Complete
     ptask.parent = root_p_task
+    ptask.waiting = False
     session.add(ptask)
     session.commit()
 

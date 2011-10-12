@@ -121,6 +121,7 @@ oblock.task = ores
 
 # Create corresponding reduction tasks
 ptask = create_reduction_task(oblock, ores)
+ptask.waiting = False
 session.add(ptask)
 
 # OB started
