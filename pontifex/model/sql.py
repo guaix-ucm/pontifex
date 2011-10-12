@@ -21,7 +21,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import desc
+from sqlalchemy import UniqueConstraint, desc
 from sqlalchemy import Integer, String, DateTime, Float, Binary, Boolean
 from sqlalchemy import Table, Column, MetaData, ForeignKey
 from sqlalchemy import PickleType, Enum
@@ -110,6 +110,16 @@ class ProcessingBlockQueue(DeclarativeBase):
     status = Column(String(10), default='NEW', nullable=False)
 
     obsblock = relationship("ObservingBlock", backref=backref("procqueue", uselist=False))
+
+class ContextDescription(DeclarativeBase):
+    __tablename__ = 'context_description'
+    __table_args__ = (UniqueConstraint('instrument_id', 'name'), )
+
+    id = Column(Integer, primary_key=True)
+    instrument_id = Column(String(10), ForeignKey("instrument.name"), nullable=False)
+    name = Column(String(250), nullable=False)
+    description = Column(String(250))
+
 
 def get_unprocessed_obsblock(session):
     return session.query(ProcessingBlockQueue)

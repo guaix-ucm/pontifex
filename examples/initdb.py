@@ -25,7 +25,7 @@ from datetime import datetime
 
 from sqlalchemy import create_engine
 
-from pontifex.model import Users, Instrument, Channel
+from pontifex.model import Users, Instrument, Channel, ContextDescription
 from pontifex.model import init_model, metadata, Session
 
 #engine = create_engine('sqlite:///devdata.db', echo=False)
@@ -81,5 +81,17 @@ ii.parameters = {
                  'juliandate_key': 'MJD-OBS'
                 }
 session.add(ii)
+
+desc = ContextDescription()
+desc.instrument_id = 'clodia'
+desc.name = 'detector0.mode'
+desc.description = 'Clodia detector readout mode'
+session.add(desc)
+
+desc = ContextDescription()
+desc.instrument_id = 'clodia'
+desc.name = 'filter0'
+desc.description = 'Clodia filter'
+session.add(desc)
 
 session.commit()
