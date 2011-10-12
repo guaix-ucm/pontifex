@@ -120,7 +120,7 @@ class PontifexServer(object):
                 return
             else:            
                 time.sleep(pollfreq)                
-                for task in session_w.query(DataProcessingTask).filter_by(state=COMPLETED)[:self.nclient_hosts]:
+                for task in session_w.query(DataProcessingTask).filter_by(state=COMPLETED, waiting=False)[:self.nclient_hosts]:
                     _logger_s.info('enqueueing task %d ', task.id)
                     task.state = ENQUEUED
     
@@ -153,6 +153,19 @@ class PontifexServer(object):
                 if 'error' not in result:
                     task.state = FINISHED
                     
+                    # Update parent waiting state
+                    if task.parent is not None:
+                        parent = task.parent
+                        for child in parent.children:
+                            if child.id == task.id:
+                                # myself, ignoring
+                                continue
+                            if child.state != FINISHED:
+                                break
+                        else:
+                            _logger.info('updating parent waiting status')
+                            parent.waiting = False
+
                     results['control'] = ['task-control.json']
                     results['log'] = ['processing.log']
                     results['products'] = result['products']
@@ -220,20 +233,14 @@ class PontifexServer(object):
                     kwds['images'] = task.observing_result.images
                     kwds['mode'] = task.observing_result.mode
                     kwds['instrument'] = task.observing_result.instrument_id
-                    print task.children
-                    # get children results
-                    for child in task.children:
-                        print 'aaaaa', child.product
-#                        _logger_s.info('query for result of ob id=%d', child)
-#                        rr = session.query(ReductionResult).filter_by(obsres_id=child).first()
-#                        if rr is not None:
-                         #   _logger_s.info('reduction result id is %d', rr.id)
+
                     fun = getattr(process, task.method)
                     val = fun(session, **kwds)
-                except Exception:
+                except Exception as ex:
                     task.completion_time = datetime.utcnow()
                     task.state = ERROR
                     _logger_s.warning('error creating root for task %d', taskid)
+                    _logger_s.warning('error is %s', ex)
                     session.commit()
                     continue
 

@@ -45,9 +45,19 @@ def processPointing(session, **kwds):
     os.chdir(basedir)
 
     _logger.info('copying the images')
+    images = []
     for image in kwds['images']:
         _logger.debug('copy %s', image.name)
+        images.append(image.name)
         shutil.copy(os.path.join(datadir, image.name), '.')
+
+    _logger.info('copying the children results')
+    children_results = []
+    for child in kwds['children']:
+        for dp in child.product:
+            _logger.debug('copy %s', dp.reference)
+            children_results.append(dp.reference)
+            shutil.copy(os.path.join(productsdir, dp.reference), '.')
 
     _logger.info('create config files, put them in root dir')
 
@@ -92,7 +102,9 @@ def processPointing(session, **kwds):
 
     with open(filename, 'w+') as fp:
         config = {'observing_result': {'id': kwds['id'], 
-        'images': [image.name for image in kwds['images']]}, 
+        'images': images,
+        'children': children_results,
+        }, 
         'reduction': {'recipe': entry_point, 'parameters': parameters},
         'instrument': instrument.parameters,
         }
