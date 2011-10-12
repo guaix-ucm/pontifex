@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='pontifex',
-      version='0.4.0',
+      version='0.4.1',
       author='Sergio Pascual',
       author_email='sergiopr@fis.ucm.es',
       url='http://guaix.fis.ucm.es/~spr',
