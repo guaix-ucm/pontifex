@@ -45,7 +45,7 @@ import pontifex.model as model
 from pontifex.model import Session, datadir, productsdir
 from pontifex.model import ObservingRun, ObservingBlock, Image
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
-from pontifex.model import get_last_image_index, get_unprocessed_obsblock, DataProcessing
+from pontifex.model import get_last_image_index, DataProcessing
 
 # create logger
 _logger_s = logging.getLogger("pontifex.server")

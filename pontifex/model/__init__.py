@@ -51,8 +51,8 @@ datadir = os.path.abspath(_datadir)
 taskdir = os.path.abspath(_taskdir)
 productsdir = os.path.abspath(_productsdir)
 
-from .sql import ObservingBlock, ObservingRun, Image, ProcessingBlockQueue
+from .sql import ObservingBlock, ObservingRun, Image
 from .sql import Instrument, Users, ObservingResult, Channel, ContextDescription, ContextValue
 from .dataproc import RecipeParameters, DataProcessingTask, DataProcessing
 from .dataproc import ReductionResult, DataProduct
-from .sql import get_last_image_index, get_unprocessed_obsblock
+from .sql import get_last_image_index

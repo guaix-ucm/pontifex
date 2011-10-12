@@ -105,14 +105,6 @@ class Image(DeclarativeBase):
     obsresult_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
     stamp = Column(DateTime, default=datetime.utcnow)
 
-class ProcessingBlockQueue(DeclarativeBase):
-    __tablename__ = 'procqueue'
-    id = Column(Integer, primary_key=True)
-    obsId = Column(Integer, ForeignKey('observing_block.id'))
-    status = Column(String(10), default='NEW', nullable=False)
-
-    obsblock = relationship("ObservingBlock", backref=backref("procqueue", uselist=False))
-
 class ContextDescription(DeclarativeBase):
     __tablename__ = 'context_description'
     __table_args__ = (UniqueConstraint('instrument_id', 'name'), )
@@ -138,9 +130,6 @@ class ContextValue(DeclarativeBase):
     value = Column(String(250), nullable=False)
 
     definition = relationship("ContextDescription", backref=backref("values"))
-
-def get_unprocessed_obsblock(session):
-    return session.query(ProcessingBlockQueue)
 
 def get_last_image_index(session):
     number = 0

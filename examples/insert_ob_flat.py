@@ -34,7 +34,7 @@ import pontifex.model as model
 from pontifex.model import datadir
 from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
 from pontifex.model import DataProcessingTask, ObservingResult
-from pontifex.model import RecipeParameters, ProcessingBlockQueue
+from pontifex.model import RecipeParameters
 from pontifex.model import get_last_image_index
 
 def new_image(number, exposure, imgtype, oresult):
