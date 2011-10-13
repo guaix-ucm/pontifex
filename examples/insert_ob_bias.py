@@ -40,9 +40,13 @@ from pontifex.model import get_last_image_index
 
 def new_image(number, exposure, imgtype, oresult):
     im = Image()
-    im.name = 'r0%02d.fits' % number
+    im.name = 'r0%03d.fits' % number
     data = numpy.zeros((1,1), dtype='int16')
-    pyfits.writeto(os.path.join(datadir, im.name), data, clobber=True)
+    hdu = pyfits.PrimaryHDU(data)
+    hdu.header.update('ccdmode', 'normal')
+    hdu.header.update('filter', 311)
+    hdu.writeto(os.path.join(datadir, im.name), clobber=True)
+
     im.exposure = exposure
     im.imgtype = imgtype
     im.obsresult_id = oresult.id
