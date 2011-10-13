@@ -120,13 +120,11 @@ observing_result_context = Table(
     Column('context_id', Integer, ForeignKey('context_value.id'), primary_key=True)
     )
 
-
 class ContextValue(DeclarativeBase):
     __tablename__ = 'context_value'
 
     id = Column(Integer, primary_key=True)
-#    description_id = Column(Integer, ForeignKey("context_description.id"), nullable=False)
-    description_id = Column(Integer, ForeignKey("context_description.id"))
+    description_id = Column(Integer, ForeignKey("context_description.id"), nullable=False)
     value = Column(String(250), nullable=False)
 
     definition = relationship("ContextDescription", backref=backref("values"))
