@@ -69,11 +69,6 @@ class ReductionResult(DeclarativeBase):
     task_id = Column(Integer, ForeignKey('dp_task.id'))
     #picklable = Column(PickleType, nullable=False)
 
-class DataProcessingStatusEnum(DeclarativeBase):
-    __tablename__ = 'dp_status_enum'
-    id = Column(Integer, primary_key=True)
-    status = Column(String(10), nullable=False, unique=True)
-
 class RecipeParameters(DeclarativeBase):
     __tablename__ = 'dp_recipe_parameters'
     id = Column(Integer, primary_key=True)
