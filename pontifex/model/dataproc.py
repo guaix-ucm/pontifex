@@ -84,8 +84,7 @@ class RecipeParameters(DeclarativeBase):
 class DataProduct(DeclarativeBase):
     __tablename__ = 'dp_product'
     id = Column(Integer, primary_key=True)
-    #insId = Column(String(10), ForeignKey('instrument.name'))
-    instrument = Column(String(45))
+    instrument_id = Column(String(10), ForeignKey("instrument.name"), nullable=False)
     datatype = Column(String(45))
     reference = Column(String(45))
     task_id = Column(Integer, ForeignKey('dp_task.id'))

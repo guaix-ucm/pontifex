@@ -190,7 +190,7 @@ class PontifexServer(object):
                             mdesc = desc[0]
                         dp = DataProduct()
                         # FIXME, hardcoded instrument name
-                        dp.instrument = "clodia"
+                        dp.instrument_id = "clodia"
                         dp.datatype = prod
                         dp.reference = mdesc
                         # copy or hardlink the file
