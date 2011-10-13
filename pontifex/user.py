@@ -44,6 +44,7 @@ from pontifex.txrServer import txrServer
 import pontifex.model as model
 from pontifex.model import Session, datadir, productsdir
 from pontifex.model import ObservingRun, ObservingBlock, Image
+from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
 from pontifex.model import get_last_image_index, DataProcessing
 
@@ -181,6 +182,10 @@ class PontifexServer(object):
                     rr.task_id = task.id
 
                     # processing data products
+
+                    import importlib
+                    prodmod = importlib.import_module('clodia.products')
+
                     for prod, desc in result['products'].items():
                         # FIXME: this is a hack
                         # because fits files get a list of entries
@@ -188,11 +193,35 @@ class PontifexServer(object):
 
                         if isinstance(desc, list) and desc:
                             mdesc = desc[0]
+
+                        # extract metadata
+
+                        # metadata extractor
+                        fun = getattr(prodmod, 'metadata_extractor_%s' % prod)
+
+
                         dp = DataProduct()
                         # FIXME, hardcoded instrument name
                         dp.instrument_id = "clodia"
                         dp.datatype = prod
                         dp.reference = mdesc
+
+                        _logger.debug('extracting metadata')
+                        for key, val in fun(mdesc):
+                            _logger.debug('metadata is (%s, %s)', key, val)
+                            # FIXME: probably there is a better way of doing this
+                            q = session_i.query(ContextDescription).filter_by(instrument_id=dp.instrument_id, name=key).first()
+                            v = session_i.query(ContextValue).filter_by(definition=q, value=val).first()
+
+                            if v is None:
+                                _logger.debug('creating metadata for %s', key)
+                                v = ContextValue()
+                                v.definition = q
+                                v.value = val
+                                session_i.add(v)
+                            
+                            dp.context.append(v)
+
                         # copy or hardlink the file
                         _logger.debug('copying product in %s', productsdir)
                         shutil.copy(mdesc, productsdir)
@@ -233,6 +262,7 @@ class PontifexServer(object):
                     kwds['images'] = task.observing_result.images
                     kwds['mode'] = task.observing_result.mode
                     kwds['instrument'] = task.observing_result.instrument_id
+                    kwds['context'] = task.observing_result.context
 
                     fun = getattr(process, task.method)
                     val = fun(session, **kwds)
