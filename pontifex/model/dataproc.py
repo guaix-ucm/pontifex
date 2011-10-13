@@ -76,6 +76,12 @@ class RecipeParameters(DeclarativeBase):
     #insId = Column(String(10), ForeignKey('instrument.name'))
     parameters = Column(PickleType, nullable=False)
 
+data_product_context = Table(
+    'data_product_context', DeclarativeBase.metadata,
+    Column('data_product_id', Integer, ForeignKey('dp_product.id'), primary_key=True),
+    Column('context_id', Integer, ForeignKey('context_value.id'), primary_key=True)
+    )
+
 class DataProduct(DeclarativeBase):
     __tablename__ = 'dp_product'
     id = Column(Integer, primary_key=True)
@@ -85,4 +91,4 @@ class DataProduct(DeclarativeBase):
     task_id = Column(Integer, ForeignKey('dp_task.id'))
 
     task = relationship("DataProcessingTask", backref=backref('product'))
-
+    context = relationship('ContextValue', secondary='data_product_context', backref='data_product')
