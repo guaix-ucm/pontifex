@@ -206,7 +206,7 @@ class PontifexServer(object):
                         dp.datatype = prod
                         dp.reference = mdesc
 
-                        _logger.debug('extracting metadata')
+                        _logger.debug('extracting meta')
                         for key, val in fun(mdesc):
                             _logger.debug('metadata is (%s, %s)', key, val)
                             # FIXME: probably there is a better way of doing this
@@ -216,7 +216,7 @@ class PontifexServer(object):
                             if v is None:
                                 _logger.debug('creating metadata for %s', key)
                                 v = ContextValue()
-                                v.definition = q
+                                v.definition[q.together] = q
                                 v.value = val
                                 session_i.add(v)
                             

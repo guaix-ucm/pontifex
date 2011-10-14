@@ -27,6 +27,7 @@ from sqlalchemy import Table, Column, MetaData, ForeignKey
 from sqlalchemy import PickleType, Enum
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from pontifex.model import DeclarativeBase, metadata, Session
 
@@ -114,6 +115,10 @@ class ContextDescription(DeclarativeBase):
     name = Column(String(250), nullable=False)
     description = Column(String(250))
 
+    @property
+    def together(self):
+        return '%s.%s' % (self.instrument_id, self.name)
+
 observing_result_context = Table(
     'observing_result_context', DeclarativeBase.metadata,
     Column('observing_result_id', Integer, ForeignKey('observing_result.id'), primary_key=True),
@@ -127,7 +132,7 @@ class ContextValue(DeclarativeBase):
     description_id = Column(Integer, ForeignKey("context_description.id"), nullable=False)
     value = Column(String(250), nullable=False)
 
-    definition = relationship("ContextDescription", backref=backref("values"))
+    definition = relationship("ContextDescription", backref=backref("values"),  collection_class=attribute_mapped_collection('together'))
 
 def get_last_image_index(session):
     number = 0
