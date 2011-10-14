@@ -37,6 +37,22 @@
 
 '''
 
+import pyfits
+
+def metadata_extractor_master_bias(name):
+    hdr = pyfits.getheader(name)
+    yield 'detector0.mode', hdr['ccdmode']
+
+def metadata_extractor_master_dark(name):
+    hdr = pyfits.getheader(name)
+    yield 'detector0.mode', hdr['ccdmode']
+
+def metadata_extractor_master_flat(name):
+    hdr = pyfits.getheader(name)
+    yield 'detector0.mode', hdr['ccdmode']
+    yield 'filter0', hdr['filter']
+
+
 class Product(object):
     pass
 

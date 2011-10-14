@@ -21,12 +21,13 @@
 
 from datetime import datetime
 
-from sqlalchemy import desc
+from sqlalchemy import UniqueConstraint, desc
 from sqlalchemy import Integer, String, DateTime, Float, Binary, Boolean
 from sqlalchemy import Table, Column, MetaData, ForeignKey
 from sqlalchemy import PickleType, Enum
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from pontifex.model import DeclarativeBase, metadata, Session
 
@@ -91,6 +92,8 @@ class ObservingResult(DeclarativeBase):
 
     children = relationship("ObservingResult",
                 backref=backref('parent', remote_side=[id]))
+    
+    context = relationship('ContextValue', secondary='observing_result_context', backref='observing_result')
 
     images = relationship("Image", backref='observing_result')
 
@@ -103,16 +106,33 @@ class Image(DeclarativeBase):
     obsresult_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
     stamp = Column(DateTime, default=datetime.utcnow)
 
-class ProcessingBlockQueue(DeclarativeBase):
-    __tablename__ = 'procqueue'
+class ContextDescription(DeclarativeBase):
+    __tablename__ = 'context_description'
+    __table_args__ = (UniqueConstraint('instrument_id', 'name'), )
+
     id = Column(Integer, primary_key=True)
-    obsId = Column(Integer, ForeignKey('observing_block.id'))
-    status = Column(String(10), default='NEW', nullable=False)
+    instrument_id = Column(String(10), ForeignKey("instrument.name"), nullable=False)
+    name = Column(String(250), nullable=False)
+    description = Column(String(250))
 
-    obsblock = relationship("ObservingBlock", backref=backref("procqueue", uselist=False))
+    @property
+    def together(self):
+        return '%s.%s' % (self.instrument_id, self.name)
 
-def get_unprocessed_obsblock(session):
-    return session.query(ProcessingBlockQueue)
+observing_result_context = Table(
+    'observing_result_context', DeclarativeBase.metadata,
+    Column('observing_result_id', Integer, ForeignKey('observing_result.id'), primary_key=True),
+    Column('context_id', Integer, ForeignKey('context_value.id'), primary_key=True)
+    )
+
+class ContextValue(DeclarativeBase):
+    __tablename__ = 'context_value'
+
+    id = Column(Integer, primary_key=True)
+    description_id = Column(Integer, ForeignKey("context_description.id"), nullable=False)
+    value = Column(String(250), nullable=False)
+
+    definition = relationship("ContextDescription", backref=backref("values"),  collection_class=attribute_mapped_collection('together'))
 
 def get_last_image_index(session):
     number = 0

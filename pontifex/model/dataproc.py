@@ -69,11 +69,6 @@ class ReductionResult(DeclarativeBase):
     task_id = Column(Integer, ForeignKey('dp_task.id'))
     #picklable = Column(PickleType, nullable=False)
 
-class DataProcessingStatusEnum(DeclarativeBase):
-    __tablename__ = 'dp_status_enum'
-    id = Column(Integer, primary_key=True)
-    status = Column(String(10), nullable=False, unique=True)
-
 class RecipeParameters(DeclarativeBase):
     __tablename__ = 'dp_recipe_parameters'
     id = Column(Integer, primary_key=True)
@@ -81,14 +76,19 @@ class RecipeParameters(DeclarativeBase):
     #insId = Column(String(10), ForeignKey('instrument.name'))
     parameters = Column(PickleType, nullable=False)
 
+data_product_context = Table(
+    'data_product_context', DeclarativeBase.metadata,
+    Column('data_product_id', Integer, ForeignKey('dp_product.id'), primary_key=True),
+    Column('context_id', Integer, ForeignKey('context_value.id'), primary_key=True)
+    )
+
 class DataProduct(DeclarativeBase):
     __tablename__ = 'dp_product'
     id = Column(Integer, primary_key=True)
-    #insId = Column(String(10), ForeignKey('instrument.name'))
-    instrument = Column(String(45))
+    instrument_id = Column(String(10), ForeignKey("instrument.name"), nullable=False)
     datatype = Column(String(45))
     reference = Column(String(45))
     task_id = Column(Integer, ForeignKey('dp_task.id'))
 
     task = relationship("DataProcessingTask", backref=backref('product'))
-
+    context = relationship('ContextValue', secondary='data_product_context', backref='data_product')

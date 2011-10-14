@@ -34,14 +34,18 @@ import pontifex.model as model
 from pontifex.model import datadir
 from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
 from pontifex.model import DataProcessingTask, ObservingResult
-from pontifex.model import RecipeParameters, ProcessingBlockQueue
+from pontifex.model import RecipeParameters
+from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import get_last_image_index
 
 def new_image(number, exposure, imgtype, oresult):
     im = Image()
-    im.name = 'r0%02d.fits' % number
+    im.name = 'r0%03d.fits' % number
     data = numpy.zeros((1,1), dtype='int16')
-    pyfits.writeto(os.path.join(datadir, im.name), data, clobber=True)
+    hdu = pyfits.PrimaryHDU(data)
+    hdu.header.update('ccdmode', 'normal')
+    hdu.header.update('filter', 311)
+    hdu.writeto(os.path.join(datadir, im.name), clobber=True)
     im.exposure = exposure
     im.imgtype = imgtype
     im.obsresult_id = oresult.id
@@ -99,6 +103,12 @@ session = model.Session()
 ins = session.query(Instrument).filter_by(name='clodia').first()
 user = session.query(Users).first()
 
+context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
+ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
+
+context2 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='filter0').first()
+filtermode = session.query(ContextValue).filter_by(definition=context2, value='315').first()
+
 obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
 
@@ -115,6 +125,8 @@ ores.mode = 'flat'
 ores.instrument_id = ins.name
 ores.waiting = True
 ores.awaited = False
+ores.context.append(ccdmode)
+ores.context.append(filtermode)
 session.add(ores)
 
 oblock.task = ores

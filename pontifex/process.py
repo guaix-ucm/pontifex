@@ -84,14 +84,23 @@ def processPointing(session, **kwds):
             # query here
             _logger.info('query for %s', req.tag)
             # FIXME: this query should be updated
-            dps = session.query(DataProduct).filter_by(instrument=kwds['instrument'],   datatype=req.tag).order_by(desc(DataProduct.id)).first()
-            if dps is None:
+            dps = session.query(DataProduct).filter_by(instrument_id=kwds['instrument'],   datatype=req.tag).order_by(desc(DataProduct.id))
+
+            _logger.info('checking context')
+            for cdp in dps:
+                if all((c in kwds['context']) for c in cdp.context):
+                    _logger.info('found requirement with acceptable context: %s', cdp.reference)
+                    break
+            else:
+                cdp = None
+
+            if cdp is None:
                 _logger.warning("can't find %s", req.tag)
                 raise ValueError
             else:
-                parameters[req.tag] = dps.reference
-                _logger.debug('copy %s', dps.reference)
-                shutil.copy(os.path.join(productsdir, dps.reference), '.')
+                parameters[req.tag] = cdp.reference
+                _logger.debug('copy %s', cdp.reference)
+                shutil.copy(os.path.join(productsdir, cdp.reference), '.')
         else:
             parameters[req.tag] = req.default
 
