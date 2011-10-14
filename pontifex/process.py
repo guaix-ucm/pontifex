@@ -87,7 +87,15 @@ def processPointing(session, **kwds):
             dps = session.query(DataProduct).filter_by(instrument_id=kwds['instrument'],   datatype=req.tag).order_by(desc(DataProduct.id))
 
             _logger.info('checking context')
+            print 'block context'
+            for c in kwds['context']:
+                print c.value
             for cdp in dps:
+                print 'object context'
+                for c in cdp.context:
+                    print c.value
+                
+
                 if all((c in kwds['context']) for c in cdp.context):
                     _logger.info('found requirement with acceptable context: %s', cdp.reference)
                     break

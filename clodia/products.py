@@ -52,6 +52,15 @@ def metadata_extractor_master_flat(name):
     yield 'detector0.mode', hdr['ccdmode']
     yield 'filter0', hdr['filter']
 
+def metadata_extractor_science(name):
+    hdr = pyfits.getheader(name)
+    yield 'detector0.mode', hdr['ccdmode']
+    yield 'filter0', hdr['filter']
+
+def metadata_extractor_mosaic(name):
+    hdr = pyfits.getheader(name)
+    yield 'detector0.mode', hdr['ccdmode']
+    yield 'filter0', hdr['filter']
 
 class Product(object):
     pass

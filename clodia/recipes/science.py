@@ -79,6 +79,8 @@ class DirectImage(RecipeBase):
         hdr.update('NUMXVER', __version__, 'Numina package version')
         hdr.update('NUMRNAM', 'DirectImage', 'Numina recipe name')
         hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
+        hdr.update('ccdmode', 'normal')
+        hdr.update('filter', 315)
         
         hdulist = pyfits.HDUList([hdu])
 
@@ -110,7 +112,9 @@ class MosaicImage(RecipeBase):
         hdr.update('NUMXVER', __version__, 'Numina package version')
         hdr.update('NUMRNAM', 'MosaicImage', 'Numina recipe name')
         hdr.update('NUMRVER', self.__version__, 'Numina recipe version')
-        
+        hdr.update('ccdmode', 'normal')
+        hdr.update('filter', 315)
+
         hdulist = pyfits.HDUList([hdu])
 
         _logger.info('mosaic reduction ended')
