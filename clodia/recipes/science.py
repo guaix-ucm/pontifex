@@ -25,8 +25,8 @@ import time
 import numpy
 import pyfits
 
-from numina import RecipeBase, Image, __version__
-from numina import Image, Keyword
+from numina import RecipeBase, __version__
+from numina.recipes import Image, Keyword
 
 __all__ = ['DirectImage']
 

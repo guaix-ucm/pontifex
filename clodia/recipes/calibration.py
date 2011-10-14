@@ -27,7 +27,7 @@ import pyfits
 
 from numina import RecipeBase, Image, __version__
 from numina import FITSHistoryHandler
-from numina import Image, Keyword
+from numina.recipes import Image, Keyword
 
 __all__ = ['BiasRecipe', 'DarkRecipe']
 
