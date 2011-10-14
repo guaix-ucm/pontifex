@@ -79,10 +79,7 @@ def main_internal(entry_point, obsres, parameters):
     module = import_module(mod)
     RecipeClass = getattr(module, klass)
 
-    cp = {}
-    pp = {}
-    
-    recipe = RecipeClass(pp, cp)
+    recipe = RecipeClass()
 
     recipe.configure(parameters)
 
@@ -157,6 +154,7 @@ class RecipeBase(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, author, version):
+        super(RecipeBase, self).__init__()
         self.__author__ = author
         self.__version__ = version
         self.environ = {}

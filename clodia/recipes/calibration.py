@@ -55,10 +55,10 @@ class BiasRecipe(RecipeBase):
     __requires__ = [_imgtype_key]
     __provides__ = [Image('master_bias', comment='Master bias image')]
 
-    def __init__(self, pp, cp):
-        RecipeBase.__init__(self,
-                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
-                        version = "0.1.0"
+    def __init__(self):
+        super(BiasRecipe, self).__init__(
+                        author="Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version="0.1.0"
                 )
 
     def run(self, rb):
@@ -122,12 +122,11 @@ class DarkRecipe(RecipeBase):
     __requires__ = [_imgtype_key, Image('master_bias', comment='Master bias image')]
     __provides__ = [Image('master_dark', comment='Master dark image')]
 
-    def __init__(self, pp, cp):
-        RecipeBase.__init__(self,
-                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
-                        version = "0.1.0"
+    def __init__(self):
+        super(DarkRecipe, self).__init__(
+                        author="Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version="0.1.0"
                 )
-
 
     def run(self, block):
 
@@ -194,12 +193,11 @@ class FlatRecipe(RecipeBase):
                     Image('master_dark')]
     __provides__ = [Image('master_flat')]
 
-    def __init__(self, pp, cp):
-        RecipeBase.__init__(self,
-                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
-                        version = "0.1.0"
+    def __init__(self):
+        super(FlatRecipe, self).__init__(
+                        author="Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version="0.1.0"
                 )
-
 
     def run(self, block):
 

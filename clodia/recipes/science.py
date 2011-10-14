@@ -30,6 +30,8 @@ from numina import Image, Keyword
 
 __all__ = ['DirectImage']
 
+__author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
+
 _logger = logging.getLogger('clodia.recipes')
 
 _imgtype_key = Keyword('imagetype_key', 
@@ -57,11 +59,8 @@ class DirectImage(RecipeBase):
     ]
     __provides__ = [Image('science')]
 
-    def __init__(self, pp, cp):
-        RecipeBase.__init__(self,
-                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
-                        version = "0.1.0"
-                )
+    def __init__(self):
+        super(DirectImage, self).__init__(author=__author__, version="0.1.0")
 
     def run(self, block):
     	_logger.info('starting direct image mode')
@@ -91,11 +90,8 @@ class MosaicImage(RecipeBase):
     __requires__ = [_imgtype_key]
     __provides__ = [Image('mosaic')]
 
-    def __init__(self, pp, cp):
-        RecipeBase.__init__(self,
-                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
-                        version = "0.1.0"
-                )
+    def __init__(self):
+        super(MosaicImage, self).__init__(author=__author__, version="0.1.0")
 
     def run(self, block):
     	_logger.info('starting mosaic mode')
@@ -125,11 +121,8 @@ class Null(RecipeBase):
     __requires__ = []
     __provides__ = []
 
-    def __init__(self, pp, cp):
-        RecipeBase.__init__(self,
-                        author = "Sergio Pascual <sergiopr@fis.ucm.es>",
-                        version = "0.1.0"
-                )
+    def __init__(self):
+        super(Null, self).__init__(author=__author__, version="0.1.0")
 
     def run(self, block):
         return {'products': {}}
