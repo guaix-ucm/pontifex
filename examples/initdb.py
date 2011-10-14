@@ -75,11 +75,16 @@ session.add(ii)
 ii = Instrument()
 ii.name = 'clodia'
 ii.parameters = {
-                 'detectors': [[10, 10]],
-                 'imagetype_key': 'IMGTYP',
-                 'airmass_key': 'AIRMASS',
-                 'exposure_key': 'EXPOSED',
-                 'juliandate_key': 'MJD-OBS'
+                 'name': 'clodia',
+                 'detectors': [[256, 256]],
+		 'metadata' : {'imagetype': 'IMGTYP',
+	                'airmass': 'AIRMASS',
+        	        'exposure': 'EXPOSED',
+                	'juliandate': 'MJD-OBS',
+                	'detector.mode': 'CCDMODE',
+                	'filter0': 'FILTER'
+                	},
+		'amplifiers' : [[[256, 256]]],
                 }
 session.add(ii)
 

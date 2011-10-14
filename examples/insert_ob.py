@@ -44,7 +44,7 @@ def new_image(number, exposure, imgtype, oresult):
     data = numpy.zeros((1,1), dtype='int16')
     hdu = pyfits.PrimaryHDU(data)
     hdu.header.update('ccdmode', 'normal')
-    hdu.header.update('filter', 311)
+    hdu.header.update('filter', 315)
 
     hdu.writeto(os.path.join(datadir, im.name), clobber=True)
     im.exposure = exposure

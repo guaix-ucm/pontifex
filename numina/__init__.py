@@ -64,7 +64,7 @@ class FitsEncoder(json.JSONEncoder):
             return filename
         return json.JSONEncoder.default(self, obj)
 
-def main_internal(entry_point, obsres, parameters):
+def main_internal(entry_point, obsres, instrument, parameters):
     _logger.info('entry point is %s', entry_point)
 
     # Set custom logger
@@ -81,7 +81,8 @@ def main_internal(entry_point, obsres, parameters):
 
     recipe = RecipeClass()
 
-    recipe.configure(parameters=parameters)
+    recipe.configure(instrument=instrument,
+                    parameters=parameters)
 
     try:
         result = recipe(obsres)
@@ -110,7 +111,7 @@ def main2(args=None):
         entry_point = red_pars['recipe']
         parameters = red_pars['parameters']
 
-        result = main_internal(entry_point, obsres, parameters)
+        result = main_internal(entry_point, obsres, ins_pars, parameters)
         
         with open('result.json', 'w+') as fd:
             json.dump(result, fd, indent=1, cls=FitsEncoder)

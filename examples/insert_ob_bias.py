@@ -106,7 +106,7 @@ user = session.query(Users).first()
 
 context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
 
-ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
+ccdmode = session.query(ContextValue).filter_by(definition=context1, value='turbo').first()
 
 obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
