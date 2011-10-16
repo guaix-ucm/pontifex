@@ -45,10 +45,10 @@ class RecipeBase(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, author, version, **kwds):
+    def __init__(self, *args, **kwds):
         super(RecipeBase, self).__init__()
-        self.__author__ = author
-        self.__version__ = version
+        self.__author__ = 'Unknown'
+        self.__version__ = '0.0.0'
         self.environ = {}
         self.parameters = {}
         self.instrument = None
@@ -56,6 +56,10 @@ class RecipeBase(object):
         self.configure(**kwds)
     
     def configure(self, **kwds):
+        if 'author' in kwds:
+            self.__author__ = kwds['author']
+        if 'version' in kwds:
+            self.__version__ = kwds['version']
         if 'parameters' in kwds:
             self.parameters = kwds['parameters']
         if 'instrument' in kwds:
