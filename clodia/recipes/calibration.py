@@ -29,7 +29,7 @@ from numina import RecipeBase, Image, __version__
 from numina import FITSHistoryHandler
 from numina.recipes import Image, Keyword
 
-__all__ = ['BiasRecipe', 'DarkRecipe']
+__all__ = ['BiasRecipe', 'DarkRecipe', 'FlatRecipe']
 
 _logger = logging.getLogger('clodia.recipes')
 
@@ -108,8 +108,6 @@ class BiasRecipe(RecipeBase):
             hdr.ascardlist().extend(history_header.ascardlist())    
 
             return {'products': {'master_bias': hdulist}}
-        except OSError as error:
-            return {'error' : {'exception': str(error)}}
         finally:
             _logger.removeHandler(fh)
 
@@ -181,8 +179,6 @@ class DarkRecipe(RecipeBase):
             hdr.ascardlist().extend(history_header.ascardlist())    
 
             return {'products': {'master_dark': hdulist}}
-        except OSError as error:
-            return {'error' : {'exception': str(error)}}
         finally:
             _logger.removeHandler(fh)
 
