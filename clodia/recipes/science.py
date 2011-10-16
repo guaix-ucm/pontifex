@@ -34,26 +34,9 @@ __author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
 
 _logger = logging.getLogger('clodia.recipes')
 
-_imgtype_key = Keyword('imagetype_key', 
-                       comment='Name of image type header keyword',
-                       default='IMGTYP')
-
-_airmass_key = Keyword('airmass_key', 
-                       comment='Name of airmass header keyword',
-                       default='AIRMASS')
-
-_exposure_key = Keyword('exposure_key', 
-                       comment='Name of exposure header keyword',
-                       default='EXPOSED')
-
-_juliandate_key = Keyword('juliandate_key', 
-                       comment='Name of Julian date header keyword',
-                       default='MJD-OBS')
-
 class DirectImage(RecipeBase):
 
-    __requires__ = [_imgtype_key, 
-                    Image('master_bias'),
+    __requires__ = [Image('master_bias'),
                     Image('master_dark'),
                     Image('master_flat')
     ]

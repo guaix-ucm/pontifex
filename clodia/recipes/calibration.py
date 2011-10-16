@@ -33,26 +33,10 @@ __all__ = ['BiasRecipe', 'DarkRecipe', 'FlatRecipe']
 
 _logger = logging.getLogger('clodia.recipes')
 
-_imgtype_key = Keyword('imagetype_key', 
-                       comment='Name of image type header keyword',
-                       default='IMGTYP')
-
-_airmass_key = Keyword('airmass_key', 
-                       comment='Name of airmass header keyword',
-                       default='AIRMASS')
-
-_exposure_key = Keyword('exposure_key', 
-                       comment='Name of exposure header keyword',
-                       default='EXPOSED')
-
-_juliandate_key = Keyword('juliandate_key', 
-                       comment='Name of Julian date header keyword',
-                       default='MJD-OBS')
-
 class BiasRecipe(RecipeBase):
     '''Process BIAS images and create MASTER_BIAS.'''
 
-    __requires__ = [_imgtype_key]
+    __requires__ = []
     __provides__ = [Image('master_bias', comment='Master bias image')]
 
     def __init__(self):
@@ -117,7 +101,7 @@ class BiasRecipe(RecipeBase):
 class DarkRecipe(RecipeBase):
     '''Process DARK images and provide MASTER_DARK. '''
 
-    __requires__ = [_imgtype_key, Image('master_bias', comment='Master bias image')]
+    __requires__ = [Image('master_bias', comment='Master bias image')]
     __provides__ = [Image('master_dark', comment='Master dark image')]
 
     def __init__(self):
@@ -185,7 +169,7 @@ class DarkRecipe(RecipeBase):
 class FlatRecipe(RecipeBase):
     '''Process FLAT images and provide MASTER_FLAT. '''
 
-    __requires__ = [_imgtype_key, Image('master_bias'),
+    __requires__ = [Image('master_bias'),
                     Image('master_dark')]
     __provides__ = [Image('master_flat')]
 
