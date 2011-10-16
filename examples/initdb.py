@@ -66,7 +66,7 @@ ii = Instrument()
 ii.name = 'emir'
 ii.parameters = {
                  'name': 'emir',
-                 'detectors': [[2048, 2048]],
+                 'detectors': [(2048, 2048)],
 		 'metadata' : {'imagetype': 'IMGTYP',
 	                'airmass': 'AIRMASS',
         	        'exposure': 'EXPOSED',
@@ -74,40 +74,40 @@ ii.parameters = {
                 	'detector.mode': 'CCDMODE',
                 	'filter0': 'FILTER'
                 	},
-		'amplifiers' : [[
-[(slice(1024, 2048, None), slice(896, 1024, None)),
- (slice(1024, 2048, None), slice(768, 896, None)),
- (slice(1024, 2048, None), slice(640, 768, None)),
- (slice(1024, 2048, None), slice(512, 640, None)),
- (slice(1024, 2048, None), slice(384, 512, None)),
- (slice(1024, 2048, None), slice(256, 384, None)),
- (slice(1024, 2048, None), slice(128, 256, None)),
- (slice(1024, 2048, None), slice(0, 128, None)),
- (slice(896, 1024, None), slice(0, 1024, None)),
- (slice(768, 896, None), slice(0, 1024, None)),
- (slice(640, 768, None), slice(0, 1024, None)),
- (slice(512, 640, None), slice(0, 1024, None)),
- (slice(384, 512, None), slice(0, 1024, None)),
- (slice(256, 384, None), slice(0, 1024, None)),
- (slice(128, 256, None), slice(0, 1024, None)),
- (slice(0, 128, None), slice(0, 1024, None)),
- (slice(0, 1024, None), slice(1024, 1152, None)),
- (slice(0, 1024, None), slice(1152, 1280, None)),
- (slice(0, 1024, None), slice(1280, 1408, None)),
- (slice(0, 1024, None), slice(1408, 1536, None)),
- (slice(0, 1024, None), slice(1536, 1664, None)),
- (slice(0, 1024, None), slice(1664, 1792, None)),
- (slice(0, 1024, None), slice(1792, 1920, None)),
- (slice(0, 1024, None), slice(1920, 2048, None)),
- (slice(1024, 1152, None), slice(1024, 2048, None)),
- (slice(1152, 1280, None), slice(1024, 2048, None)),
- (slice(1280, 1408, None), slice(1024, 2048, None)),
- (slice(1408, 1536, None), slice(1024, 2048, None)),
- (slice(1536, 1664, None), slice(1024, 2048, None)),
- (slice(1664, 1792, None), slice(1024, 2048, None)),
- (slice(1792, 1920, None), slice(1024, 2048, None)),
- (slice(1920, 2048, None), slice(1024, 2048, None))]
-]]
+		'amplifiers': [
+			[((1024, 2048), (896, 1024)), 
+			((1024, 2048), (768, 896)), 
+			((1024, 2048), (640, 768)), 
+			((1024, 2048), (512, 640)), 
+			((1024, 2048), (384, 512)), 
+			((1024, 2048), (256, 384)), 
+			((1024, 2048), (128, 256)), 
+			((1024, 2048), (0, 128)), 
+			((896, 1024), (0, 1024)), 
+			((768, 896), (0, 1024)), 
+			((640, 768), (0, 1024)), 
+			((512, 640), (0, 1024)), 
+			((384, 512), (0, 1024)), 
+			((256, 384), (0, 1024)), 
+			((128, 256), (0, 1024)), 
+			((0, 128), (0, 1024)), 
+			((0, 1024), (1024, 1152)), 
+			((0, 1024), (1152, 1280)), 
+			((0, 1024), (1280, 1408)), 
+			((0, 1024), (1408, 1536)), 
+			((0, 1024), (1536, 1664)), 
+			((0, 1024), (1664, 1792)), 
+			((0, 1024), (1792, 1920)), 
+			((0, 1024), (1920, 2048)), 
+			((1024, 1152), (1024, 2048)), 
+			((1152, 1280), (1024, 2048)), 
+			((1280, 1408), (1024, 2048)), 
+			((1408, 1536), (1024, 2048)), 
+			((1536, 1664), (1024, 2048)), 
+			((1664, 1792), (1024, 2048)), 
+			((1792, 1920), (1024, 2048)), 
+			((1920, 2048), (1024, 2048))]
+			],
                 }
 session.add(ii)
 
@@ -120,7 +120,7 @@ ii = Instrument()
 ii.name = 'clodia'
 ii.parameters = {
                  'name': 'clodia',
-                 'detectors': [[256, 256]],
+                 'detectors': [(256, 256)],
 		 'metadata' : {'imagetype': 'IMGTYP',
 	                'airmass': 'AIRMASS',
         	        'exposure': 'EXPOSED',
@@ -128,7 +128,7 @@ ii.parameters = {
                 	'detector.mode': 'CCDMODE',
                 	'filter0': 'FILTER'
                 	},
-		'amplifiers' : [[[(slice(0, 256), slice(0,256))]]],
+		'amplifiers' : [[((0, 256), (0,256))]],
                 }
 session.add(ii)
 
