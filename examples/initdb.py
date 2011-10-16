@@ -64,7 +64,51 @@ session.add(ii)
 
 ii = Instrument()
 ii.name = 'emir'
-ii.parameters = {}
+ii.parameters = {
+                 'name': 'emir',
+                 'detectors': [[2048, 2048]],
+		 'metadata' : {'imagetype': 'IMGTYP',
+	                'airmass': 'AIRMASS',
+        	        'exposure': 'EXPOSED',
+                	'juliandate': 'MJD-OBS',
+                	'detector.mode': 'CCDMODE',
+                	'filter0': 'FILTER'
+                	},
+		'amplifiers' : [[
+[(slice(1024, 2048, None), slice(896, 1024, None)),
+ (slice(1024, 2048, None), slice(768, 896, None)),
+ (slice(1024, 2048, None), slice(640, 768, None)),
+ (slice(1024, 2048, None), slice(512, 640, None)),
+ (slice(1024, 2048, None), slice(384, 512, None)),
+ (slice(1024, 2048, None), slice(256, 384, None)),
+ (slice(1024, 2048, None), slice(128, 256, None)),
+ (slice(1024, 2048, None), slice(0, 128, None)),
+ (slice(896, 1024, None), slice(0, 1024, None)),
+ (slice(768, 896, None), slice(0, 1024, None)),
+ (slice(640, 768, None), slice(0, 1024, None)),
+ (slice(512, 640, None), slice(0, 1024, None)),
+ (slice(384, 512, None), slice(0, 1024, None)),
+ (slice(256, 384, None), slice(0, 1024, None)),
+ (slice(128, 256, None), slice(0, 1024, None)),
+ (slice(0, 128, None), slice(0, 1024, None)),
+ (slice(0, 1024, None), slice(1024, 1152, None)),
+ (slice(0, 1024, None), slice(1152, 1280, None)),
+ (slice(0, 1024, None), slice(1280, 1408, None)),
+ (slice(0, 1024, None), slice(1408, 1536, None)),
+ (slice(0, 1024, None), slice(1536, 1664, None)),
+ (slice(0, 1024, None), slice(1664, 1792, None)),
+ (slice(0, 1024, None), slice(1792, 1920, None)),
+ (slice(0, 1024, None), slice(1920, 2048, None)),
+ (slice(1024, 1152, None), slice(1024, 2048, None)),
+ (slice(1152, 1280, None), slice(1024, 2048, None)),
+ (slice(1280, 1408, None), slice(1024, 2048, None)),
+ (slice(1408, 1536, None), slice(1024, 2048, None)),
+ (slice(1536, 1664, None), slice(1024, 2048, None)),
+ (slice(1664, 1792, None), slice(1024, 2048, None)),
+ (slice(1792, 1920, None), slice(1024, 2048, None)),
+ (slice(1920, 2048, None), slice(1024, 2048, None))]
+]]
+                }
 session.add(ii)
 
 ii = Instrument()
@@ -84,7 +128,7 @@ ii.parameters = {
                 	'detector.mode': 'CCDMODE',
                 	'filter0': 'FILTER'
                 	},
-		'amplifiers' : [[[256, 256]]],
+		'amplifiers' : [[[(slice(0, 256), slice(0,256))]]],
                 }
 session.add(ii)
 

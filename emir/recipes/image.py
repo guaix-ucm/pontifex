@@ -18,11 +18,8 @@
 #
 
 '''
-recipe1
+Image mode recipes of EMIR
 
-This is recipe1.
-
-More info here
 '''
 
 # Finite state machine
@@ -30,7 +27,7 @@ More info here
 import logging
 import os.path
 
-from numina import RecipeBase
+from numina import RecipeBase, Image, __version__
 
 import naming
 
@@ -70,23 +67,26 @@ class ImageInformation:
         return self.base
 
 class Recipe(RecipeBase):
-    def __init__(self, parameters_p, parameters_q):
-        self.pp = parameters_p
-        self.pq = parameters_q
+    __requires__ = [Image('master_bpm'),
+                    Image('master_bias'),
+                    Image('master_dark'),
+                    Image('master_flat'),
+                    Image('nonlineairy') # FIXME: this is not an image
+                    ]
+    __provides__ = [Image('science')]
+
+    def __init__(self):
+        super(Recipe, self).__init__(
+                        author="Sergio Pascual <sergiopr@fis.ucm.es>",
+                        version="0.1.0"
+                )
+        self.pp = {}
+        self.pq = {}
 
         self.iteration = 0
 
         self.refine_pointing = FakeRefinePointing()
 
-    @classmethod
-    def requires(cls):
-        return [('master_bias', 'bias.fits'),
-                ('master_bpm', 'bpm.fits'),
-                ('master_dark', 'dark.fits'), 
-                ('master_flat', 'flat.fits'), 
-                ('nonlinearity', (1.0, 0.0))
-               ]
-    
     def run(self, rb):
 
         # States
