@@ -1,9 +1,9 @@
 #
 # Copyright 2011 Sergio Pascual
 # 
-# This file is part of Pontifex
+# This file is part of PyEmir
 # 
-# Pontifex is free software: you can redistribute it and/or modify
+# PyEmir is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
