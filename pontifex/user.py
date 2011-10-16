@@ -182,7 +182,7 @@ class PontifexServer(object):
                     rr.task_id = task.id
 
                     # processing data products
-
+                    # FIXME: hardcoded instrument name
                     import importlib
                     prodmod = importlib.import_module('clodia.products')
 
