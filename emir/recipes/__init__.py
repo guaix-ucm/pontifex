@@ -35,7 +35,7 @@ _equiv = {
     'target_acquisition': 'auxiliary:Recipe',
     'mask_imaging': 'auxiliary:Recipe',
     'msm_and_lsm_check': 'auxiliary:Recipe',
-    'stare_image': 'image:Recipe'
+    'stare_image': 'image:Recipe',
     'nb_image': 'image:Recipe',
     'dithered_image':'image:Recipe',
     'microdithered_image':'image:Recipe',
