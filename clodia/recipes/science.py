@@ -72,7 +72,7 @@ class DirectImage(RecipeBase):
 
 class MosaicImage(RecipeBase):
 
-    __requires__ = [_imgtype_key]
+    __requires__ = []
     __provides__ = [Image('mosaic')]
 
     def __init__(self):
