@@ -19,6 +19,7 @@
 
 import abc
 import importlib
+import pkgutil
 
 def find_recipe(instrument, mode):
     base = '%s.recipes' % instrument
@@ -64,6 +65,8 @@ class RecipeBase(object):
             self.parameters = kwds['parameters']
         if 'instrument' in kwds:
             self.instrument = kwds['instrument']
+        if 'runinfo' in kwds:
+            self.runinfo = kwds['runinfo']
 
     @abc.abstractmethod
     def run(self, block):
@@ -82,7 +85,7 @@ class RecipeBase(object):
 
         except Exception as exc:
             result = {'error': {'type': exc.__class__.__name__, 
-                                'message': str(e)}}
+                                'message': str(exc)}}
 
         return result
 
@@ -114,8 +117,8 @@ def recipes_by_obs_mode(obsmode):
             yield rclass
     
 def walk_modules(mod):
-    module = import_module(mod)
-    for _, nmod, _ in walk_packages(path=module.__path__,
+    module = importlib.import_module(mod)
+    for _, nmod, _ in pkgutil.walk_packages(path=module.__path__,
                                     prefix=module.__name__ + '.'):
         yield nmod
         
@@ -123,7 +126,8 @@ def init_recipe_system(modules):
     '''Load all recipe classes in modules'''
     for mod in modules:
         for sub in walk_modules(mod):
-            import_module(sub)
+            mod = importlib.import_module(sub)
+                
 
 if __name__ == '__main__':
     from frida import find_recipe

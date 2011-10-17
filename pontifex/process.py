@@ -113,6 +113,8 @@ def processPointing(session, **kwds):
         config = {'observing_result': {'id': kwds['id'], 
         'images': images,
         'children': children_results,
+        'instrument': kwds['instrument'],
+        'mode': kwds['mode'],
         }, 
         'reduction': {'recipe': entry_point, 'parameters': parameters},
         'instrument': instrument.parameters,
