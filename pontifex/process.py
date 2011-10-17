@@ -29,7 +29,7 @@ from sqlalchemy import desc
 from model import taskdir, datadir, productsdir, DataProduct
 from model import Session, Instrument
 import numina.recipes as recipes
-from numina import Image
+from numina.recipes import Image
 
 _logger = logging.getLogger("pontifex.proc")
 
@@ -41,43 +41,40 @@ def processPointing(session, **kwds):
     os.chdir(taskdir)
     _logger.info('root directory is %s', basedir)
 
+    basedir = os.path.abspath(basedir)
+    workdir = os.path.join(basedir, 'work')
+    resultsdir = os.path.join(basedir, 'results')
+
     os.mkdir(basedir)
+    os.mkdir(workdir)
+    os.mkdir(resultsdir)
+
     os.chdir(basedir)
-
-    _logger.info('copying the images')
-    images = []
-    for image in kwds['images']:
-        _logger.debug('copy %s', image.name)
-        images.append(image.name)
-        shutil.copy(os.path.join(datadir, image.name), '.')
-
-    _logger.info('copying the children results')
-    children_results = []
-    for child in kwds['children']:
-        for dp in child.product:
-            _logger.debug('copy %s', dp.reference)
-            children_results.append(dp.reference)
-            shutil.copy(os.path.join(productsdir, dp.reference), '.')
 
     _logger.info('create config files, put them in root dir')
 
-    filename = 'task-control.json'
+    filename = os.path.join(resultsdir, 'task-control.json')
 
     try:
         _logger.info('instrument=%(instrument)s mode=%(mode)s', kwds)
         entry_point = recipes.find_recipe(kwds['instrument'], kwds['mode'])
+        _logger.info('entry point is %s', entry_point)
     except ValueError:
-        _logger.warning('cannot find entry point')
+        _logger.warning('cannot find entry point for %(instrument)s and %(mode)s', kwds)
         raise
         
-    _logger.info('recipe entry point is %s', entry_point)
-
     mod, klass = entry_point.split(':')
 
-    module = import_module(mod)
-    RecipeClass = getattr(module, klass)
+    try:
+        module = import_module(mod)
+        RecipeClass = getattr(module, klass)
+    except Exception as error:
+        _logger.error(error)
 
+    _logger.info('matching parameters')
+    
     parameters = {}
+
     for req in RecipeClass.__requires__:
         _logger.info('recipe requires %s', req.tag)
         if isinstance(req, Image):
@@ -96,11 +93,11 @@ def processPointing(session, **kwds):
 
             if cdp is None:
                 _logger.warning("can't find %s", req.tag)
-                raise ValueError
+                raise ValueError("can't find %s", req.tag)
             else:
                 parameters[req.tag] = cdp.reference
                 _logger.debug('copy %s', cdp.reference)
-                shutil.copy(os.path.join(productsdir, cdp.reference), '.')
+                shutil.copy(os.path.join(productsdir, cdp.reference), workdir)
         else:
             parameters[req.tag] = req.default
 
@@ -108,6 +105,21 @@ def processPointing(session, **kwds):
         _logger.info('recipe provides %s', req.tag)
 
     instrument = session.query(Instrument).filter_by(name=kwds['instrument']).first()
+    
+    _logger.info('copying the images')
+    images = []
+    for image in kwds['images']:
+        _logger.debug('copy %s', image.name)
+        images.append(image.name)
+        shutil.copy(os.path.join(datadir, image.name), workdir)
+
+    _logger.info('copying the children results')
+    children_results = []
+    for child in kwds['children']:
+        for dp in child.product:
+            _logger.debug('copy %s', dp.reference)
+            children_results.append(dp.reference)
+            shutil.copy(os.path.join(productsdir, dp.reference), workdir)
 
     with open(filename, 'w+') as fp:
         config = {'observing_result': {'id': kwds['id'], 
@@ -119,7 +131,10 @@ def processPointing(session, **kwds):
         'reduction': {'recipe': entry_point, 'parameters': parameters},
         'instrument': instrument.parameters,
         }
-        json.dump(config, fp, indent=2)
+        json.dump(config, fp, indent=1)
+
+
+ 
 
     return 0
 

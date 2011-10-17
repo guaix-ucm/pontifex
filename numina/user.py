@@ -80,13 +80,41 @@ def mode_none():
     '''Do nothing in Numina.'''
     pass
 
-# FIXME: this code or part of this code is repeated in
-# numina/__init__.py and pontifex/process.py
-# it should be unified
-def mode_run(args, options):
-    # json decode
+def main_internal(cls, obsres, 
+    instrument, 
+    parameters, 
+    runinfo, 
+    workdir=None):
 
-    with open(args[0], 'r') as fd:
+    csd = os.getcwd()
+
+    if workdir is not None:
+        workdir = os.path.abspath(workdir)
+
+    recipe = cls()
+
+    recipe.configure(instrument=instrument,
+                    parameters=parameters,
+                    runinfo=runinfo)
+
+    os.chdir(workdir)
+    try:
+        result = recipe(obsres)
+    finally:
+        os.chdir(csd)
+
+    return result
+
+# part of this code appears in
+# pontifex/process.py
+
+def run_recipe(task_control, workdir=None, resultsdir=None, cleanup=False):
+
+    workdir = os.getcwd() if workdir is None else workdir
+    resultsdir = os.getcwd if resultsdir is None else resultsdir
+
+    # json decode
+    with open(task_control, 'r') as fd:
         task_control = json.load(fd)
     
     ins_pars = {}
@@ -102,7 +130,7 @@ def mode_run(args, options):
     if 'reduction' in task_control:
         params = task_control['reduction']['parameters']
         
-    _logger.info('our instrument is %(instrument)s and our observing mode is %(mode)s', 
+    _logger.info('instrument=%(instrument)s mode=%(mode)s', 
                 obsres.__dict__)
     try:
         entry_point = find_recipe(obsres.instrument, obsres.mode)
@@ -116,63 +144,56 @@ def mode_run(args, options):
     module = importlib.import_module(mod)
     RecipeClass = getattr(module, klass)
 
+    _logger.info('matching parameters')
+
     parameters = {}
+
     for req in RecipeClass.__requires__:
         _logger.info('recipe requires %s', req.tag)
         if req.tag in params:
             _logger.debug('parameter %s has value %s', req.tag, params[req.tag])
             parameters[req.tag] = params[req.tag]
         elif req.default is not None:
-            _logger.debug('parameter %s has defaulr value %s', req.tag, req.defaulr)
+            _logger.debug('parameter %s has default value %s', req.tag, req.default)
             parameters[req.tag] = req.default
         else:
             _logger.error('parameter %s must be defined', req.tag)
-            raise ValueError
+            raise ValueError('parameter %s must be defined' % req.tag)
 
     for req in RecipeClass.__provides__:
         _logger.info('recipe provides %s', req.tag)
     
     # Creating base directory for storing results
-    
-    workdir = options.workdir
-    resultsdir = options.resultsdir
-               
-    _logger.debug('Creating the recipe')
+                   
+    _logger.debug('creating runinfo')
             
     runinfo = {}
     runinfo['workdir'] = workdir
     runinfo['resultsdir'] = resultsdir
     runinfo['entrypoint'] = entry_point
-            
-    recipe = RecipeClass()
-
-    recipe.configure(parameters=parameters, runinfo=runinfo, instrument=ins_pars)
-            
-    base = os.getcwd()
-
-    _recipe_logger = logging.getLogger('%(instrument)s.recipes' % obsres.__dict__)
-
-    _recipe_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     # Set custom logger
-    fh = logging.FileHandler('%s/processing.log' % resultsdir)
+    _recipe_logger = logging.getLogger('%(instrument)s.recipes' % obsres.__dict__)
+    _recipe_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    _logger.debug('creating custom logger "processing.log"')
+    os.chdir(resultsdir)
+    fh = logging.FileHandler('processing.log')
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(_recipe_formatter)
-
     _recipe_logger.addHandler(fh)
 
+    result = {}
     try:
         # Running the recipe
-        _logger.debug('Running recipe')
-        os.chdir(base)
-        os.chdir(workdir)
+        _logger.debug('running the recipe %s', RecipeClass.__name__)
 
-        result = recipe(obsres)
-             
+        result = main_internal(RecipeClass, obsres, ins_pars, parameters, 
+                                runinfo, workdir=workdir)
+
         result['recipe_runner'] = info()
         result['runinfo'] = runinfo
     
-        os.chdir(base)
         os.chdir(resultsdir)
 
         with open('result.json', 'w+') as fd:
@@ -182,13 +203,22 @@ def mode_run(args, options):
             result = json.load(fd)
 
         import shutil
-        if options.cleanup:
+        if cleanup:
             _logger.debug('Cleaning up the workdir')
-            os.chdir(base)
             shutil.rmtree(workdir)
+    except Exception as error:
+        _logger.error('%s', error)
+        result['error'] = {'type': error.__class__.__name__, 
+                                    'message': str(error)}
     finally:
         _recipe_logger.removeHandler(fh)
-    return 0
+
+    return result
+
+
+
+def mode_run(args, options):
+    return recipe(args[0], options.workdir, options.resultsdir, options.cleanup)
 
 def info():
     '''Information about this version of numina.
@@ -274,6 +304,6 @@ def main(args=None):
             os.mkdir(options.resultsdir)
         
         return mode_run(args, options)
-    
+
 if __name__ == '__main__':
     main()

@@ -36,7 +36,7 @@ import shutil
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from numina import main2
+from numina.user import run_recipe
 import pontifex.process as process
 from pontifex.ptimer import PeriodicTimer
 from pontifex.txrServer import txrServer
@@ -153,6 +153,9 @@ class PontifexServer(object):
                 if 'error' not in result:
                     task.state = FINISHED
                     
+                    cwd = os.getcwd()
+                    os.chdir(os.path.abspath('results'))
+
                     # Update parent waiting state
                     if task.parent is not None:
                         parent = task.parent
@@ -319,18 +322,26 @@ class PontifexHost(object):
         self.queue.put(taskid)
 
     def worker(self):
+        taskdir = os.path.abspath('task')
         while True:
-            taskid = self.queue.get()
+            taskid = self.queue.get()            
             if taskid is not None:
-                filename = 'task-control.json'
                 _logger.info('processing taskid %d', taskid)
-                result = main2(['-d','--basedir', 'task/%s' % taskid, 
-                    '--datadir', 'data', '--run', filename])
-                
+                basedir = os.path.join(taskdir, str(taskid))
+                workdir = os.path.join(basedir, 'work')
+                resultsdir = os.path.join(basedir, 'results')
+                filename = os.path.join(resultsdir, 'task-control.json')
+                _logger.debug('%s', basedir)
+                _logger.debug('%s', workdir)
+                _logger.debug('%s', resultsdir)
+                result = run_recipe(filename, workdir=workdir, 
+                                    resultsdir=resultsdir, cleanup=False)
+
                 _logger.info('finished')
                 
                 self.queue.task_done()
                 self.rserver.receiver(self.cid, result, taskid)
+                os.chdir(taskdir)
             else:
                 _logger.info('ending worker thread')
                 return

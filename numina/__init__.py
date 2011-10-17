@@ -20,24 +20,13 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import sys
 import json
-import os
-from pkgutil import walk_packages
-from importlib import import_module
-
-import recipes
-from recipes import RecipeBase, Image
 
 import pyfits
 
+from numina.recipes import RecipeBase, Image
+
 __version__ = '0.4.1'
-
-_logger = logging.getLogger("numina")
-
-_recipe_logger = logging.getLogger('numina.recipes')
-
-_recipe_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class ReductionResult(object):
     def __init__(self):
@@ -63,91 +52,6 @@ class FitsEncoder(json.JSONEncoder):
             obj.writeto(filename, clobber=True)
             return filename
         return json.JSONEncoder.default(self, obj)
-
-def main_internal(entry_point, obsres, instrument, parameters):
-    _logger.info('entry point is %s', entry_point)
-
-    # Set custom logger
-    fh = logging.FileHandler('processing.log')
-    fh.setLevel(logging.DEBUG)
-    fh.setFormatter(_recipe_formatter)
-
-    _recipe_logger.addHandler(fh)
-
-    mod, klass = entry_point.split(':')
-
-    module = import_module(mod)
-    RecipeClass = getattr(module, klass)
-
-    recipe = RecipeClass()
-
-    recipe.configure(instrument=instrument,
-                    parameters=parameters)
-
-    try:
-        result = recipe(obsres)
-    finally:
-        _recipe_logger.removeHandler(fh)
-    return result
-
-def main2(args=None):
-    _logger.info('Args are %s', args)
-
-    try:
-        pwd = os.getcwd()
-
-        os.chdir(args[2])
-
-        with open('task-control.json', 'r') as fd:
-            control = json.load(fd)
-
-        red_pars = control['reduction']
-
-        obsres = ObservingResult()
-        obsres.__dict__ = control['observing_result']
-
-        ins_pars = control['instrument']
-
-        entry_point = red_pars['recipe']
-        parameters = red_pars['parameters']
-
-        result = main_internal(entry_point, obsres, ins_pars, parameters)
-        
-        with open('result.json', 'w+') as fd:
-            json.dump(result, fd, indent=1, cls=FitsEncoder)
-
-        with open('result.json', 'r') as fd:
-            result = json.load(fd)
-    
-    except Exception as error:
-        _logger.error('%s', error)
-        result = {'error': {'type': error.__class__.__name__, 
-                                    'message': str(error)}}
-    finally:
-        os.chdir(pwd)    
-
-    return result
-
-def main(block):
-
-    _logger.info('Creating Reduction Result')
-    rr = ReductionResult()
-    rr.reduction_block = block
-    rr.other = 'Other info'
-
-    try:
-        entry_point = recipes.find_recipe(block.instrument, block.mode)
-
-        result = main_internal(entry_point, block)
-
-    except ValueError as msg:
-        _logger.error('Something has happened: %s', str(msg))
-        rr.status = 'ERROR'
-    else:
-        rr.status = 'OK'
-        rr.picklable = {'result': result}
-
-    return rr
 
 class FITSHistoryHandler(logging.Handler):
     '''Logging handler using HISTORY FITS cards'''
