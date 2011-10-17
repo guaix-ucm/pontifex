@@ -32,6 +32,7 @@ import uuid
 import ConfigParser
 import json
 import shutil
+import importlib
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -172,21 +173,21 @@ class PontifexServer(object):
                     results['control'] = ['task-control.json']
                     results['log'] = ['processing.log']
                     results['products'] = result['products']
+                    
+                    # FIXME: workaround to get instrument name
+                    with open('task-control.json', 'w+') as fd:
+                        dic = json.load(fd)
+
+                    iname = dic['instrument']['name']
+                    del dic
 
                     task.result = str(results)
                     rr = ReductionResult()
-
-                    # Read result.json
-                    # Store it here
                     rr.other = str(result)
-                    # cd back
-                    #os.chdir(pwd)
                     rr.task_id = task.id
 
                     # processing data products
-                    # FIXME: hardcoded instrument name
-                    import importlib
-                    prodmod = importlib.import_module('clodia.products')
+                    prodmod = importlib.import_module('%s.products' % iname)
 
                     for prod, desc in result['products'].items():
                         # FIXME: this is a hack
@@ -197,14 +198,11 @@ class PontifexServer(object):
                             mdesc = desc[0]
 
                         # extract metadata
-
                         # metadata extractor
                         fun = getattr(prodmod, 'metadata_extractor_%s' % prod)
 
-
                         dp = DataProduct()
-                        # FIXME, hardcoded instrument name
-                        dp.instrument_id = "clodia"
+                        dp.instrument_id = iname
                         dp.datatype = prod
                         dp.reference = mdesc
 
