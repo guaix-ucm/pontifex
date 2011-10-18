@@ -36,8 +36,9 @@ import importlib
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
 from numina.user import run_recipe
+from numina.jsonserializer import from_json
+
 import pontifex.process as process
 from pontifex.ptimer import PeriodicTimer
 from pontifex.txrServer import txrServer
@@ -191,25 +192,18 @@ class PontifexServer(object):
                     # processing data products
                     prodmod = importlib.import_module('%s.products' % iname)
 
-                    for prod, desc in result['products'].items():
-                        # FIXME: this is a hack
-                        # because fits files get a list of entries
-                        # instead of a single entry
-
-                        if isinstance(desc, list) and desc:
-                            mdesc = desc[0]
-
-                        # extract metadata
-                        # metadata extractor
-                        fun = getattr(prodmod, 'metadata_extractor_%s' % prod)
-
+                    for pr in result['products']:
+                        prod = from_json(pr)
+                
                         dp = DataProduct()
                         dp.instrument_id = iname
-                        dp.datatype = prod
-                        dp.reference = mdesc
+                        # FIXME: what to put here
+                        dp.datatype = ''#prod
+                        # FIXME: what to put here
+                        dp.reference = ''
 
                         _logger.debug('extracting meta')
-                        for key, val in fun(mdesc):
+                        for key, val in prod.metadata():
                             _logger.debug('metadata is (%s, %s)', key, val)
                             # FIXME: probably there is a better way of doing this
                             q = session_i.query(ContextDescription).filter_by(instrument_id=dp.instrument_id, name=key).first()
@@ -226,7 +220,8 @@ class PontifexServer(object):
 
                         # copy or hardlink the file
                         _logger.debug('copying product in %s', productsdir)
-                        shutil.copy(mdesc, productsdir)
+                        # FIXME: no description
+                        #shutil.copy(mdesc, productsdir)
                         # in 'products'
                         dp.task = task
                         session_i.add(dp)

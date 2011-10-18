@@ -29,7 +29,7 @@ from sqlalchemy import desc
 from model import taskdir, datadir, productsdir, DataProduct
 from model import Session, Instrument
 import numina.recipes as recipes
-from numina.recipes import Image
+from numina.recipes import Image2, Product
 
 _logger = logging.getLogger("pontifex.proc")
 
@@ -77,7 +77,7 @@ def processPointing(session, **kwds):
 
     for req in RecipeClass.__requires__:
         _logger.info('recipe requires %s', req.tag)
-        if isinstance(req, Image):
+        if isinstance(req, Image2):
             # query here
             _logger.info('query for %s', req.tag)
             # FIXME: this query should be updated
@@ -102,7 +102,7 @@ def processPointing(session, **kwds):
             parameters[req.tag] = req.default
 
     for req in RecipeClass.__provides__:
-        _logger.info('recipe provides %s', req.tag)
+        _logger.info('recipe provides %s', req)
 
     instrument = session.query(Instrument).filter_by(name=kwds['instrument']).first()
     

@@ -36,80 +36,58 @@
     MOSAIC Image
 
 '''
-import json
 
-import pyfits
+from numina.recipes import Image2
 
-def metadata_extractor_master_bias(name):
-    hdr = pyfits.getheader(name)
-    yield 'detector0.mode', hdr['ccdmode']
-
-def metadata_extractor_master_dark(name):
-    hdr = pyfits.getheader(name)
-    yield 'detector0.mode', hdr['ccdmode']
-
-def metadata_extractor_master_flat(name):
-    hdr = pyfits.getheader(name)
-    yield 'detector0.mode', hdr['ccdmode']
-    yield 'filter0', hdr['filter']
-
-def metadata_extractor_science(name):
-    hdr = pyfits.getheader(name)
-    yield 'detector0.mode', hdr['ccdmode']
-    yield 'filter0', hdr['filter']
-
-def metadata_extractor_mosaic(name):
-    hdr = pyfits.getheader(name)
-    yield 'detector0.mode', hdr['ccdmode']
-    yield 'filter0', hdr['filter']
-
-class Product(object):
-    
-    def encode(self):
-        return 'product'
-
-# FIXME: pyfits.core.HDUList is treated like a list
-# each extension is stored separately
-class ProductEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Product):
-            return obj.encode()
-        return json.JSONEncoder.default(self, obj)
-
-class Image(Product):
-    def __init__(self, image):
-        self.image
-
-    def encode(self):
-        filename = 'result.fits'
-        if self.image[0].header.has_key('FILENAME'):
-            filename = self.image[0].header['FILENAME']
-        self.image.writeto(filename, clobber=True)
-        return filename
-
-class MasterBias(Image):
+class MasterBias(Image2):
     def __init__(self, hdu):
         super(MasterBias, self).__init__(hdu)
 
-    def extractor(self):
+    def metadata(self):
         hdr = self.image[0].header
         yield 'detector0.mode', hdr['ccdmode']
 
+class MasterDark(Image2):
+    def __init__(self, hdu):
+        super(MasterDark, self).__init__(hdu)
 
-class MasterDark(Image):
-    pass
+    def metadata(self):
+        hdr = self.image[0].header
+        yield 'detector0.mode', hdr['ccdmode']
 
-class MasterFlat(Image):
-    pass
+class MasterFlat(Image2):
+    def __init__(self, hdu):
+        super(MasterFlat, self).__init__(hdu)
 
-class MasterIllum(Image):
-    pass
+    def metadata(self):
+        hdr = self.image[0].header
+        yield 'detector0.mode', hdr['ccdmode']
+        yield 'filter0', hdr['filter']
 
-class PointingImage(Image):
-    pass
+class MasterIllum(Image2):
+    def __init__(self, hdu):
+        super(MasterIllum, self).__init__(hdu)
 
-class Mosaic(Image):
-    pass
+    def metadata(self):
+        hdr = self.image[0].header
+        yield 'detector0.mode', hdr['ccdmode']
+        yield 'filter0', hdr['filter']
 
+class PointingImage(Image2):
+    def __init__(self, hdu):
+        super(PointingImage, self).__init__(hdu)
 
+    def metadata(self):
+        hdr = self.image[0].header
+        yield 'detector0.mode', hdr['ccdmode']
+        yield 'filter0', hdr['filter']
+
+class Mosaic(Image2):
+    def __init__(self, hdu):
+        super(Mosaic, self).__init__(hdu)
+
+    def metadata(self):
+        hdr = self.image[0].header
+        yield 'detector0.mode', hdr['ccdmode']
+        yield 'filter0', hdr['filter']
 

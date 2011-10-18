@@ -20,15 +20,13 @@
 '''Calibration Recipes for Clodia'''
 
 import logging
-import time
 
 import numpy
 import pyfits
-from numina import RecipeBase, Image, __version__
+from numina import RecipeBase, __version__
 from numina import FITSHistoryHandler
-from numina.recipes import Image, Keyword
 
-from clodia.products import MasterBias
+from clodia.products import MasterBias, MasterDark, MasterFlat
 
 __all__ = ['BiasRecipe', 'DarkRecipe', 'FlatRecipe']
 
@@ -38,7 +36,7 @@ class BiasRecipe(RecipeBase):
     '''Process BIAS images and create MASTER_BIAS.'''
 
     __requires__ = []
-    __provides__ = [Image('master_bias', comment='Master bias image'), MasterBias]
+    __provides__ = [MasterBias]
 
     def __init__(self):
         super(BiasRecipe, self).__init__(
@@ -92,7 +90,7 @@ class BiasRecipe(RecipeBase):
             # merge header with HISTORY log
             hdr.ascardlist().extend(history_header.ascardlist())    
 
-            return {'products': {'master_bias': hdulist}}
+            return {'products': [MasterBias(hdulist)]}
         finally:
             _logger.removeHandler(fh)
 
@@ -102,8 +100,8 @@ class BiasRecipe(RecipeBase):
 class DarkRecipe(RecipeBase):
     '''Process DARK images and provide MASTER_DARK. '''
 
-    __requires__ = [Image('master_bias', comment='Master bias image')]
-    __provides__ = [Image('master_dark', comment='Master dark image')]
+    __requires__ = [MasterBias]
+    __provides__ = [MasterDark]
 
     def __init__(self):
         super(DarkRecipe, self).__init__(
@@ -163,16 +161,15 @@ class DarkRecipe(RecipeBase):
             # merge final header with HISTORY log
             hdr.ascardlist().extend(history_header.ascardlist())    
 
-            return {'products': {'master_dark': hdulist}}
+            return {'products': [MasterDark(hdulist)]}
         finally:
             _logger.removeHandler(fh)
 
 class FlatRecipe(RecipeBase):
     '''Process FLAT images and provide MASTER_FLAT. '''
 
-    __requires__ = [Image('master_bias'),
-                    Image('master_dark')]
-    __provides__ = [Image('master_flat')]
+    __requires__ = [MasterBias, MasterDark]
+    __provides__ = [MasterFlat]
 
     def __init__(self):
         super(FlatRecipe, self).__init__(
@@ -230,7 +227,7 @@ class FlatRecipe(RecipeBase):
             # reduction keywords
             hdr = hdu.header
             hdr.update('FILENAME', 'master_flat-%(block_id)d.fits' % self.environ)
-            hdr.update('IMGTYP', 'FALT', 'Image type')
+            hdr.update('IMGTYP', 'FLAT', 'Image type')
             hdr.update('NUMTYP', 'MASTER_FLAT', 'Data product type')
             hdr.update('NUMXVER', __version__, 'Numina package version')
             hdr.update('NUMRNAM', 'FlatRecipe', 'Numina recipe name')
@@ -243,7 +240,7 @@ class FlatRecipe(RecipeBase):
             # merge final header with HISTORY log
             hdr.ascardlist().extend(history_header.ascardlist())    
 
-            return {'products': {'master_flat': hdulist}}
+            return {'products': [MasterFlat(hdulist)]}
         finally:
             _logger.removeHandler(fh)
 

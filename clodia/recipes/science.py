@@ -20,13 +20,12 @@
 '''Science Recipes for Clodia'''
 
 import logging
-import time
 
 import numpy
 import pyfits
-
 from numina import RecipeBase, __version__
-from numina.recipes import Image, Keyword
+
+from clodia.products import MasterBias, MasterDark, MasterFlat, PointingImage
 
 __all__ = ['DirectImage']
 
@@ -36,11 +35,8 @@ _logger = logging.getLogger('clodia.recipes')
 
 class DirectImage(RecipeBase):
 
-    __requires__ = [Image('master_bias'),
-                    Image('master_dark'),
-                    Image('master_flat')
-    ]
-    __provides__ = [Image('science')]
+    __requires__ = [MasterBias, MasterDark, MasterFlat]
+    __provides__ = [PointingImage]
 
     def __init__(self):
         super(DirectImage, self).__init__(author=__author__, version="0.1.0")
@@ -68,7 +64,7 @@ class DirectImage(RecipeBase):
         hdulist = pyfits.HDUList([hdu])
 
         _logger.info('direct image reduction ended')
-        return {'products': {'science': hdulist}}
+        return {'products': [PointingImage(hdulist)]}
 
 class MosaicImage(RecipeBase):
 
@@ -101,7 +97,7 @@ class MosaicImage(RecipeBase):
         hdulist = pyfits.HDUList([hdu])
 
         _logger.info('mosaic reduction ended')
-        return {'products': {'mosaic': hdulist}}
+        return {'products': [Mosaic(hdulist)]}
 
 
 class Null(RecipeBase):
@@ -112,6 +108,6 @@ class Null(RecipeBase):
         super(Null, self).__init__(author=__author__, version="0.1.0")
 
     def run(self, block):
-        return {'products': {}}
+        return {'products': []}
 
 
