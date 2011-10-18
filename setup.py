@@ -15,7 +15,7 @@ setup(name='pontifex',
                 'clodia', 'clodia.recipes'
                 ],
       scripts=['scripts/pontifex-server.py', 'scripts/pontifex-host.py'],
-      install_requires=['numina']
+      install_requires=['numina'],
       classifiers=[
                    "Programming Language :: Python",
                    'Development Status :: 3 - Alpha',
