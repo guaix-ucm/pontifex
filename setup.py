@@ -9,10 +9,13 @@ setup(name='pontifex',
       url='http://guaix.fis.ucm.es/~spr',
       license='GPLv3',
       description='Pontifex automatic reduction system',
-      packages=['pontifex', 'pontifex.model', 'numina', 
-                'emir', 'emir.recipes', 'megara', 'megara.recipes',
-                'frida', 'frida.recipes', 'clodia', 'clodia.recipes'],
+      packages=['pontifex', 'pontifex.model', 
+                'megara', 'megara.recipes',
+                'frida', 'frida.recipes', 
+                'clodia', 'clodia.recipes'
+                ],
       scripts=['scripts/pontifex-server.py', 'scripts/pontifex-host.py'],
+      install_requires=['numina']
       classifiers=[
                    "Programming Language :: Python",
                    'Development Status :: 3 - Alpha',
