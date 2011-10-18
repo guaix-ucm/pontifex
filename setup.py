@@ -10,8 +10,6 @@ setup(name='pontifex',
       license='GPLv3',
       description='Pontifex automatic reduction system',
       packages=['pontifex', 'pontifex.model', 
-                'megara', 'megara.recipes',
-                'frida', 'frida.recipes', 
                 'clodia', 'clodia.recipes'
                 ],
       scripts=['scripts/pontifex-server.py', 'scripts/pontifex-host.py'],
