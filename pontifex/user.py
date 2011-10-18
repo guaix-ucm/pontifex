@@ -158,6 +158,7 @@ class PontifexServer(object):
                     os.chdir(os.path.abspath('results'))
 
                     # Update parent waiting state
+                    _logger.debug('checking parent waiting state')
                     if task.parent is not None:
                         parent = task.parent
                         for child in parent.children:
@@ -167,7 +168,7 @@ class PontifexServer(object):
                             if child.state != FINISHED:
                                 break
                         else:
-                            _logger.info('updating parent waiting status')
+                            _logger.info('updating parent waiting state')
                             parent.waiting = False
 
                     results['control'] = ['task-control.json']
@@ -175,7 +176,8 @@ class PontifexServer(object):
                     results['products'] = result['products']
                     
                     # FIXME: workaround to get instrument name
-                    with open('task-control.json', 'w+') as fd:
+                    _logger.debug('workaround to get instrument name')
+                    with open('task-control.json', 'r') as fd:
                         dic = json.load(fd)
 
                     iname = dic['instrument']['name']
@@ -338,6 +340,7 @@ class PontifexHost(object):
                 _logger.info('finished')
                 
                 self.queue.task_done()
+                _logger.info('sending to server')
                 self.rserver.receiver(self.cid, result, taskid)
                 os.chdir(taskdir)
             else:

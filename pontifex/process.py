@@ -121,8 +121,7 @@ def processPointing(session, **kwds):
             children_results.append(dp.reference)
             shutil.copy(os.path.join(productsdir, dp.reference), workdir)
 
-    with open(filename, 'w+') as fp:
-        config = {'observing_result': {'id': kwds['id'], 
+    config = {'observing_result': {'id': kwds['id'], 
         'images': images,
         'children': children_results,
         'instrument': kwds['instrument'],
@@ -131,10 +130,8 @@ def processPointing(session, **kwds):
         'reduction': {'recipe': entry_point, 'parameters': parameters},
         'instrument': instrument.parameters,
         }
+    with open(filename, 'w+') as fp:
         json.dump(config, fp, indent=1)
-
-
- 
 
     return 0
 
