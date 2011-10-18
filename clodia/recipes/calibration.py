@@ -24,10 +24,11 @@ import time
 
 import numpy
 import pyfits
-
 from numina import RecipeBase, Image, __version__
 from numina import FITSHistoryHandler
 from numina.recipes import Image, Keyword
+
+from clodia.products import MasterBias
 
 __all__ = ['BiasRecipe', 'DarkRecipe', 'FlatRecipe']
 
@@ -37,7 +38,7 @@ class BiasRecipe(RecipeBase):
     '''Process BIAS images and create MASTER_BIAS.'''
 
     __requires__ = []
-    __provides__ = [Image('master_bias', comment='Master bias image')]
+    __provides__ = [Image('master_bias', comment='Master bias image'), MasterBias]
 
     def __init__(self):
         super(BiasRecipe, self).__init__(

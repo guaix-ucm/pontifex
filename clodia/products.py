@@ -36,6 +36,7 @@
     MOSAIC Image
 
 '''
+import json
 
 import pyfits
 
@@ -63,14 +64,37 @@ def metadata_extractor_mosaic(name):
     yield 'filter0', hdr['filter']
 
 class Product(object):
-    pass
+    
+    def encode(self):
+        return 'product'
+
+# FIXME: pyfits.core.HDUList is treated like a list
+# each extension is stored separately
+class ProductEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Product):
+            return obj.encode()
+        return json.JSONEncoder.default(self, obj)
 
 class Image(Product):
-    pass
+    def __init__(self, image):
+        self.image
+
+    def encode(self):
+        filename = 'result.fits'
+        if self.image[0].header.has_key('FILENAME'):
+            filename = self.image[0].header['FILENAME']
+        self.image.writeto(filename, clobber=True)
+        return filename
 
 class MasterBias(Image):
     def __init__(self, hdu):
-        pass
+        super(MasterBias, self).__init__(hdu)
+
+    def extractor(self):
+        hdr = self.image[0].header
+        yield 'detector0.mode', hdr['ccdmode']
+
 
 class MasterDark(Image):
     pass
