@@ -68,8 +68,6 @@ class Product(object):
 class Image(Product):
     pass
 
-MasterBias = type("MasterBias", (Image,), {})
-
 class MasterBias(Image):
     def __init__(self, hdu):
         pass
@@ -89,50 +87,5 @@ class PointingImage(Image):
 class Mosaic(Image):
     pass
 
-class Recipe(object):
-    def superrun(self, ob):
-        print 'base'
-        return self.run(ob)
-
-import pyfits
-import numpy
-
-class BiasRecipe(Recipe):
-
-    __produces__ = {'master_bias': MasterBias, 'master_bias2': tuple}
-
-    def run(self, ob):
-        
-        result = {'products': {}, 'error': None}
-    
-        products = result['products']
-
-        data = numpy.zeros((10, 10), dtype='float32')
-
-        img = pyfits.PrimaryHDU(data)
-
-        master_bias = img
-
-        products['master_bias'] = MasterBias(master_bias)
-        products['master_bias2'] = (img, "MASTER_BIAS", "QA=1")
-
-        return result
 
 
-if __name__ == '__main__':
-
-    bb = BiasRecipe()
-
-    res = bb.superrun([])
-
-    if 'error' in res and res['error'] is not None:
-        print 'some error'
-    elif 'products' in res:
-        print 'check products'
-        for key,val in res['products'].items():
-            print key, bb.__produces__[key]
-            print key, isinstance(val, bb.__produces__[key])
-    
-    else:
-        print 'malformed result' 
-    print res
