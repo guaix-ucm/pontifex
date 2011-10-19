@@ -45,7 +45,7 @@ from pontifex.txrServer import txrServer
 import pontifex.model as model
 from pontifex.model import Session, datadir, productsdir
 from pontifex.model import ObservingRun, ObservingBlock, Image
-from pontifex.model import ContextDescription, ContextValue
+from pontifex.model import ContextDescription, ContextValue, ObservingResult
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
 from pontifex.model import get_last_image_index, DataProcessing
 
@@ -283,6 +283,44 @@ class PontifexServer(object):
             self.nclient_hosts += 1
             self.client_hosts[cid][3] = True
 
+    def run(self, obsid):
+        '''Insert a new processing task tree in the database.'''
+
+        _logger.info('create a new task tree for obsid %d', obsid)
+        session = Session()
+
+        def create_reduction_tree(otask, rparent):
+            '''Climb the tree and create DataProcessingTask in nodes.'''
+            rtask = DataProcessingTask()
+            rtask.parent = rparent
+            rtask.observing_result = otask
+            rtask.creation_time = datetime.utcnow()
+            if otask.state == 2:
+                rtask.state = COMPLETED
+            else:
+                rtask.state = CREATED
+            rtask.method = 'process%s' % otask.label.capitalize()
+
+            if otask.children:
+                rtask.waiting = True
+            else:
+                rtask.waiting = False
+
+            session.add(rtask)
+
+            for child in otask.children:
+                create_reduction_tree(child, rtask)
+            
+            return rtask
+
+        
+        obsblock = session.query(ObservingBlock).filter_by(id=obsid).first()
+        _logger.info('observing tasks tree')
+        
+        rtask = create_reduction_tree(obsblock.task, None)
+        _logger.info('new root processing task is %d', rtask.id)
+        session.commit()
+
 # create logger for host
 _logger = logging.getLogger("pontifex.host")
 
@@ -339,6 +377,59 @@ class PontifexHost(object):
                 _logger.info('ending worker thread')
                 return
 
+def main_cli():
+
+    masterurl = 'http://127.0.0.1:7081'
+
+    rserver = ServerProxy(masterurl)
+
+    def run(*args):
+        rserver.run(args[0])
+
+    def usage(args, parser):
+        parser.print_help()
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Pontifex command line utility',
+                                     prog='pontifex',
+                                     epilog="For detailed help pass " \
+                                               "--help to a target")
+
+    # Verbosity
+    parser.add_argument('-v', action='store_true',
+                        help='Run with verbose debug output')
+    parser.add_argument('-q', action='store_true',
+                        help='Run quietly only displaying errors')
+
+    # Add a subparsers object to use for the actions
+    subparsers = parser.add_subparsers(title='Targets',
+                                       description='These are valid commands you can ask pontifex to do.')
+
+    # Set up the various actions
+    # Add help to -h and --help
+    parser_help = subparsers.add_parser('help', help='Show usage')
+    parser_help.set_defaults(command=lambda args: usage(args, parser=parser))
+
+    # Add a common parser to be used as a parent
+    parser_build_common = subparsers.add_parser('common',
+                                                add_help=False)
+    # build target
+    parser_build = subparsers.add_parser('run',
+                                         help='Request reduction',
+                                         parents=[parser_build_common],
+                                         description='This command \
+                                         requests a reduction of a particular \
+                                         observing block to be performed.')
+
+    parser_build.add_argument('id', action='store', type=int,
+                              help='Id of the observing block')
+
+    parser_build.set_defaults(command=run)
+    
+    val = parser.parse_args()
+
+    val.command(val.id)
 
 def main_host():
 
@@ -399,6 +490,9 @@ def main_server():
     tserver.register_function(im.register)
     tserver.register_function(im.unregister)
     tserver.register_function(im.receiver)
+    tserver.register_function(im.version)
+    tserver.register_function(im.run)
+
 
     # signal handler
     def handler(signum, frame):
