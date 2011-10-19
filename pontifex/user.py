@@ -190,17 +190,14 @@ class PontifexServer(object):
                     rr.task_id = task.id
 
                     # processing data products
-                    prodmod = importlib.import_module('%s.products' % iname)
-
                     for pr in result['products']:
                         prod = from_json(pr)
                 
                         dp = DataProduct()
                         dp.instrument_id = iname
-                        # FIXME: what to put here
-                        dp.datatype = ''#prod
-                        # FIXME: what to put here
-                        dp.reference = ''
+                        dp.datatype = '%s.%s' % (prod.__class__.__module__, prod.__class__.__name__)
+                        # FIXME: this is specific for FITS files (classes that subclass Image)
+                        dp.reference = prod.filename
 
                         _logger.debug('extracting meta')
                         for key, val in prod.metadata():
@@ -221,7 +218,7 @@ class PontifexServer(object):
                         # copy or hardlink the file
                         _logger.debug('copying product in %s', productsdir)
                         # FIXME: no description
-                        #shutil.copy(mdesc, productsdir)
+                        shutil.copy(prod.filename, productsdir)
                         # in 'products'
                         dp.task = task
                         session_i.add(dp)

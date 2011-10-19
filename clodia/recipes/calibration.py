@@ -25,6 +25,7 @@ import numpy
 import pyfits
 from numina import RecipeBase, __version__
 from numina import FITSHistoryHandler
+from numina.recipes import Parameter
 
 from clodia.products import MasterBias, MasterDark, MasterFlat
 
@@ -100,7 +101,7 @@ class BiasRecipe(RecipeBase):
 class DarkRecipe(RecipeBase):
     '''Process DARK images and provide MASTER_DARK. '''
 
-    __requires__ = [MasterBias]
+    __requires__ = [Parameter('master_bias', MasterBias, 'comment')]
     __provides__ = [MasterDark]
 
     def __init__(self):
@@ -168,7 +169,10 @@ class DarkRecipe(RecipeBase):
 class FlatRecipe(RecipeBase):
     '''Process FLAT images and provide MASTER_FLAT. '''
 
-    __requires__ = [MasterBias, MasterDark]
+    __requires__ = [
+                    Parameter('master_bias', MasterBias, 'comment'),
+                    Parameter('master_dark', MasterDark, 'comment')
+                    ]
     __provides__ = [MasterFlat]
 
     def __init__(self):

@@ -24,8 +24,9 @@ import logging
 import numpy
 import pyfits
 from numina import RecipeBase, __version__
+from numina.recipes import Parameter
 
-from clodia.products import MasterBias, MasterDark, MasterFlat, PointingImage
+from clodia.products import MasterBias, MasterDark, MasterFlat, PointingImage, Mosaic
 
 __all__ = ['DirectImage']
 
@@ -35,7 +36,10 @@ _logger = logging.getLogger('clodia.recipes')
 
 class DirectImage(RecipeBase):
 
-    __requires__ = [MasterBias, MasterDark, MasterFlat]
+    __requires__ = [Parameter('master_bias', MasterBias, 'comment'),
+                    Parameter('master_dark', MasterDark, 'comment'),
+                    Parameter('master_flat', MasterFlat, 'comment')
+                   ]
     __provides__ = [PointingImage]
 
     def __init__(self):
@@ -69,7 +73,7 @@ class DirectImage(RecipeBase):
 class MosaicImage(RecipeBase):
 
     __requires__ = []
-    __provides__ = [Image('mosaic')]
+    __provides__ = [Mosaic]
 
     def __init__(self):
         super(MosaicImage, self).__init__(author=__author__, version="0.1.0")

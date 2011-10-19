@@ -29,7 +29,7 @@ from sqlalchemy import desc
 from model import taskdir, datadir, productsdir, DataProduct
 from model import Session, Instrument
 import numina.recipes as recipes
-from numina.recipes import Image2, Product
+from numina.recipes import Image, Product
 
 _logger = logging.getLogger("pontifex.proc")
 
@@ -76,12 +76,14 @@ def processPointing(session, **kwds):
     parameters = {}
 
     for req in RecipeClass.__requires__:
-        _logger.info('recipe requires %s', req.tag)
-        if isinstance(req, Image2):
+        _logger.info('recipe requires %s', req.name)
+        _logger.info('default value is %s', req.value)
+        if issubclass(req.value, Image):
             # query here
-            _logger.info('query for %s', req.tag)
+            longname = '%s.%s' % (req.value.__module__, req.value.__name__)
+            _logger.info('query for %s', longname)
             # FIXME: this query should be updated
-            dps = session.query(DataProduct).filter_by(instrument_id=kwds['instrument'],   datatype=req.tag).order_by(desc(DataProduct.id))
+            dps = session.query(DataProduct).filter_by(instrument_id=kwds['instrument'], datatype=longname).order_by(desc(DataProduct.id))
 
             _logger.info('checking context')
             for cdp in dps:
@@ -92,14 +94,14 @@ def processPointing(session, **kwds):
                 cdp = None
 
             if cdp is None:
-                _logger.warning("can't find %s", req.tag)
-                raise ValueError("can't find %s", req.tag)
+                _logger.warning("can't find %s", longname)
+                raise ValueError("can't find %s" % longname)
             else:
-                parameters[req.tag] = cdp.reference
+                parameters[req.name] = cdp.reference
                 _logger.debug('copy %s', cdp.reference)
                 shutil.copy(os.path.join(productsdir, cdp.reference), workdir)
         else:
-            parameters[req.tag] = req.default
+            parameters[req.name] = req.value
 
     for req in RecipeClass.__provides__:
         _logger.info('recipe provides %s', req)

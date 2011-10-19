@@ -37,9 +37,9 @@
 
 '''
 
-from numina.recipes import Image2
+from numina.recipes import Image
 
-class MasterBias(Image2):
+class MasterBias(Image):
     def __init__(self, hdu):
         super(MasterBias, self).__init__(hdu)
 
@@ -47,7 +47,7 @@ class MasterBias(Image2):
         hdr = self.image[0].header
         yield 'detector0.mode', hdr['ccdmode']
 
-class MasterDark(Image2):
+class MasterDark(Image):
     def __init__(self, hdu):
         super(MasterDark, self).__init__(hdu)
 
@@ -55,7 +55,7 @@ class MasterDark(Image2):
         hdr = self.image[0].header
         yield 'detector0.mode', hdr['ccdmode']
 
-class MasterFlat(Image2):
+class MasterFlat(Image):
     def __init__(self, hdu):
         super(MasterFlat, self).__init__(hdu)
 
@@ -64,7 +64,7 @@ class MasterFlat(Image2):
         yield 'detector0.mode', hdr['ccdmode']
         yield 'filter0', hdr['filter']
 
-class MasterIllum(Image2):
+class MasterIllum(Image):
     def __init__(self, hdu):
         super(MasterIllum, self).__init__(hdu)
 
@@ -73,7 +73,7 @@ class MasterIllum(Image2):
         yield 'detector0.mode', hdr['ccdmode']
         yield 'filter0', hdr['filter']
 
-class PointingImage(Image2):
+class PointingImage(Image):
     def __init__(self, hdu):
         super(PointingImage, self).__init__(hdu)
 
@@ -82,7 +82,7 @@ class PointingImage(Image2):
         yield 'detector0.mode', hdr['ccdmode']
         yield 'filter0', hdr['filter']
 
-class Mosaic(Image2):
+class Mosaic(Image):
     def __init__(self, hdu):
         super(Mosaic, self).__init__(hdu)
 
