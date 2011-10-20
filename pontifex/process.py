@@ -118,10 +118,14 @@ def processPointing(session, **kwds):
     _logger.info('copying the children results')
     children_results = []
     for child in kwds['children']:
-        for dp in child.product:
-            _logger.debug('copy %s', dp.reference)
-            children_results.append(dp.reference)
-            shutil.copy(os.path.join(productsdir, dp.reference), workdir)
+        for rresult in child.rresult:
+            for dp in rresult.data_product:
+                _logger.debug('copy %s', dp.reference)
+                children_results.append(dp.reference)
+                shutil.copy(os.path.join(productsdir, dp.reference), workdir)
+
+    # FIXME: getting the valid instrument configuration
+    ins_params = instrument.configurations[-1].parameters
 
     config = {'observing_result': {'id': kwds['id'], 
         'images': images,
@@ -130,7 +134,7 @@ def processPointing(session, **kwds):
         'mode': kwds['mode'],
         }, 
         'reduction': {'recipe': entry_point, 'parameters': parameters},
-        'instrument': instrument.parameters,
+        'instrument': ins_params,
         }
     with open(filename, 'w+') as fp:
         json.dump(config, fp, indent=1)

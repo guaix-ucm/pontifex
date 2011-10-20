@@ -25,7 +25,7 @@ from datetime import datetime
 
 from sqlalchemy import create_engine
 
-from pontifex.model import Users, Instrument, Channel
+from pontifex.model import Users, Instrument, Channel, InstrumentConfiguration
 from pontifex.model import ContextValue, ContextDescription
 from pontifex.model import init_model, metadata, Session
 
@@ -59,12 +59,16 @@ session.add(channel)
 
 ii = Instrument()
 ii.name = 'megara'
-ii.parameters = {}
 session.add(ii)
 
 ii = Instrument()
 ii.name = 'emir'
-ii.parameters = {
+session.add(ii)
+
+cc = InstrumentConfiguration()
+cc.instrument = ii
+cc.default = 'Default configuration'
+cc.parameters = {
                  'name': 'emir',
                  'detectors': [(2048, 2048)],
 		 'metadata' : {'imagetype': 'IMGTYP',
@@ -109,16 +113,21 @@ ii.parameters = {
 			((1920, 2048), (1024, 2048))]
 			],
                 }
-session.add(ii)
+
+session.add(cc)
 
 ii = Instrument()
 ii.name = 'frida'
-ii.parameters = {}
 session.add(ii)
 
 ii = Instrument()
 ii.name = 'clodia'
-ii.parameters = {
+session.add(ii)
+
+cc = InstrumentConfiguration()
+cc.instrument = ii
+cc.default = 'Default configuration'
+cc.parameters = {
                  'name': 'clodia',
                  'detectors': [(256, 256)],
 		 'metadata' : {'imagetype': 'IMGTYP',
@@ -130,7 +139,7 @@ ii.parameters = {
                 	},
 		'amplifiers' : [[((0, 256), (0,256))]],
                 }
-session.add(ii)
+session.add(cc)
 
 desc = ContextDescription()
 desc.instrument_id = 'clodia'

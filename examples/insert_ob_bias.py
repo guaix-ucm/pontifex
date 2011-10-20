@@ -33,7 +33,7 @@ import numpy
 import pontifex.model as model
 from pontifex.model import datadir
 from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
-from pontifex.model import DataProcessingTask, ObservingResult
+from pontifex.model import DataProcessingTask, ObservingTree, InstrumentConfiguration
 from pontifex.model import RecipeParameters
 from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import get_last_image_index
@@ -49,7 +49,7 @@ def new_image(number, exposure, imgtype, oresult):
 
     im.exposure = exposure
     im.imgtype = imgtype
-    im.obsresult_id = oresult.id
+    im.observing_tree = oresult    
     return im
 
 def create_obsrun(userid, insname):
@@ -112,26 +112,28 @@ obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
 
 # Observing block
-oblock = create_observing_block('bias', user.id, obsrun)
-session.add(oblock)
+
 # The layout of observing tasks can be arbitrary...
 
-# Observing results (siblings)
-ores = ObservingResult()
+# Observing trees (siblings)
+ores = ObservingTree()
 ores.state = 0
 ores.label = 'pointing'
 ores.mode = 'bias'
-ores.instrument_id = ins.name
 ores.waiting = True
 ores.awaited = False
 ores.context.append(ccdmode)
 session.add(ores)
 
-oblock.task = ores
+oblock = create_observing_block('bias', user.id, obsrun)
+oblock.observing_tree = ores
+session.add(oblock)
+session.commit()
 
 # Create corresponding reduction tasks
 ptask = create_reduction_task(oblock, ores)
 ptask.waiting = False
+ptask.obstree_node_id = ores.id
 session.add(ptask)
 
 # OB started

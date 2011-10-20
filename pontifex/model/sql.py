@@ -46,10 +46,19 @@ class Channel(DeclarativeBase):
 class Instrument(DeclarativeBase):
     __tablename__ = 'instrument'
     name = Column(String(10), primary_key=True)
-    parameters = Column(PickleType, nullable=False)
 
     obsruns = relationship("ObservingRun", backref='instrument')
     #recipes = relationship("RecipeParameters", backref="instrument")
+
+# FIXME: this table should allow versioning
+class InstrumentConfiguration(DeclarativeBase):
+    __tablename__ = 'instrument_configuration'
+    id = Column(Integer, primary_key=True)
+    instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
+    parameters = Column(PickleType, nullable=False)
+    description = Column(String(255))
+
+    instrument = relationship("Instrument", backref='configurations')
 
 class ObservingRun(DeclarativeBase):
     __tablename__ = 'observing_run'
@@ -58,7 +67,7 @@ class ObservingRun(DeclarativeBase):
     start_time = Column(DateTime, default=datetime.utcnow)
     completion_time = Column(DateTime)
     state = Column(Enum('RUNNING', 'FINISHED'), default='RUNNING')
-    instrument_id = Column(Integer,  ForeignKey("instrument.name"), nullable=False)
+    instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
 
     obsblocks = relationship("ObservingBlock", backref='obsrun')
 
@@ -71,31 +80,32 @@ class ObservingBlock(DeclarativeBase):
     completion_time = Column(DateTime)
     obsrun_id = Column(Integer,  ForeignKey("observing_run.id"), nullable=False)
     observer_id = Column(Integer,  ForeignKey("users.id"), nullable=False)
-    task_id = Column(Integer,  ForeignKey("observing_result.id"))
+    observing_tree_root_id = Column(Integer,  ForeignKey("observing_tree.id"), nullable=False)
 
-    task = relationship("ObservingResult")
+    observing_tree = relationship("ObservingTree", backref=backref('observing_block', uselist=False))
 
-class ObservingResult(DeclarativeBase):
-    __tablename__ = 'observing_result'
+class ObservingTree(DeclarativeBase):
+    __tablename__ = 'observing_tree'
     id = Column(Integer, primary_key=True)
     state = Column(Integer)
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
-    parent_id = Column(Integer, ForeignKey('observing_result.id'))
-    label = Column(String(45))
-    instrument_id = Column(String(10), ForeignKey("instrument.name"), nullable=False)
+    parent_id = Column(Integer, ForeignKey('observing_tree.id'))
+    #observing_block_id = Column(Integer, ForeignKey("observing_block.id", use_alter=True, name="fk2"), nullable=False)
     mode = Column(String(45), nullable=False)
-
+    label = Column(String(45))
     waiting = Column(Boolean)
     awaited = Column(Boolean)
 
-    children = relationship("ObservingResult",
+    children = relationship("ObservingTree",
                 backref=backref('parent', remote_side=[id]))
     
-    context = relationship('ContextValue', secondary='observing_result_context', backref='observing_result')
+    context = relationship('ContextValue', secondary='observing_tree_context', backref='observing_tree')
 
-    images = relationship("Image", backref='observing_result')
+    images = relationship("Image", backref='observing_tree')
+
+    #observing_block = relationship("ObservingBlock")
 
 class Image(DeclarativeBase):
     __tablename__ = 'image'
@@ -103,8 +113,8 @@ class Image(DeclarativeBase):
     name = Column(String(10), unique=True, nullable=False)
     exposure = Column(Float, nullable=False)
     imgtype = Column(String(10), nullable=False)
-    obsresult_id = Column(Integer,  ForeignKey("observing_result.id"), nullable=False)
-    stamp = Column(DateTime, default=datetime.utcnow)
+    stamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    obstree_id = Column(Integer,  ForeignKey("observing_tree.id"), nullable=False)
 
 class ContextDescription(DeclarativeBase):
     __tablename__ = 'context_description'
@@ -119,9 +129,9 @@ class ContextDescription(DeclarativeBase):
     def together(self):
         return '%s.%s' % (self.instrument_id, self.name)
 
-observing_result_context = Table(
-    'observing_result_context', DeclarativeBase.metadata,
-    Column('observing_result_id', Integer, ForeignKey('observing_result.id'), primary_key=True),
+observing_tree_context = Table(
+    'observing_tree_context', DeclarativeBase.metadata,
+    Column('observing_tree_id', Integer, ForeignKey('observing_tree.id'), primary_key=True),
     Column('context_id', Integer, ForeignKey('context_value.id'), primary_key=True)
     )
 

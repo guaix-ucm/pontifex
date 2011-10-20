@@ -33,7 +33,7 @@ import numpy
 import pontifex.model as model
 from pontifex.model import datadir
 from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
-from pontifex.model import DataProcessingTask, ObservingResult
+from pontifex.model import DataProcessingTask, ObservingTree, InstrumentConfiguration
 from pontifex.model import RecipeParameters
 from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import get_last_image_index
@@ -46,9 +46,10 @@ def new_image(number, exposure, imgtype, oresult):
     hdu.header.update('ccdmode', 'normal')
     hdu.header.update('filter', 311)
     hdu.writeto(os.path.join(datadir, im.name), clobber=True)
+
     im.exposure = exposure
     im.imgtype = imgtype
-    im.obsresult_id = oresult.id
+    im.observing_tree = oresult
     return im
 
 def create_obsrun(userid, insname):
@@ -104,32 +105,34 @@ ins = session.query(Instrument).filter_by(name='clodia').first()
 user = session.query(Users).first()
 
 context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
+
 ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
 
 obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
 
 # Observing block
-oblock = create_observing_block('dark', user.id, obsrun)
-session.add(oblock)
+
 # The layout of observing tasks can be arbitrary...
 
-# Observing results (siblings)
-ores = ObservingResult()
+# Observing trees (siblings)
+ores = ObservingTree()
 ores.state = 0
 ores.label = 'pointing'
 ores.mode = 'dark'
-ores.instrument_id = ins.name
 ores.waiting = True
 ores.awaited = False
 ores.context.append(ccdmode)
 session.add(ores)
 
-oblock.task = ores
+oblock = create_observing_block('dark', user.id, obsrun)
+oblock.observing_tree = ores
+session.add(oblock)
 
 # Create corresponding reduction tasks
 ptask = create_reduction_task(oblock, ores)
 ptask.waiting = False
+ptask.obstree_node = ores
 session.add(ptask)
 
 # OB started
@@ -138,12 +141,11 @@ oblock.start_time = datetime.utcnow()
 # OR started
 ores.start_time = datetime.utcnow()
 ores.state = 1
-session.commit()
 
 dd = get_last_image_index(session)
 
 for i in range(3):
-    im = new_image(dd, 10, 'dark', ores)
+    im = new_image(dd, 100, 'dark', ores)
     dd += 1
     session.add(im)
 
@@ -153,12 +155,10 @@ ores.state = 2
 
 ptask.instrument_id = ins.name
 ptask.state = 1
-session.commit()
 
 # OB finished
 oblock.state = 1
 oblock.completion_time = datetime.utcnow()
-session.commit()
 
 # OR finished
 obsrun.completion_time = datetime.utcnow()

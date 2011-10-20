@@ -32,22 +32,18 @@ import uuid
 import ConfigParser
 import json
 import shutil
-import importlib
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from numina.user import run_recipe
 from numina.jsonserializer import from_json
 
 import pontifex.process as process
-from pontifex.ptimer import PeriodicTimer
 from pontifex.txrServer import txrServer
 import pontifex.model as model
-from pontifex.model import Session, datadir, productsdir
-from pontifex.model import ObservingRun, ObservingBlock, Image
-from pontifex.model import ContextDescription, ContextValue, ObservingResult
+from pontifex.model import Session, productsdir
+from pontifex.model import ObservingBlock
+from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
-from pontifex.model import get_last_image_index, DataProcessing
 
 # create logger
 _logger_s = logging.getLogger("pontifex.server")
@@ -74,7 +70,7 @@ class PontifexServer(object):
         self.queue.put(None)
 
     def version(self):
-    	return '1.0'
+        return '1.0'
 
     def register(self, hostid, host, port, capabilities):
         with self.clientlock:
@@ -93,7 +89,7 @@ class PontifexServer(object):
     def find_client(self, session, task):
         _logger_s.info('finding host for task=%d', task.id)
         for idx in self.client_hosts:
-            server, (host, port), cap, idle = self.client_hosts[idx]
+            server, (host, port), _, idle = self.client_hosts[idx]
             if idle:
 
                 task.state = PROCESSING
@@ -144,7 +140,7 @@ class PontifexServer(object):
                 _logger_s.info('inserter finished')
                 return
             else:
-                cid, result, taskid = val
+                _, result, taskid = val
                 _logger_s.info('updating done work, ProcessingTask %d', int(taskid))
                 task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
 
@@ -155,7 +151,7 @@ class PontifexServer(object):
                 if 'error' not in result:
                     task.state = FINISHED
                     
-                    cwd = os.getcwd()
+                    #cwd = os.getcwd()
                     os.chdir(os.path.abspath('results'))
 
                     # Update parent waiting state
@@ -188,6 +184,7 @@ class PontifexServer(object):
                     rr = ReductionResult()
                     rr.other = str(result)
                     rr.task_id = task.id
+                    rr.obsres_id = task.obstree_node_id
 
                     # processing data products
                     for pr in result['products']:
@@ -198,7 +195,8 @@ class PontifexServer(object):
                         dp.datatype = '%s.%s' % (prod.__class__.__module__, prod.__class__.__name__)
                         # FIXME: this is specific for FITS files (classes that subclass Image)
                         dp.reference = prod.filename
-
+                        dp.result = rr
+                        
                         _logger.debug('extracting meta')
                         for key, val in prod.metadata():
                             _logger.debug('metadata is (%s, %s)', key, val)
@@ -247,16 +245,24 @@ class PontifexServer(object):
                 task.start_time = datetime.utcnow()
 
                 assert(task.state == ENQUEUED)
-                try:
-
-                    #kwds = eval(task.request)
+                try:                    
                     kwds = {}
                     kwds['id'] = task.id
                     kwds['children'] = task.children
-                    kwds['images'] = task.observing_result.images
-                    kwds['mode'] = task.observing_result.mode
-                    kwds['instrument'] = task.observing_result.instrument_id
-                    kwds['context'] = task.observing_result.context
+                    kwds['images'] = task.obstree_node.images
+                    kwds['mode'] = task.obstree_node.mode
+                    
+                    # finding parent node
+                    # FIXME: find a better way of doing this:
+                    # Recover the instrument of the task
+                    otask = task
+                    while(otask.parent):
+                        otask = otask.parent
+                                        
+                    ob = otask.obstree_node.observing_block
+                    
+                    kwds['instrument'] = ob.obsrun.instrument_id
+                    kwds['context'] = task.obstree_node.context
 
                     fun = getattr(process, task.method)
                     val = fun(session, **kwds)
@@ -293,7 +299,7 @@ class PontifexServer(object):
             '''Climb the tree and create DataProcessingTask in nodes.'''
             rtask = DataProcessingTask()
             rtask.parent = rparent
-            rtask.observing_result = otask
+            rtask.obstree_node = otask
             rtask.creation_time = datetime.utcnow()
             if otask.state == 2:
                 rtask.state = COMPLETED
@@ -317,7 +323,7 @@ class PontifexServer(object):
         obsblock = session.query(ObservingBlock).filter_by(id=obsid).first()
         _logger.info('observing tasks tree')
         
-        rtask = create_reduction_tree(obsblock.task, None)
+        rtask = create_reduction_tree(obsblock.observing_tree, None)
         _logger.info('new root processing task is %d', rtask.id)
         session.commit()
 
@@ -345,7 +351,7 @@ class PontifexHost(object):
         self.queue.put(None)
 
     def version(self):
-    	return '1.0'
+        return '1.0'
 
     def pass_info(self, taskid):
         _logger.info('received taskid=%d', taskid)

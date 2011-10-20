@@ -21,13 +21,12 @@
 
 from datetime import datetime
 
-from sqlalchemy import desc
-from sqlalchemy import Integer, String, DateTime, Float, Binary, Boolean
-from sqlalchemy import Table, Column, MetaData, ForeignKey
-from sqlalchemy import PickleType, Enum
+from sqlalchemy import Integer, String, DateTime, Boolean
+from sqlalchemy import Table, Column, ForeignKey
+from sqlalchemy import PickleType
 from sqlalchemy.orm import relationship, backref
 
-from pontifex.model import DeclarativeBase, metadata, Session
+from . import DeclarativeBase
 
 class DataProcessingTask(DeclarativeBase):
     __tablename__ = 'dp_task'
@@ -37,7 +36,7 @@ class DataProcessingTask(DeclarativeBase):
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
-    or_id = Column(Integer, ForeignKey('observing_result.id'))
+    obstree_node_id = Column(Integer, ForeignKey('observing_tree.id'), nullable=False)
     parent_id = Column(Integer, ForeignKey('dp_task.id'))
     label = Column(String(45))
     waiting = Column(Boolean)
@@ -46,28 +45,21 @@ class DataProcessingTask(DeclarativeBase):
     request = Column(String(45))
     result = Column(String(45))
 
-    observing_result = relationship("ObservingResult",
-                backref=backref('tasks'))
+    obstree_node = relationship("ObservingTree", backref='tasks')
 
     children = relationship("DataProcessingTask",
                 backref=backref('parent', remote_side=[id]))
-
-class DataProcessing(DeclarativeBase):
-    __tablename__ = 'dp_reduction'
-    id = Column(Integer, primary_key=True)
-
-    completion_time = Column(DateTime)
-    state = Column(Integer, nullable=False)
-    task_id = Column(Integer, ForeignKey('dp_task.id'))
 
 class ReductionResult(DeclarativeBase):
     __tablename__ = 'dp_reduction_result'
     id = Column(Integer, primary_key=True)
     state = Column(Integer)
+    # TODO: these two fields aren't necessary
     other = Column(String(45))
-    obsres_id = Column(Integer, ForeignKey('observing_result.id'))
+    obstree_node_id = Column(Integer, ForeignKey('observing_tree.id'))
     task_id = Column(Integer, ForeignKey('dp_task.id'))
-    #picklable = Column(PickleType, nullable=False)
+    
+    task = relationship("DataProcessingTask", backref='rresult', uselist=False)
 
 class RecipeParameters(DeclarativeBase):
     __tablename__ = 'dp_recipe_parameters'
@@ -85,10 +77,11 @@ data_product_context = Table(
 class DataProduct(DeclarativeBase):
     __tablename__ = 'dp_product'
     id = Column(Integer, primary_key=True)
-    instrument_id = Column(String(10), ForeignKey("instrument.name"), nullable=False)
+    
     datatype = Column(String(45))
     reference = Column(String(45))
-    task_id = Column(Integer, ForeignKey('dp_task.id'))
+    result_id = Column(Integer, ForeignKey('dp_reduction_result.id'))
+    instrument_id = Column(String(10), ForeignKey('instrument.name'))
 
-    task = relationship("DataProcessingTask", backref=backref('product'))
+    result = relationship("ReductionResult", backref='data_product')
     context = relationship('ContextValue', secondary='data_product_context', backref='data_product')

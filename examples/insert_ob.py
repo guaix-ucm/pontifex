@@ -33,12 +33,12 @@ import numpy
 import pontifex.model as model
 from pontifex.model import datadir
 from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
-from pontifex.model import DataProcessingTask, ObservingResult
+from pontifex.model import DataProcessingTask, ObservingTree
 from pontifex.model import RecipeParameters
 from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import get_last_image_index
 
-def new_image(number, exposure, imgtype, oresult):
+def new_image(number, exposure, imgtype, obstree):
     im = Image()
     im.name = 'r0%03d.fits' % number
     data = numpy.zeros((1,1), dtype='int16')
@@ -49,7 +49,7 @@ def new_image(number, exposure, imgtype, oresult):
     hdu.writeto(os.path.join(datadir, im.name), clobber=True)
     im.exposure = exposure
     im.imgtype = imgtype
-    im.obsresult_id = oresult.id
+    im.observing_tree = obstree
     return im
 
 def create_obsrun(userid, insname):
@@ -104,36 +104,38 @@ session = model.Session()
 ins = session.query(Instrument).filter_by(name='clodia').first()
 user = session.query(Users).first()
 
-obsrun = create_obsrun(user.id, ins.name)
-session.add(obsrun)
-
 context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
 ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
 
 context2 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='filter0').first()
 filtermode = session.query(ContextValue).filter_by(definition=context2, value='315').first()
 
-# New Observing block
-oblock = create_observing_block('mosaic', user.id, obsrun)
-session.add(oblock)
+obsrun = create_obsrun(user.id, ins.name)
+session.add(obsrun)
 
 # Observing tasks (siblings)
-otask = ObservingResult()
+otask = ObservingTree()
 otask.state = 0
 otask.label = 'collect'
-otask.instrument_id = ins.name
 otask.mode = 'null'
+otask.instrument_id = ins.name
+otask.waiting = True
+otask.awaited = False
 session.add(otask)
 
-# The result of this ob
-oblock.task = otask
-root_a_task = create_reduction_task(oblock, otask)
-root_a_task.waiting = True
-session.add(root_a_task)
+# New Observing block
+oblock = create_observing_block('mosaic', user.id, obsrun)
+oblock.observing_tree = otask
+session.add(oblock)
 session.commit()
 
+root_a_task = create_reduction_task(oblock, otask)
+root_a_task.waiting = True
+root_a_task.obstree_node_id = otask.id
+session.add(root_a_task)
+
 # One mosaic
-otaskj = ObservingResult()
+otaskj = ObservingTree()
 otaskj.state = 0
 otaskj.creation_time = datetime.utcnow()
 otaskj.parent = otask
@@ -141,31 +143,28 @@ otaskj.label = 'mosaic'
 otaskj.mode = 'mosaic_image'
 otaskj.context.append(ccdmode)
 otaskj.context.append(filtermode)
-otaskj.instrument_id = ins.name
 
 root_p_task = create_reduction_task(oblock, otaskj)
 root_p_task.parent = root_a_task
 root_p_task.waiting = True
+root_p_task.obstree_node = otaskj
 session.add(root_p_task)
 session.add(otaskj)
-session.commit()
 
 dd = get_last_image_index(session)
 
 for j in range(3):
 
     # One pointing
-    otaskp = ObservingResult()
+    otaskp = ObservingTree()
     otaskp.state = 0
     otaskp.creation_time = datetime.utcnow()
     otaskp.parent = otaskj
     otaskp.label = 'pointing'
     otaskp.mode = 'direct_image'
-    otaskp.instrument_id = ins.name
     otaskp.context.append(ccdmode)
     otaskp.context.append(filtermode)
-    session.add(otaskp)
-    session.commit()
+    session.add(otaskp)    
 
     # OB started
     oblock.start_time = datetime.utcnow()
@@ -186,6 +185,7 @@ for j in range(3):
     # Create a reduction task, otaskp is complete
     ptask = create_reduction_task(oblock, otaskp)
     ptask.state = 1 # Complete
+    ptask.obstree_node = otaskp
     ptask.parent = root_p_task
     ptask.waiting = False
     session.add(ptask)
