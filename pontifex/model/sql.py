@@ -50,6 +50,11 @@ class Instrument(DeclarativeBase):
     obsruns = relationship("ObservingRun", backref='instrument')
     #recipes = relationship("RecipeParameters", backref="instrument")
 
+    valid_configuration = relationship("InstrumentConfiguration",
+                    uselist=False,
+                    primaryjoin="and_           (Instrument.name==InstrumentConfiguration.instrument_id, "
+                            "InstrumentConfiguration.active==True)")
+
 class InstrumentConfiguration(DeclarativeBase):
     __tablename__ = 'instrument_configuration'
     # The PrimaryKeyConstraint is equivalente to put primary_key=True
@@ -64,7 +69,7 @@ class InstrumentConfiguration(DeclarativeBase):
 # versioning (borrowed from koji schema)
     create_event = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
     revoke_event = Column(TIMESTAMP)
-    active = Column(Boolean, default=True)
+    active = Column(Boolean, nullable=True)
 
     instrument = relationship("Instrument", backref='configurations')
 

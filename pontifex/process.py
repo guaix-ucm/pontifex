@@ -25,11 +25,12 @@ import shutil
 from importlib import import_module
 
 from sqlalchemy import desc
+from numina.recipes import Image, Product, find_recipe
 
 from model import taskdir, datadir, productsdir, DataProduct
-from model import Session, Instrument
-import numina.recipes as recipes
-from numina.recipes import Image, Product
+from model import Session
+
+
 
 _logger = logging.getLogger("pontifex.proc")
 
@@ -57,7 +58,7 @@ def processPointing(session, **kwds):
 
     try:
         _logger.info('instrument=%(instrument)s mode=%(mode)s', kwds)
-        entry_point = recipes.find_recipe(kwds['instrument'], kwds['mode'])
+        entry_point = find_recipe(kwds['instrument'], kwds['mode'])
         _logger.info('entry point is %s', entry_point)
     except ValueError:
         _logger.warning('cannot find entry point for %(instrument)s and %(mode)s', kwds)
@@ -105,8 +106,6 @@ def processPointing(session, **kwds):
 
     for req in RecipeClass.__provides__:
         _logger.info('recipe provides %s', req)
-
-    instrument = session.query(Instrument).filter_by(name=kwds['instrument']).first()
     
     _logger.info('copying the images')
     images = []
@@ -124,9 +123,6 @@ def processPointing(session, **kwds):
                 children_results.append(dp.reference)
                 shutil.copy(os.path.join(productsdir, dp.reference), workdir)
 
-    # FIXME: getting the valid instrument configuration
-    ins_params = instrument.configurations[-1].parameters
-
     config = {'observing_result': {'id': kwds['id'], 
         'images': images,
         'children': children_results,
@@ -134,7 +130,7 @@ def processPointing(session, **kwds):
         'mode': kwds['mode'],
         }, 
         'reduction': {'recipe': entry_point, 'parameters': parameters},
-        'instrument': ins_params,
+        'instrument': kwds['ins_params'],
         }
     with open(filename, 'w+') as fp:
         json.dump(config, fp, indent=1)

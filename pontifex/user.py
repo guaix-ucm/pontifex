@@ -41,7 +41,7 @@ import pontifex.process as process
 from pontifex.txrServer import txrServer
 import pontifex.model as model
 from pontifex.model import Session, productsdir
-from pontifex.model import ObservingBlock
+from pontifex.model import ObservingBlock, Instrument
 from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
 
@@ -61,6 +61,20 @@ class PontifexServer(object):
         self.clientlock = threading.Lock()
         self.client_hosts = {}
         self.nclient_hosts = 0
+
+        self.ins_config = {}
+
+        session = Session()
+        for instrument in session.query(Instrument):
+            _logger_s.debug('loading configurations for %s', instrument.name)
+            if instrument.valid_configuration:
+                _logger_s.debug('valid configuration for %s', instrument.name)
+                self.ins_config[instrument.name] = instrument.valid_configuration.parameters
+            else:
+                _logger_s.debug('no valid configuration for %s', instrument.name)
+
+        _logger_s.info('loaded configuration for %s', self.ins_config.keys())
+
         _logger_s.info('ready')
 
     def quit(self):
@@ -262,6 +276,7 @@ class PontifexServer(object):
                     ob = otask.obstree_node.observing_block
                     
                     kwds['instrument'] = ob.obsrun.instrument_id
+                    kwds['ins_params'] = self.ins_config[ob.obsrun.instrument_id]
                     kwds['context'] = task.obstree_node.context
 
                     fun = getattr(process, task.method)
