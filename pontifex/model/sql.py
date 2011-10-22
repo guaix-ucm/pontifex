@@ -21,8 +21,8 @@
 
 from datetime import datetime
 
-from sqlalchemy import UniqueConstraint, desc
-from sqlalchemy import Integer, String, DateTime, Float, Binary, Boolean
+from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, desc
+from sqlalchemy import Integer, String, DateTime, Float, Binary, Boolean, TIMESTAMP
 from sqlalchemy import Table, Column, MetaData, ForeignKey
 from sqlalchemy import PickleType, Enum
 from sqlalchemy.orm import relationship, backref
@@ -50,13 +50,20 @@ class Instrument(DeclarativeBase):
     obsruns = relationship("ObservingRun", backref='instrument')
     #recipes = relationship("RecipeParameters", backref="instrument")
 
-# FIXME: this table should allow versioning
 class InstrumentConfiguration(DeclarativeBase):
     __tablename__ = 'instrument_configuration'
-    id = Column(Integer, primary_key=True)
+    # The PrimaryKeyConstraint is equivalente to put primary_key=True
+    # in several columns
+    __table_args__ = (PrimaryKeyConstraint('instrument_id', 'create_event'),
+                        UniqueConstraint('instrument_id', 'active'))
+
     instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
     parameters = Column(PickleType, nullable=False)
     description = Column(String(255))
+# versioning (borrowed from koji schema)
+    create_event = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
+    revoke_event = Column(TIMESTAMP)
+    active = Column(Boolean, default=True)
 
     instrument = relationship("Instrument", backref='configurations')
 
