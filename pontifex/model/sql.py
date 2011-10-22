@@ -21,7 +21,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, desc
+from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, CheckConstraint, desc
 from sqlalchemy import Integer, String, DateTime, Float, Binary, Boolean, TIMESTAMP
 from sqlalchemy import Table, Column, MetaData, ForeignKey
 from sqlalchemy import PickleType, Enum
@@ -55,7 +55,8 @@ class InstrumentConfiguration(DeclarativeBase):
     # The PrimaryKeyConstraint is equivalente to put primary_key=True
     # in several columns
     __table_args__ = (PrimaryKeyConstraint('instrument_id', 'create_event'),
-                        UniqueConstraint('instrument_id', 'active'))
+                        UniqueConstraint('instrument_id', 'active'),
+                        CheckConstraint('(active IS NULL AND revoke_event IS NOT NULL) OR (active IS NOT NULL and revoke_event IS NULL)'))                                   
 
     instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
     parameters = Column(PickleType, nullable=False)
