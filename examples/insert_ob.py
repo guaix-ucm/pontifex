@@ -132,6 +132,8 @@ session.commit()
 root_a_task = create_reduction_task(oblock, otask)
 root_a_task.waiting = True
 root_a_task.obstree_node_id = otask.id
+request = {'pset': 'default', 'instrument': ins.name}
+root_a_task.request = str(request)
 session.add(root_a_task)
 
 # One mosaic
@@ -148,6 +150,8 @@ root_p_task = create_reduction_task(oblock, otaskj)
 root_p_task.parent = root_a_task
 root_p_task.waiting = True
 root_p_task.obstree_node = otaskj
+request = {'pset': 'default', 'instrument': ins.name}
+root_p_task.request = str(request)
 session.add(root_p_task)
 session.add(otaskj)
 
@@ -186,6 +190,8 @@ for j in range(3):
     ptask = create_reduction_task(oblock, otaskp)
     ptask.state = 1 # Complete
     ptask.obstree_node = otaskp
+    request = {'pset': 'default', 'instrument': ins.name}
+    ptask.request = str(request)
     ptask.parent = root_p_task
     ptask.waiting = False
     session.add(ptask)

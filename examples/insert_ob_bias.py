@@ -134,6 +134,8 @@ session.commit()
 ptask = create_reduction_task(oblock, ores)
 ptask.waiting = False
 ptask.obstree_node_id = ores.id
+request = {'pset': 'default', 'instrument': ins.name}
+ptask.request = str(request)
 session.add(ptask)
 
 # OB started

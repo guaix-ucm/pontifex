@@ -159,7 +159,7 @@ class PontifexServer(object):
                 task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
 
                 task.completion_time = datetime.utcnow()
-
+                request = eval(task.request)
                 results = {}
 
                 if 'error' not in result:
@@ -182,18 +182,21 @@ class PontifexServer(object):
                             _logger.info('updating parent waiting state')
                             parent.waiting = False
 
+                    # finding parent node
+                    # FIXME: find a better way of doing this:
+                    # Recover the instrument of the task
+                    otask = task
+                    while(otask.parent):
+                        otask = otask.parent
+    
+                    ob = otask.obstree_node.observing_block
+                    
+                    iname = ob.obsrun.instrument_id
+
                     results['control'] = ['task-control.json']
                     results['log'] = ['processing.log']
                     results['products'] = result['products']
                     
-                    # FIXME: workaround to get instrument name
-                    _logger.debug('workaround to get instrument name')
-                    with open('task-control.json', 'r') as fd:
-                        dic = json.load(fd)
-
-                    iname = dic['instrument']['name']
-                    del dic
-
                     task.result = str(results)
                     rr = ReductionResult()
                     rr.other = str(result)
@@ -210,6 +213,7 @@ class PontifexServer(object):
                         # FIXME: this is specific for FITS files (classes that subclass Image)
                         dp.reference = prod.filename
                         dp.result = rr
+                        dp.pset_name = request['pset']
                         
                         _logger.debug('extracting meta')
                         for key, val in prod.metadata():
@@ -265,14 +269,17 @@ class PontifexServer(object):
                     kwds['children'] = task.children
                     kwds['images'] = task.obstree_node.images
                     kwds['mode'] = task.obstree_node.mode
-                    
+                    kwds['request'] = eval(task.request)
                     # finding parent node
                     # FIXME: find a better way of doing this:
                     # Recover the instrument of the task
                     otask = task
                     while(otask.parent):
                         otask = otask.parent
-                                        
+                
+                    if task.method == 'processPointing':
+                        _logger.info('request is %(request)s', kwds)
+    
                     ob = otask.obstree_node.observing_block
                     
                     kwds['instrument'] = ob.obsrun.instrument_id
@@ -304,13 +311,13 @@ class PontifexServer(object):
             self.nclient_hosts += 1
             self.client_hosts[cid][3] = True
 
-    def run(self, obsid):
+    def run(self, obsid, pset='default'):
         '''Insert a new processing task tree in the database.'''
 
         _logger.info('create a new task tree for obsid %d', obsid)
         session = Session()
 
-        def create_reduction_tree(otask, rparent):
+        def create_reduction_tree(otask, rparent, instrument, pset='default'):
             '''Climb the tree and create DataProcessingTask in nodes.'''
             rtask = DataProcessingTask()
             rtask.parent = rparent
@@ -321,6 +328,8 @@ class PontifexServer(object):
             else:
                 rtask.state = CREATED
             rtask.method = 'process%s' % otask.label.capitalize()
+            request = {'pset': pset, 'instrument': instrument}
+            rtask.request = str(request)
 
             if otask.children:
                 rtask.waiting = True
@@ -330,17 +339,20 @@ class PontifexServer(object):
             session.add(rtask)
 
             for child in otask.children:
-                create_reduction_tree(child, rtask)
+                create_reduction_tree(child, rtask, instrument, pset=pset)
             
             return rtask
 
-        
         obsblock = session.query(ObservingBlock).filter_by(id=obsid).first()
-        _logger.info('observing tasks tree')
+        if obsblock is not None:
+            _logger.info('observing tasks tree')
         
-        rtask = create_reduction_tree(obsblock.observing_tree, None)
-        _logger.info('new root processing task is %d', rtask.id)
-        session.commit()
+            rtask = create_reduction_tree(obsblock.observing_tree, None, 
+                                        obsblock.obsrun.instrument_id, pset)
+            _logger.info('new root processing task is %d', rtask.id)
+            session.commit()
+        else:
+            _logger.warning('No observing block with id %d', obsid)
 
 # create logger for host
 _logger = logging.getLogger("pontifex.host")
@@ -405,7 +417,7 @@ def main_cli():
     rserver = ServerProxy(masterurl)
 
     def run(*args):
-        rserver.run(args[0])
+        rserver.run(*args)
 
     def usage(args, parser):
         parser.print_help()
@@ -436,21 +448,24 @@ def main_cli():
     parser_build_common = subparsers.add_parser('common',
                                                 add_help=False)
     # build target
-    parser_build = subparsers.add_parser('run',
+    parser_run = subparsers.add_parser('run',
                                          help='Request reduction',
                                          parents=[parser_build_common],
                                          description='This command \
                                          requests a reduction of a particular \
                                          observing block to be performed.')
 
-    parser_build.add_argument('id', action='store', type=int,
+    parser_run.add_argument('id', action='store', type=int,
                               help='Id of the observing block')
 
-    parser_build.set_defaults(command=run)
+    parser_run.add_argument('-s', dest='pset', default='default',
+                              help='Name of the processing set')
+
+    parser_run.set_defaults(command=run)
     
     val = parser.parse_args()
 
-    val.command(val.id)
+    val.command(val.id, val.pset)
 
 def main_host():
 

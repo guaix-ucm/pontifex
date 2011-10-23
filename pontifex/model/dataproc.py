@@ -21,6 +21,7 @@
 
 from datetime import datetime
 
+from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import Integer, String, DateTime, Boolean
 from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import PickleType
@@ -76,12 +77,26 @@ data_product_context = Table(
 
 class DataProduct(DeclarativeBase):
     __tablename__ = 'dp_product'
+    __table_args__ = (ForeignKeyConstraint(['instrument_id', 'pset_name'], ['dp_set.instrument_id', 'dp_set.name']), )
     id = Column(Integer, primary_key=True)
     
     datatype = Column(String(45))
     reference = Column(String(45))
     result_id = Column(Integer, ForeignKey('dp_reduction_result.id'))
-    instrument_id = Column(String(10), ForeignKey('instrument.name'))
+    instrument_id = Column(String(10), ForeignKey('instrument.name'), nullable=False)
+    pset_name = Column(String(50), nullable=False)
 
     result = relationship("ReductionResult", backref='data_product')
     context = relationship('ContextValue', secondary='data_product_context', backref='data_product')
+
+class ProcessingSet(DeclarativeBase):
+    __tablename__ = 'dp_set'
+    instrument_id = Column(String(10), ForeignKey('instrument.name'), primary_key=True, nullable=False)
+    name = Column(String(50), primary_key=True, nullable=False)
+
+
+
+
+
+
+

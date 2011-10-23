@@ -50,6 +50,8 @@ class Instrument(DeclarativeBase):
     obsruns = relationship("ObservingRun", backref='instrument')
     #recipes = relationship("RecipeParameters", backref="instrument")
 
+    processing_sets = relationship("ProcessingSet", backref='instrument')
+
     valid_configuration = relationship("InstrumentConfiguration",
                     uselist=False,
                     primaryjoin="and_           (Instrument.name==InstrumentConfiguration.instrument_id, "

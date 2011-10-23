@@ -26,7 +26,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 
 from pontifex.model import Users, Instrument, Channel, InstrumentConfiguration
-from pontifex.model import ContextValue, ContextDescription
+from pontifex.model import ContextValue, ContextDescription, ProcessingSet
 from pontifex.model import init_model, metadata, Session
 
 #engine = create_engine('sqlite:///devdata.db', echo=False)
@@ -61,13 +61,19 @@ ii = Instrument()
 ii.name = 'megara'
 session.add(ii)
 
+pset = ProcessingSet()
+pset.instrument = ii
+pset.name = 'default'
+session.add(pset)
+
 ii = Instrument()
 ii.name = 'emir'
 session.add(ii)
 
 cc = InstrumentConfiguration()
 cc.instrument = ii
-cc.default = 'Default configuration'
+cc.description = 'Default configuration'
+cc.active = True
 cc.parameters = {
                  'name': 'emir',
                  'detectors': [(2048, 2048)],
@@ -116,9 +122,19 @@ cc.parameters = {
 
 session.add(cc)
 
+pset = ProcessingSet()
+pset.instrument = ii
+pset.name = 'default'
+session.add(pset)
+
 ii = Instrument()
 ii.name = 'frida'
 session.add(ii)
+
+pset = ProcessingSet()
+pset.instrument = ii
+pset.name = 'default'
+session.add(pset)
 
 ii = Instrument()
 ii.name = 'clodia'
@@ -126,7 +142,7 @@ session.add(ii)
 
 cc = InstrumentConfiguration()
 cc.instrument = ii
-cc.default = 'Default configuration'
+cc.description = 'Default configuration'
 cc.parameters = {
                  'name': 'clodia',
                  'detectors': [(256, 256)],
@@ -139,7 +155,36 @@ cc.parameters = {
                 	},
 		'amplifiers' : [[((0, 256), (0,256))]],
                 }
+cc.active = True
 session.add(cc)
+
+cc = InstrumentConfiguration()
+cc.instrument = ii
+cc.description = 'Old configuration'
+cc.parameters = {
+                 'name': 'clodia',
+                 'detectors': [(256, 256)],
+		 'metadata' : {'imagetype': 'IMGTYP',
+	                'airmass': 'AIRMASS',
+        	        'exposure': 'EXPOSED',
+                	'juliandate': 'MJD-OBS',
+                	'detector.mode': 'CCDMODE',
+                	'filter0': 'FILTER'
+                	},
+		'amplifiers' : [[((0, 256), (0,256))]],
+                }
+cc.revoke_event = datetime.utcnow()
+session.add(cc)
+
+pset = ProcessingSet()
+pset.instrument = ii
+pset.name = 'default'
+session.add(pset)
+
+pset = ProcessingSet()
+pset.instrument = ii
+pset.name = 'test'
+session.add(pset)
 
 desc = ContextDescription()
 desc.instrument_id = 'clodia'

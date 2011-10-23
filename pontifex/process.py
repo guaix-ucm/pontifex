@@ -74,6 +74,9 @@ def processPointing(session, **kwds):
 
     _logger.info('matching parameters')
     
+    request = kwds['request']
+    pset = request['pset']
+
     parameters = {}
 
     for req in RecipeClass.__requires__:
@@ -84,7 +87,7 @@ def processPointing(session, **kwds):
             longname = '%s.%s' % (req.value.__module__, req.value.__name__)
             _logger.info('query for %s', longname)
             # FIXME: this query should be updated
-            dps = session.query(DataProduct).filter_by(instrument_id=kwds['instrument'], datatype=longname).order_by(desc(DataProduct.id))
+            dps = session.query(DataProduct).filter_by(instrument_id=kwds['instrument'], datatype=longname, pset_name=pset).order_by(desc(DataProduct.id))
 
             _logger.info('checking context')
             for cdp in dps:
@@ -129,7 +132,7 @@ def processPointing(session, **kwds):
         'instrument': kwds['instrument'],
         'mode': kwds['mode'],
         }, 
-        'reduction': {'recipe': entry_point, 'parameters': parameters},
+        'reduction': {'recipe': entry_point, 'parameters': parameters, 'processing_set': pset},
         'instrument': kwds['ins_params'],
         }
     with open(filename, 'w+') as fp:
