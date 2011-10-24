@@ -72,29 +72,29 @@ ii.name = 'emir'
 session.add(ii)
 
 recipes = {
-    'bias_image': 'auxiliary:Recipe1',
-    'dark_current_image': 'auxiliary:Recipe2',
-    'intensity_flatfield': 'auxiliary:Recipe3',
-    'msm_spectral_flatfield': 'auxiliary:Recipe4',
-    'slit_transmission_calibration': 'auxiliary:Recipe5',
-    'wavelength_calibration': 'auxiliary:Recipe6',
-    'ts_rough_focus': 'auxiliary:Recipe7',
-    'ts_fine_focus': 'auxiliary:Recipe8',
-    'emir_focus_control': 'auxiliary:Recipe9',
-    'image_setup': 'auxiliary:Recipe10',
-    'mos_and_longslit_setup': 'auxiliary:Recipe11',
-    'target_acquisition': 'auxiliary:Recipe12',
-    'mask_imaging': 'auxiliary:Recipe13',
-    'msm_and_lsm_check': 'auxiliary:Recipe14',
-    'stare_image': 'image:Recipe15',
-    'nb_image': 'image:Recipe16',
-    'dithered_image':'image:Recipe17',
-    'microdithered_image':'image:Recipe18',
-    'mosaiced_image': 'image:Recipe19',
-    'stare_spectra': 'mos:Recipe20',
-    'dn_spectra': 'mos:Recipe21',
-    'offset_spectra': 'mos:Recipe22',
-    'raster_spectra': 'ls:Recipe23',
+    'bias_image': 'emir.recipes.auxiliary:Recipe1',
+    'dark_current_image': 'emir.recipes.auxiliary:Recipe2',
+    'intensity_flatfield': 'emir.recipes.auxiliary:Recipe3',
+    'msm_spectral_flatfield': 'emir.recipes.auxiliary:Recipe4',
+    'slit_transmission_calibration': 'emir.recipes.auxiliary:Recipe5',
+    'wavelength_calibration': 'emir.recipes.auxiliary:Recipe6',
+    'ts_rough_focus': 'emir.recipes.auxiliary:Recipe7',
+    'ts_fine_focus': 'emir.recipes.auxiliary:Recipe8',
+    'emir_focus_control': 'emir.recipes.auxiliary:Recipe9',
+    'image_setup': 'emir.recipes.auxiliary:Recipe10',
+    'mos_and_longslit_setup': 'emir.recipes.auxiliary:Recipe11',
+    'target_acquisition': 'emir.recipes.auxiliary:Recipe12',
+    'mask_imaging': 'emir.recipes.auxiliary:Recipe13',
+    'msm_and_lsm_check': 'emir.recipes.auxiliary:Recipe14',
+    'stare_image': 'emir.recipes.image:Recipe15',
+    'nb_image': 'emir.recipes.image:Recipe16',
+    'dithered_image':'emir.recipes.image:Recipe17',
+    'microdithered_image': 'emir.recipes.image:Recipe18',
+    'mosaiced_image': 'emir.recipes.image:Recipe19',
+    'stare_spectra': 'emir.recipes.mos:Recipe20',
+    'dn_spectra': 'emir.recipes.mos:Recipe21',
+    'offset_spectra': 'emir.recipes.mos:Recipe22',
+    'raster_spectra': 'emir.recipes.ls:Recipe23',
 }
 
 for r in recipes:
@@ -186,12 +186,12 @@ session.add(ii)
 
 # equivalence
 
-recipes = {'bias': 'calibration:BiasRecipe',
-    'dark': 'calibration:DarkRecipe',
-    'flat': 'calibration:FlatRecipe',
-    'direct_image': 'science:DirectImage',
-    'mosaic_image': 'science:MosaicImage',
-    'null': 'science:Null',
+recipes = {'bias': 'clodia.recipes.calibration:BiasRecipe',
+    'dark': 'clodia.recipes.calibration:DarkRecipe',
+    'flat': 'clodia.recipes.calibration:FlatRecipe',
+    'direct_image': 'clodia.recipes.science:DirectImage',
+    'mosaic_image': 'clodia.recipes.science:MosaicImage',
+    'null': 'clodia.recipes.science:Null',
 }
 
 for r in recipes:

@@ -34,7 +34,7 @@ import pontifex.model as model
 from pontifex.model import datadir
 from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
 from pontifex.model import DataProcessingTask, ObservingTree, InstrumentConfiguration
-from pontifex.model import RecipeParameters
+
 from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import get_last_image_index
 

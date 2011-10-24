@@ -25,9 +25,9 @@ import shutil
 from importlib import import_module
 
 from sqlalchemy import desc
-from numina.recipes import Image, Product, find_recipe
+from numina.recipes import Image, Product
 
-from model import taskdir, datadir, productsdir, DataProduct
+from model import taskdir, datadir, productsdir, DataProduct, Recipe, RecipeConfiguration
 from model import Session
 
 
@@ -35,7 +35,7 @@ from model import Session
 _logger = logging.getLogger("pontifex.proc")
 
 def processPointing(session, **kwds):
-    _logger.info('process called wth kwds %s', kwds)
+    _logger.info('process called with kwds %s', kwds)
     _logger.info('creating root directory')
 
     basedir = str(kwds['id'])
@@ -56,15 +56,19 @@ def processPointing(session, **kwds):
 
     filename = os.path.join(resultsdir, 'task-control.json')
 
-    try:
-        _logger.info('instrument=%(instrument)s mode=%(mode)s', kwds)
-        entry_point = find_recipe(kwds['instrument'], kwds['mode'])
-        _logger.info('entry point is %s', entry_point)
-    except ValueError:
-        _logger.warning('cannot find entry point for %(instrument)s and %(mode)s', kwds)
-        raise
+    
+    _logger.info('instrument=%(instrument)s mode=%(mode)s', kwds)
+    recipe = session.query(Recipe).filter_by(instrument_id=kwds['instrument'], 
+                                        mode=kwds['mode'],
+                                        active=True).first()
         
-    mod, klass = entry_point.split(':')
+    if recipe is None:
+        _logger.warning('cannot find entry point for %(instrument)s and %(mode)s', kwds)
+        raise ValueError
+        
+    _logger.info('entry point is %s', recipe.module)
+        
+    mod, klass = recipe.module.split(':')
 
     try:
         module = import_module(mod)
@@ -78,6 +82,15 @@ def processPointing(session, **kwds):
     pset = request['pset']
 
     parameters = {}
+    
+    stored_parameters = session.query(RecipeConfiguration).filter_by(instrument_id=kwds['instrument'], 
+                                        module=recipe.module,
+                                        pset_name=pset,
+                                        active=True).first()
+
+    if stored_parameters is None:
+        _logger.info('no stored parameters for this recipe')
+        stored_parameters = {}
 
     for req in RecipeClass.__requires__:
         _logger.info('recipe requires %s', req.name)
@@ -87,7 +100,9 @@ def processPointing(session, **kwds):
             longname = '%s.%s' % (req.value.__module__, req.value.__name__)
             _logger.info('query for %s', longname)
             # FIXME: this query should be updated
-            dps = session.query(DataProduct).filter_by(instrument_id=kwds['instrument'], datatype=longname, pset_name=pset).order_by(desc(DataProduct.id))
+            dps = session.query(DataProduct).filter_by(instrument_id=kwds['instrument'], 
+                                                       datatype=longname, 
+                                                       pset_name=pset).order_by(desc(DataProduct.id))
 
             _logger.info('checking context')
             for cdp in dps:
@@ -104,7 +119,11 @@ def processPointing(session, **kwds):
                 parameters[req.name] = cdp.reference
                 _logger.debug('copy %s', cdp.reference)
                 shutil.copy(os.path.join(productsdir, cdp.reference), workdir)
+        elif req.name in stored_parameters:
+            _logger.info('parameter %s from stored paramters', req.name)
+            parameters[req.name] = stored_parameters[req.name]
         else:
+            _logger.info('parameter %s has default value')
             parameters[req.name] = req.value
 
     for req in RecipeClass.__provides__:
@@ -132,7 +151,7 @@ def processPointing(session, **kwds):
         'instrument': kwds['instrument'],
         'mode': kwds['mode'],
         }, 
-        'reduction': {'recipe': entry_point, 'parameters': parameters, 'processing_set': pset},
+        'reduction': {'recipe': recipe.module, 'parameters': parameters, 'processing_set': pset},
         'instrument': kwds['ins_params'],
         }
     with open(filename, 'w+') as fp:
