@@ -64,7 +64,7 @@ class ReductionResult(DeclarativeBase):
 
 class Recipe(DeclarativeBase):
     __tablename__ = 'dp_recipe'
-    # The PrimaryKeyConstraint is equivalente to put primary_key=True
+    # The PrimaryKeyConstraint is equivalent to put primary_key=True
     # in several columns
     __table_args__ = (PrimaryKeyConstraint('instrument_id', 'module', 'create_event'),
                         UniqueConstraint('instrument_id', 'mode', 'module', 'active'),
@@ -82,7 +82,7 @@ class Recipe(DeclarativeBase):
 
 class RecipeConfiguration(DeclarativeBase):
     __tablename__ = 'dp_recipe_configuration'
-    # The PrimaryKeyConstraint is equivalente to put primary_key=True
+    # The PrimaryKeyConstraint is equivalent to put primary_key=True
     # in several columns
     __table_args__ = (PrimaryKeyConstraint('instrument_id', 'module', 'create_event'),
                         UniqueConstraint('instrument_id', 'module', 'active'),
