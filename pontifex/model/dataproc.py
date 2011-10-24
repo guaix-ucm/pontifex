@@ -51,6 +51,13 @@ class DataProcessingTask(DeclarativeBase):
     children = relationship("DataProcessingTask",
                 backref=backref('parent', remote_side=[id]))
 
+# sqlite trigger to update task.state when observing_tree.state changes
+
+#CREATE TRIGGER update_task_state UPDATE OF state ON observing_tree
+#  BEGIN
+#    UPDATE dp_task SET state = 1 WHERE (obstree_node_id = old.id) and (new.state = 2);
+#  END;
+
 class ReductionResult(DeclarativeBase):
     __tablename__ = 'dp_reduction_result'
     id = Column(Integer, primary_key=True)
