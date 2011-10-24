@@ -121,32 +121,32 @@ class PontifexServer(object):
         return None
 
     def watchdog(self, pollfreq):
-        session_w = Session()
+        session = Session()
         while True:
             if self.doned:
                 _logger_s.info('cleaning up pending jobs')
-                for task in session_w.query(DataProcessingTask).filter_by(state=ENQUEUED):
+                for task in session.query(DataProcessingTask).filter_by(state=ENQUEUED):
                     task.state = COMPLETED
-                session_w.commit()
+                session.commit()
                 _logger_s.info('watchdog finished')
                 return
             else:            
                 time.sleep(pollfreq)                
-                for task in session_w.query(DataProcessingTask).filter_by(state=COMPLETED, waiting=False)[:self.nclient_hosts]:
+                for task in session.query(DataProcessingTask).filter_by(state=COMPLETED, waiting=False)[:self.nclient_hosts]:
                     _logger_s.info('enqueueing task %d ', task.id)
                     task.state = ENQUEUED
     
-                    session_w.commit()
+                    session.commit()
                     self.queue.put(task.id)
 
     def inserter(self):
-        session_i = Session()
+        session = Session()
         # clean up on startup
-        q = session_i.query(DataProcessingTask).filter_by(state=ENQUEUED)
+        q = session.query(DataProcessingTask).filter_by(state=ENQUEUED)
         for i in q:
             _logger_s.info('fixing job %d', i.id)
             i.state = COMPLETED
-        session_i.commit()
+        session.commit()
 
         while True:
             val = self.qback.get()
@@ -156,7 +156,7 @@ class PontifexServer(object):
             else:
                 _, result, taskid = val
                 _logger_s.info('updating done work, ProcessingTask %d', int(taskid))
-                task = session_i.query(DataProcessingTask).filter_by(id=taskid).one() 
+                task = session.query(DataProcessingTask).filter_by(id=taskid).one() 
 
                 task.completion_time = datetime.utcnow()
                 request = eval(task.request)
@@ -219,15 +219,15 @@ class PontifexServer(object):
                         for key, val in prod.metadata():
                             _logger.debug('metadata is (%s, %s)', key, val)
                             # FIXME: probably there is a better way of doing this
-                            q = session_i.query(ContextDescription).filter_by(instrument_id=dp.instrument_id, name=key).first()
-                            v = session_i.query(ContextValue).filter_by(definition=q, value=val).first()
+                            q = session.query(ContextDescription).filter_by(instrument_id=dp.instrument_id, name=key).first()
+                            v = session.query(ContextValue).filter_by(definition=q, value=val).first()
 
                             if v is None:
                                 _logger.debug('creating metadata for %s', key)
                                 v = ContextValue()
                                 v.definition[q.together] = q
                                 v.value = val
-                                session_i.add(v)
+                                session.add(v)
                             
                             dp.context.append(v)
 
@@ -237,9 +237,9 @@ class PontifexServer(object):
                         shutil.copy(prod.filename, productsdir)
                         # in 'products'
                         dp.task = task
-                        session_i.add(dp)
+                        session.add(dp)
 
-                    session_i.add(rr)
+                    session.add(rr)
                 else:
                     results['error'] = result['error']
                     _logger.warning('error in task %d', task.id)
@@ -248,7 +248,7 @@ class PontifexServer(object):
                     task.result = str(results)
                     task.state = ERROR
 
-                session_i.commit()
+                session.commit()
                 self.qback.task_done()
 
     def consumer(self):
@@ -518,7 +518,6 @@ def main_server():
 
     model.init_model(engine)
     model.metadata.create_all(engine)
-    session = model.Session()
 
     im = PontifexServer()
 
