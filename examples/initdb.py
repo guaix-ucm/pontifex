@@ -110,6 +110,7 @@ for r in recipes:
     b.module = recipes[r]
     b.parameters = {}
     b.description = "Description"
+    b.pset_name = 'default'
     b.active = True
     session.add(b)
 
@@ -206,6 +207,7 @@ for r in recipes:
     b.module = recipes[r]
     b.parameters = {}
     b.description = "Description"
+    b.pset_name = 'default'
     b.active = True
     session.add(b)
 

@@ -84,15 +84,17 @@ class RecipeConfiguration(DeclarativeBase):
     __tablename__ = 'dp_recipe_configuration'
     # The PrimaryKeyConstraint is equivalent to put primary_key=True
     # in several columns
-    __table_args__ = (PrimaryKeyConstraint('instrument_id', 'module', 'create_event'),
-                        UniqueConstraint('instrument_id', 'module', 'active'),
+    __table_args__ = (PrimaryKeyConstraint('instrument_id', 'module', 'pset_name', 'create_event'),
+                        UniqueConstraint('instrument_id', 'module', 'pset_name', 'active'),
                         ForeignKeyConstraint(['instrument_id', 'module'], ['dp_recipe.instrument_id', 'dp_recipe.module']),
+                        ForeignKeyConstraint(['instrument_id', 'pset_name'], ['dp_set.instrument_id', 'dp_set.name']),
                         CheckConstraint('(active IS NULL AND revoke_event IS NOT NULL) OR (active IS NOT NULL and revoke_event IS NULL)'))                                   
 
     instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
 
     module = Column(String(255), nullable=False)
     parameters = Column(PickleType, nullable=False)
+    pset_name = Column(String(50), nullable=False)
     description = Column(String(255))
 # versioning (borrowed from koji schema)
     create_event = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
