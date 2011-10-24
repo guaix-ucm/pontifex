@@ -21,8 +21,8 @@
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKeyConstraint
-from sqlalchemy import Integer, String, DateTime, Boolean
+from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, CheckConstraint, ForeignKeyConstraint
+from sqlalchemy import Integer, String, DateTime, Boolean, TIMESTAMP
 from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import PickleType
 from sqlalchemy.orm import relationship, backref
@@ -62,12 +62,45 @@ class ReductionResult(DeclarativeBase):
     
     task = relationship("DataProcessingTask", backref='rresult', uselist=False)
 
-class RecipeParameters(DeclarativeBase):
-    __tablename__ = 'dp_recipe_parameters'
-    id = Column(Integer, primary_key=True)
-    mode = Column(String(32), nullable=False)
-    #insId = Column(String(10), ForeignKey('instrument.name'))
+class Recipe(DeclarativeBase):
+    __tablename__ = 'dp_recipe'
+    # The PrimaryKeyConstraint is equivalente to put primary_key=True
+    # in several columns
+    __table_args__ = (PrimaryKeyConstraint('instrument_id', 'module', 'create_event'),
+                        UniqueConstraint('instrument_id', 'mode', 'module', 'active'),
+                        CheckConstraint('(active IS NULL AND revoke_event IS NOT NULL) OR (active IS NOT NULL and revoke_event IS NULL)'))                                   
+
+    instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
+    mode = Column(String(45), nullable=False)
+    module = Column(String(255), nullable=False)
+# versioning (borrowed from koji schema)
+    create_event = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
+    revoke_event = Column(TIMESTAMP)
+    active = Column(Boolean, nullable=True)
+
+    instrument = relationship("Instrument", backref='recipes')
+
+class RecipeConfiguration(DeclarativeBase):
+    __tablename__ = 'dp_recipe_configuration'
+    # The PrimaryKeyConstraint is equivalente to put primary_key=True
+    # in several columns
+    __table_args__ = (PrimaryKeyConstraint('instrument_id', 'module', 'create_event'),
+                        UniqueConstraint('instrument_id', 'module', 'active'),
+                        ForeignKeyConstraint(['instrument_id', 'module'], ['dp_recipe.instrument_id', 'dp_recipe.module']),
+                        CheckConstraint('(active IS NULL AND revoke_event IS NOT NULL) OR (active IS NOT NULL and revoke_event IS NULL)'))                                   
+
+    instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
+
+    module = Column(String(255), nullable=False)
     parameters = Column(PickleType, nullable=False)
+    description = Column(String(255))
+# versioning (borrowed from koji schema)
+    create_event = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
+    revoke_event = Column(TIMESTAMP)
+    active = Column(Boolean, nullable=True)
+
+    instrument = relationship("Instrument", backref='recipe_configurations')
+
 
 data_product_context = Table(
     'data_product_context', DeclarativeBase.metadata,

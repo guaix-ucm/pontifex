@@ -48,7 +48,6 @@ class Instrument(DeclarativeBase):
     name = Column(String(10), primary_key=True)
 
     obsruns = relationship("ObservingRun", backref='instrument')
-    #recipes = relationship("RecipeParameters", backref="instrument")
 
     processing_sets = relationship("ProcessingSet", backref='instrument')
 

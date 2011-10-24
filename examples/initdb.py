@@ -26,6 +26,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 
 from pontifex.model import Users, Instrument, Channel, InstrumentConfiguration
+from pontifex.model import Recipe, RecipeConfiguration
 from pontifex.model import ContextValue, ContextDescription, ProcessingSet
 from pontifex.model import init_model, metadata, Session
 
@@ -69,6 +70,48 @@ session.add(pset)
 ii = Instrument()
 ii.name = 'emir'
 session.add(ii)
+
+recipes = {
+    'bias_image': 'auxiliary:Recipe1',
+    'dark_current_image': 'auxiliary:Recipe2',
+    'intensity_flatfield': 'auxiliary:Recipe3',
+    'msm_spectral_flatfield': 'auxiliary:Recipe4',
+    'slit_transmission_calibration': 'auxiliary:Recipe5',
+    'wavelength_calibration': 'auxiliary:Recipe6',
+    'ts_rough_focus': 'auxiliary:Recipe7',
+    'ts_fine_focus': 'auxiliary:Recipe8',
+    'emir_focus_control': 'auxiliary:Recipe9',
+    'image_setup': 'auxiliary:Recipe10',
+    'mos_and_longslit_setup': 'auxiliary:Recipe11',
+    'target_acquisition': 'auxiliary:Recipe12',
+    'mask_imaging': 'auxiliary:Recipe13',
+    'msm_and_lsm_check': 'auxiliary:Recipe14',
+    'stare_image': 'image:Recipe15',
+    'nb_image': 'image:Recipe16',
+    'dithered_image':'image:Recipe17',
+    'microdithered_image':'image:Recipe18',
+    'mosaiced_image': 'image:Recipe19',
+    'stare_spectra': 'mos:Recipe20',
+    'dn_spectra': 'mos:Recipe21',
+    'offset_spectra': 'mos:Recipe22',
+    'raster_spectra': 'ls:Recipe23',
+}
+
+for r in recipes:
+    a = Recipe()
+    a.instrument = ii
+    a.mode = r
+    a.module = recipes[r]
+    a.active = True
+    session.add(a)
+
+    b = RecipeConfiguration()
+    b.instrument = ii
+    b.module = recipes[r]
+    b.parameters = {}
+    b.description = "Description"
+    b.active = True
+    session.add(b)
 
 cc = InstrumentConfiguration()
 cc.instrument = ii
@@ -139,6 +182,32 @@ session.add(pset)
 ii = Instrument()
 ii.name = 'clodia'
 session.add(ii)
+
+# equivalence
+
+recipes = {'bias': 'calibration:BiasRecipe',
+    'dark': 'calibration:DarkRecipe',
+    'flat': 'calibration:FlatRecipe',
+    'direct_image': 'science:DirectImage',
+    'mosaic_image': 'science:MosaicImage',
+    'null': 'science:Null',
+}
+
+for r in recipes:
+    a = Recipe()
+    a.instrument = ii
+    a.mode = r
+    a.module = recipes[r]
+    a.active = True
+    session.add(a)
+
+    b = RecipeConfiguration()
+    b.instrument = ii
+    b.module = recipes[r]
+    b.parameters = {}
+    b.description = "Description"
+    b.active = True
+    session.add(b)
 
 cc = InstrumentConfiguration()
 cc.instrument = ii
