@@ -24,10 +24,12 @@ from datetime import datetime
 from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, CheckConstraint, desc
 from sqlalchemy import Integer, String, DateTime, Float, Binary, Boolean, TIMESTAMP
 from sqlalchemy import Table, Column, MetaData, ForeignKey
-from sqlalchemy import PickleType, Enum
+from sqlalchemy import PickleType, Enum, event
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.schema import DDL
+from sqlalchemy.orm import validates
 
 from pontifex.model import DeclarativeBase, metadata, Session
 
@@ -120,6 +122,26 @@ class ObservingTree(DeclarativeBase):
     images = relationship("Image", backref='observing_tree')
 
     #observing_block = relationship("ObservingBlock")
+
+    # approach based on ORM validation
+    @validates('state')
+    def update_state(self, key, value):
+	if value == 2:
+	    for task in self.tasks:
+                if task.state == 0:
+                    task.state = 1
+        return value
+
+# trigger based on sqlite
+# http://stackoverflow.com/questions/7888846/trigger-in-sqlachemy
+
+#update_task_state = DDL('''\
+#CREATE TRIGGER update_task_state UPDATE OF state ON observing_tree
+#  BEGIN
+#    UPDATE dp_task SET state = 1 WHERE (obstree_node_id = old.id) and (new.state = 2);
+#  END;''')
+
+#event.listen(ObservingTree.__table__, 'after_create', update_task_state)
 
 class Image(DeclarativeBase):
     __tablename__ = 'image'
