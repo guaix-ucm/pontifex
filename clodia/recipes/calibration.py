@@ -24,8 +24,7 @@ import logging
 import numpy
 import pyfits
 from numina import RecipeBase, __version__
-from numina import FITSHistoryHandler
-from numina.recipes import Parameter
+from numina.recipes import Parameter, log_to_history
 
 from clodia.products import MasterBias, MasterDark, MasterFlat
 
@@ -45,14 +44,8 @@ class BiasRecipe(RecipeBase):
                         version="0.1.0"
                 )
 
+    @log_to_history(_logger)
     def run(self, rb):
-
-        history_header = pyfits.Header()
-
-        fh =  FITSHistoryHandler(history_header)
-        fh.setLevel(logging.INFO)
-        _logger.addHandler(fh)
-
     	_logger.info('starting bias reduction')
 
         images = rb.images
@@ -88,13 +81,8 @@ class BiasRecipe(RecipeBase):
 
             _logger.info('bias reduction ended')
 
-            # merge header with HISTORY log
-            hdr.ascardlist().extend(history_header.ascardlist())    
-
             return {'products': [MasterBias(hdulist)]}
         finally:
-            _logger.removeHandler(fh)
-
             for hdulist in cdata:
                 hdulist.close()
 
@@ -110,14 +98,8 @@ class DarkRecipe(RecipeBase):
                         version="0.1.0"
                 )
 
+    @log_to_history(_logger)
     def run(self, block):
-
-        # HISTORY logger
-        history_header = pyfits.Header()
-
-        fh =  FITSHistoryHandler(history_header)
-        fh.setLevel(logging.INFO)
-        _logger.addHandler(fh)
 
     	_logger.info('starting dark reduction')
 
@@ -159,12 +141,11 @@ class DarkRecipe(RecipeBase):
 
             _logger.info('dark reduction ended')
 
-            # merge final header with HISTORY log
-            hdr.ascardlist().extend(history_header.ascardlist())    
+
 
             return {'products': [MasterDark(hdulist)]}
         finally:
-            _logger.removeHandler(fh)
+            pass
 
 class FlatRecipe(RecipeBase):
     '''Process FLAT images and provide MASTER_FLAT. '''
@@ -181,14 +162,8 @@ class FlatRecipe(RecipeBase):
                         version="0.1.0"
                 )
 
+    @log_to_history(_logger)
     def run(self, block):
-
-        # HISTORY logger
-        history_header = pyfits.Header()
-
-        fh =  FITSHistoryHandler(history_header)
-        fh.setLevel(logging.INFO)
-        _logger.addHandler(fh)
 
     	_logger.info('starting flat reduction')
 
@@ -241,10 +216,7 @@ class FlatRecipe(RecipeBase):
 
             _logger.info('flat reduction ended')
 
-            # merge final header with HISTORY log
-            hdr.ascardlist().extend(history_header.ascardlist())    
-
             return {'products': [MasterFlat(hdulist)]}
         finally:
-            _logger.removeHandler(fh)
+            pass
 
