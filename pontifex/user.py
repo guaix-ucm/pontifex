@@ -34,7 +34,7 @@ import json
 import shutil
 
 from sqlalchemy import create_engine
-from numina.user import run_recipe
+from numina.user import run_recipe_from_file
 from numina.jsonserializer import from_json
 
 import pontifex.process as process
@@ -397,7 +397,7 @@ class PontifexHost(object):
                 _logger.debug('%s', basedir)
                 _logger.debug('%s', workdir)
                 _logger.debug('%s', resultsdir)
-                result = run_recipe(filename, workdir=workdir, 
+                result = run_recipe_from_file(filename, workdir=workdir, 
                                     resultsdir=resultsdir, cleanup=False)
 
                 _logger.info('finished')
