@@ -103,7 +103,7 @@ class ObservingBlock(DeclarativeBase):
 class ObservingTree(DeclarativeBase):
     __tablename__ = 'observing_tree'
     id = Column(Integer, primary_key=True)
-    state = Column(Integer)
+    state = Column(Integer)    
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
@@ -128,8 +128,8 @@ class ObservingTree(DeclarativeBase):
     def update_state(self, key, value):
 	if value == 2:
 	    for task in self.tasks:
-                if task.state == 0:
-                    task.state = 1
+            if task.state == 0:
+                task.state = 1
         return value
 
 # trigger based on sqlite
