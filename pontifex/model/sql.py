@@ -128,8 +128,8 @@ class ObservingTree(DeclarativeBase):
     def update_state(self, key, value):
 	if value == 2:
 	    for task in self.tasks:
-            if task.state == 0:
-                task.state = 1
+                if task.state == 0:
+                    task.state = 1
         return value
 
 # trigger based on sqlite
