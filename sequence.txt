@@ -1,0 +1,13 @@
+
+sequencer.create_ob('bias')
+telescope.point_(0, 0)
+telescope.guide(False)
+clodia.filter('B')
+clodia.shutter.close()
+clodia.detector.mode('normal')
+sequencer.start_ob()
+for i in range(10):
+    clodia.expose(0)
+    image = clodia.readout()
+    sequencer.add(image)
+sequencer.end_ob()
