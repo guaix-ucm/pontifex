@@ -27,6 +27,7 @@ import pyfits
 import numpy
 from numpy.random import normal, poisson
 from numina.treedict import TreeDict
+from numina.instrument.template import interpolate
 
 from pontifex.astrotime import datetime_to_mjd
 
@@ -151,23 +152,6 @@ class Clodia(Instrument):
         detector = CCDDetector()
         Instrument.__init__(self, shutter, detector)
 
-
-def isinterpolable(v):
-    if isinstance(v, basestring) and v[:2] == '%(' and v[-1] == ')':
-        return v[2:-1]
-    else:
-        return None
-
-def interpolate(meta, v):
-    key = isinterpolable(v)
-    if key is not None:
-        ival = meta[key]
-        if callable(ival):
-            return ival()
-        else:
-            return ival
-    else:
-        return v
 
 class ClodiaImageFactory(object):
     def __init__(self):
