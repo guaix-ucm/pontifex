@@ -45,7 +45,13 @@ user.usertype = 1
 session.add(user)
 
 user = Users()
-user.name = 'sergiopr'
+user.name = 'Observer'
+user.status = 1
+user.usertype = 1
+session.add(user)
+
+user = Users()
+user.name = 'Astronomer'
 user.status = 1
 user.usertype = 1
 session.add(user)

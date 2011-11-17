@@ -94,11 +94,14 @@ class ObservingBlock(DeclarativeBase):
     create_time = Column(DateTime, default=datetime.utcnow, nullable=False)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
+    object = Column(String(80), nullable=False)
     obsrun_id = Column(Integer,  ForeignKey("observing_run.id"), nullable=False)
     observer_id = Column(Integer,  ForeignKey("users.id"), nullable=False)
     observing_tree_root_id = Column(Integer,  ForeignKey("observing_tree.id"), nullable=False)
 
     observing_tree = relationship("ObservingTree", backref=backref('observing_block', uselist=False))
+    #observer = relationship("Users", backref='observed_obs')
+    observer = relationship("Users")
 
 class ObservingTree(DeclarativeBase):
     __tablename__ = 'observing_tree'

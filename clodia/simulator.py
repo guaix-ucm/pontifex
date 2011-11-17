@@ -142,6 +142,9 @@ class Instrument(object):
         data = self.detector.readout() 
         return self.meta, data
 
+    def imagetype(self, name):
+        self.meta['imagetype'] = name
+
 class Clodia(Instrument):
     def __init__(self):
         shutter = Shutter()

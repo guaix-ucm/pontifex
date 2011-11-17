@@ -1,0 +1,14 @@
+
+sequencer.create_ob('dark', 'DARK')
+telescope.point(0.4555, 12.4545)
+telescope.guide(False)
+clodia.filter('B')
+clodia.imagetype('DARK')
+clodia.shutter.close()
+clodia.detector.mode('normal')
+sequencer.start_ob()
+for i in range(10):
+    clodia.expose(10)
+    image = clodia.readout()
+    sequencer.add(image)
+sequencer.end_ob()

@@ -1,8 +1,9 @@
 
-sequencer.create_ob('bias')
+sequencer.create_ob('bias', 'BIAS')
 telescope.point(0.4555, 12.4545)
 telescope.guide(False)
 clodia.filter('B')
+clodia.imagetype('BIAS')
 clodia.shutter.close()
 clodia.detector.mode('normal')
 sequencer.start_ob()
