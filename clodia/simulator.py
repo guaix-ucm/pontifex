@@ -20,7 +20,10 @@
 '''Clodia simulator'''
 
 from datetime import datetime
+from pkgutil import get_data
+from StringIO import StringIO
 
+import pyfits
 import numpy
 from numpy.random import normal, poisson
 
@@ -96,6 +99,9 @@ class CCDDetector(OpticalElement):
         self.buffer.fill(0)
         return data
 
+    def mode(self, name):
+        pass
+
 class Instrument(object):
     def __init__(self, shutter, detector):
         self.shutter = shutter
@@ -103,11 +109,72 @@ class Instrument(object):
 
         self.path = [self.shutter, self.shutter, self.detector]
 
+        self.meta = {}
+        self.meta['instrument.name'] = 'CLODIA'
+        self.meta['instrument.focalstation'] = 'FCASS'
+        self.meta['instrument.filter0'] = 'B'
+        self.meta['instrument.imagetype'] = ''
+        self.meta['instrument.detector.readmode'] = 'fast'
+        self.meta['instrument.detector.readscheme'] = 'perline'
+        self.meta['instrument.detector.exposed'] = 0
+        self.meta['instrument.detector.gain'] = 3.6
+        self.meta['instrument.detector.readnoise'] = 2.16
+
     def light_path(self, ls):
 
         for oe in self.path:
             ls = oe.light_path(ls)
         return ls
+
+    def filter(self, name):
+        self.meta['instrument.filter0'] = name
+
+    def expose(self, time):
+        self.meta['instrument.detector.exposed'] = time
+
+    def readout(self):
+        data = numpy.zeros((1,1), dtype='int16')
+        meta = dict(self.meta)
+ 
+        return meta, data
+
+class Clodia(Instrument):
+    def __init__(self):
+        shutter = Shutter()
+        detector = CCDDetector()
+        Instrument.__init__(self, shutter, detector)
+
+
+def isinterpolable(v):
+    if isinstance(v, basestring) and v[:2] == '%(' and v[-1] == ')':
+        return v[2:-1]
+    else:
+        return None
+
+def interpolate(meta, v):
+    key = isinterpolable(v)
+    if key is not None:
+        ival = meta[key]
+        if callable(ival):
+            return ival()
+        else:
+            return ival
+    else:
+        return v
+
+class ClodiaImageFactory(object):
+    def __init__(self):
+        sfile = StringIO(get_data('clodia', 'primary.txt'))
+        self.htempl = pyfits.Header(txtfile=sfile)
+
+    def create(self, metadata):
+
+        hh = self.htempl.copy()
+
+        for rr in hh.ascardlist():
+            rr.value = interpolate(metadata, rr.value)
+        return hh
+
 
 if __name__ == '__main__':
 

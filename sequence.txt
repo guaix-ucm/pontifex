@@ -1,6 +1,6 @@
 
 sequencer.create_ob('bias')
-telescope.point_(0, 0)
+telescope.point(0.4555, 12.4545)
 telescope.guide(False)
 clodia.filter('B')
 clodia.shutter.close()

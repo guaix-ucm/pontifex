@@ -12,6 +12,8 @@ setup(name='pontifex',
       packages=['pontifex', 'pontifex.model', 
                 'clodia', 'clodia.recipes'
                 ],
+      package_data={'clodia': ['primary.txt'],
+                    },
       scripts=['scripts/pontifex-server.py', 'scripts/pontifex-host.py'],
       install_requires=['numina'],
       classifiers=[
