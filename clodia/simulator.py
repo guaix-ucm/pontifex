@@ -26,6 +26,9 @@ from StringIO import StringIO
 import pyfits
 import numpy
 from numpy.random import normal, poisson
+from numina.treedict import TreeDict
+
+from pontifex.astrotime import datetime_to_mjd
 
 class Amplifier(object):
     def __init__(self):
@@ -65,8 +68,14 @@ class CCDDetector(OpticalElement):
         self.bias = 100.0
         self.dark = 0.1
         self.buffer = numpy.zeros(self.shape)
-        self.meta = {}
+        self.meta = TreeDict()
         self.light_source = None
+
+        self.meta['readmode'] = 'fast'
+        self.meta['readscheme'] = 'perline'
+        self.meta['exposed'] = 0
+        self.meta['gain'] = 3.6
+        self.meta['readnoise'] = 2.16
 
     def reset(self):
         self.buffer.fill(0)
@@ -78,8 +87,9 @@ class CCDDetector(OpticalElement):
     def expose(self, exposure):
         now = datetime.now()
         # Recording time of start of exposure
-        self.meta['DATE-OBS'] = now.isoformat()
-        # self.meta['MDJ-OBS'] = datetime_to_mjd(now)
+        self.meta['exposed'] = exposure
+        self.meta['dateobs'] = now.isoformat()
+        self.meta['mjdobs'] = datetime_to_mjd(now)
 
         if self.light_source is not None:
             self.buffer += self.light_source * exposure
@@ -109,17 +119,13 @@ class Instrument(object):
 
         self.path = [self.shutter, self.shutter, self.detector]
 
-        self.meta = {}
-        self.meta['instrument.name'] = 'CLODIA'
-        self.meta['instrument.focalstation'] = 'FCASS'
-        self.meta['instrument.filter0'] = 'B'
-        self.meta['instrument.imagetype'] = ''
-        self.meta['instrument.detector.readmode'] = 'fast'
-        self.meta['instrument.detector.readscheme'] = 'perline'
-        self.meta['instrument.detector.exposed'] = 0
-        self.meta['instrument.detector.gain'] = 3.6
-        self.meta['instrument.detector.readnoise'] = 2.16
-
+        self.meta = TreeDict()
+        self.meta['name'] = 'CLODIA'
+        self.meta['focalstation'] = 'FCASS'
+        self.meta['filter0'] = 'B'
+        self.meta['imagetype'] = ''
+        self.meta['detector'] = self.detector.meta
+ 
     def light_path(self, ls):
 
         for oe in self.path:
@@ -127,16 +133,14 @@ class Instrument(object):
         return ls
 
     def filter(self, name):
-        self.meta['instrument.filter0'] = name
+        self.meta['filter0'] = name
 
     def expose(self, time):
-        self.meta['instrument.detector.exposed'] = time
+        self.detector.expose(time)
 
     def readout(self):
-        data = numpy.zeros((1,1), dtype='int16')
-        meta = dict(self.meta)
- 
-        return meta, data
+        data = self.detector.readout() 
+        return self.meta, data
 
 class Clodia(Instrument):
     def __init__(self):
