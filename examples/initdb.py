@@ -68,10 +68,89 @@ ii = Instrument()
 ii.name = 'megara'
 session.add(ii)
 
+# equivalence
+
+recipes = {'bias': 'clodia.recipes.calibration:BiasRecipe',
+    'dark': 'clodia.recipes.calibration:DarkRecipe',
+    'flat': 'clodia.recipes.calibration:FlatRecipe',
+    'direct_image': 'clodia.recipes.science:DirectImage',
+    'mosaic_image': 'clodia.recipes.science:MosaicImage',
+    'null': 'clodia.recipes.science:Null',
+}
+
+for r in recipes:
+    a = Recipe()
+    a.instrument = ii
+    a.mode = r
+    a.module = recipes[r]
+    a.active = True
+    session.add(a)
+
+    b = RecipeConfiguration()
+    b.instrument = ii
+    b.module = recipes[r]
+    b.parameters = {}
+    b.description = "Description"
+    b.pset_name = 'default'
+    b.active = True
+    session.add(b)
+
+cc = InstrumentConfiguration()
+cc.instrument = ii
+cc.description = 'Default configuration'
+cc.parameters = {
+                 'name': 'megara',
+                 'detectors': [(2048, 2048)],
+		 'metadata' : {'imagetype': 'IMGTYP',
+	                'airmass': 'AIRMASS',
+        	        'exposure': 'EXPOSED',
+                	'juliandate': 'MJD-OBS',
+                	'detector.mode': 'CCDMODE',
+                	'filter0': 'FILTER'
+                	},
+		'amplifiers' : [[((0, 2048), (0, 1024)),
+		                 ((0, 2048), (1024, 2048))]]
+                }
+cc.active = True
+session.add(cc)
+
 pset = ProcessingSet()
 pset.instrument = ii
 pset.name = 'default'
 session.add(pset)
+
+pset = ProcessingSet()
+pset.instrument = ii
+pset.name = 'test'
+session.add(pset)
+
+desc = ContextDescription()
+desc.instrument_id = 'megara'
+desc.name = 'detector0.mode'
+desc.description = 'Megara detector readout mode'
+session.add(desc)
+session.commit()
+
+for name in ['normal', 'slow', 'turbo']:
+    vl = ContextValue()
+    vl.definition = desc
+    vl.value = name
+    session.add(vl)
+
+desc = ContextDescription()
+desc.instrument_id = 'megara'
+desc.name = 'grism0'
+desc.description = 'Megara grism'
+session.add(desc)
+session.commit()
+
+for name in ['A', 'B', 'C', 'D', 'E', 'F']:
+    vl = ContextValue()
+    vl.definition = desc
+    vl.value = name
+    session.add(vl)
+
+session.add(desc)
 
 ii = Instrument()
 ii.name = 'emir'
