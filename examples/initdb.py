@@ -70,12 +70,9 @@ session.add(ii)
 
 # equivalence
 
-recipes = {'bias': 'clodia.recipes.calibration:BiasRecipe',
-    'dark': 'clodia.recipes.calibration:DarkRecipe',
-    'flat': 'clodia.recipes.calibration:FlatRecipe',
-    'direct_image': 'clodia.recipes.science:DirectImage',
-    'mosaic_image': 'clodia.recipes.science:MosaicImage',
-    'null': 'clodia.recipes.science:Null',
+recipes = {'bias': 'megara.recipes.calibration:BiasRecipe',
+    'dark': 'megara.recipes.calibration:DarkRecipe',
+    'flat': 'megara.recipes.calibration:FlatRecipe',
 }
 
 for r in recipes:
