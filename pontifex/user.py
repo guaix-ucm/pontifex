@@ -365,7 +365,7 @@ class PontifexHost(object):
         self.host = host
         self.port = port
         self.rserver = ServerProxy(master)
-        self.rserver.register(self.cid, host, port, ['clodia'])
+        self.rserver.register(self.cid, host, port, ['clodia', 'megara'])
 
         self.doned = False
         self.queue = Queue()
