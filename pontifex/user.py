@@ -316,6 +316,12 @@ class PontifexServer(object):
 
         _logger.info('create a processing set with name %s', name)
         session = Session()
+        # check if instrument is valid
+        ins = session.query(Instrument).filter_by(name=instrument).first()
+        if ins is None:
+            _logger.info('instrument %s does not exist', name)
+            return
+
         # check if it exists
         pset = session.query(ProcessingSet).filter_by(name=name, instrument_id=instrument).first()
         if pset is not None:
