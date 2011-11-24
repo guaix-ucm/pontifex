@@ -21,9 +21,10 @@ from pontifex.model import get_last_image_index
 
 from datetime import datetime
 
-from clodia.simulator import Clodia, ClodiaImageFactory
+from megara.simulator import Megara, MegaraImageFactory
 
-
+# Processing tasks STATES
+CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 
 def new_image(number, exposure, imgtype, oresult):
     im = Image()
@@ -96,19 +97,6 @@ class Telescope(object):
         self.meta['pointing.dec'] = dec
 
 
-class ImageFactory(object):
-    def __init__(self):
-        filename = 'clodia_primary.txt'
-        self.htempl = Header(txtfile=filename)
-
-    def create(self, metadata):
-
-        hh = self.htempl.copy()
-
-        for rr in hh.ascardlist():
-            rr.value = interpolate(metadata, rr.value)
-        return hh
-
 class Sequencer(object):
     def __init__(self):
         self.session = model.Session()
@@ -128,7 +116,7 @@ class Sequencer(object):
         self.meta['pointing.ra'] = '10:01:04.000'
         self.meta['pointing.dec'] = '04:05:00.40'
 
-        self.image_factory = ClodiaImageFactory()
+        self.image_factory = MegaraImageFactory()
         self.components = []
 
     def connect(self, component):
@@ -139,21 +127,20 @@ class Sequencer(object):
         meta, data = image
         
         allmeta = self.meta
-        allmeta['clodia'] = meta
+        allmeta['megara'] = meta
 
         for c in self.components:
             allmeta.update(c.meta)
 
-        header = self.image_factory.create(allmeta)
-        hdu = pyfits.PrimaryHDU(data, header=header)
+        hdulist = self.image_factory.create(allmeta, data)
         
         im = Image()
         im.name = 'r0%03d.fits' % self.meta['control.runid']()
         print 'add image', im.name
-        hdu.writeto(os.path.join(datadir, im.name), clobber=True)
+        hdulist.writeto(os.path.join(datadir, im.name), clobber=True, checksum=True)
 
-        im.exposure = allmeta['clodia.detector.exposed']
-        im.imgtype = allmeta['clodia.imagetype']
+        im.exposure = allmeta['megara.detector.exposed']
+        im.imgtype = allmeta['megara.imagetype']
         im.observing_tree = self.current_obs_tree_node    
         
         self.session.add(im)
@@ -171,7 +158,7 @@ class Sequencer(object):
         ores.context.append(ccdmode)
         session.add(ores)
         
-        print 'ot created'
+        print 'ob created'
         self.current_obs_tree_node = ores
 
         # Observing Block
@@ -192,6 +179,8 @@ class Sequencer(object):
         
         self.session.commit()        
         self.current_obs_block = oblock
+        
+
         return oblock.id
 
     def start_ob(self):
@@ -220,6 +209,38 @@ class Sequencer(object):
         oblock.completion_time = datetime.utcnow()
         session.commit()
         
+        def create_reduction_tree(session, otask, rparent, instrument, pset='default'):
+            '''Climb the tree and create DataProcessingTask in nodes.'''
+            rtask = DataProcessingTask()
+            rtask.parent = rparent
+            rtask.obstree_node = otask
+            rtask.creation_time = datetime.utcnow()
+            if otask.state == 2:
+                rtask.state = COMPLETED
+            else:
+                rtask.state = CREATED
+            rtask.method = 'process%s' % otask.label.capitalize()
+            request = {'pset': pset, 'instrument': instrument}
+            rtask.request = str(request)
+
+            if otask.children:
+                rtask.waiting = True
+            else:
+                rtask.waiting = False
+
+            session.add(rtask)
+
+            for child in otask.children:
+                create_reduction_tree(session, child, rtask, instrument, pset=pset)
+
+            return rtask
+
+        pset = 'default'        
+        rtask = create_reduction_tree(self.session, oblock.observing_tree, None,
+                                        oblock.obsrun.instrument_id, pset)
+        print 'new root processing task is %d' % rtask.id
+        self.session.commit()
+
         self.current_obs_tree_node = None
         self.current_obs_block = None
         
@@ -249,25 +270,24 @@ session = model.Session()
 
 telescope = Telescope()
 
-clodia = Clodia()
+megara = Megara()
 
 sequencer = Sequencer()
 sequencer.connect(telescope)
 
 loc = {}
 glob = {'telescope': telescope, 
-        'clodia': clodia, 
+        'megara': megara, 
         'sequencer': sequencer}
 
-ins = session.query(Instrument).filter_by(name='clodia').first()
+ins = session.query(Instrument).filter_by(name='megara').first()
 user = session.query(Users).first()
 observer = session.query(Users).filter_by(name='Observer').first()
 astronomer = session.query(Users).filter_by(name='Astronomer').first()
 
-context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
+context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='spec1.detector.mode').first()
 
 ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
-
 
 sequencer.start_or(user, ins)
 

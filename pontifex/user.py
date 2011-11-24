@@ -447,7 +447,7 @@ def main_cli():
     # Add a common parser to be used as a parent
     parser_build_common = subparsers.add_parser('common',
                                                 add_help=False)
-    # build target
+    # run target
     parser_run = subparsers.add_parser('run',
                                          help='Request reduction',
                                          parents=[parser_build_common],
