@@ -41,7 +41,7 @@ import pontifex.process as process
 from pontifex.txrServer import txrServer
 import pontifex.model as model
 from pontifex.model import Session, productsdir
-from pontifex.model import ObservingBlock, Instrument
+from pontifex.model import ObservingBlock, Instrument, ProcessingSet
 from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
 
@@ -311,6 +311,22 @@ class PontifexServer(object):
             self.nclient_hosts += 1
             self.client_hosts[cid][3] = True
 
+    def pset_create(self, name, instrument):
+        '''Create a new processing set'''
+
+        _logger.info('create a processing set with name %s', name)
+        session = Session()
+        # check if it exists
+        pset = session.query(ProcessingSet).filter_by(name=name, instrument_id=instrument).first()
+        if pset is not None:
+            _logger.info('processing set with name %s already exists', name)
+        else:
+            pset = ProcessingSet()
+            pset.name = name
+            pset.instrument_id = instrument
+            session.add(pset)
+            session.commit()
+
     def run(self, obsid, pset='default'):
         '''Insert a new processing task tree in the database.'''
 
@@ -416,8 +432,16 @@ def main_cli():
 
     rserver = ServerProxy(masterurl)
 
-    def run(*args):
-        rserver.run(*args)
+    def run(args):
+        oid = args.id, 
+        pset = args.pset
+        for id in oid:
+            print id, pset
+            rserver.run(id, pset)
+
+    def pset_create(args):
+        print 'Create pset with name %s for instrument %s' % (args.name, args.instrument)
+        rserver.pset_create(args.name, args.instrument)
 
     def usage(args, parser):
         parser.print_help()
@@ -463,9 +487,39 @@ def main_cli():
 
     parser_run.set_defaults(command=run)
     
+    # pset target
+    parser_pset = subparsers.add_parser('pset',
+                                         help='Handle processing sets',
+                                         parents=[parser_build_common],
+                                         description='This command \
+                                         helps to handle \
+                                         processing sets.')
+
+
+
+
+    # Add a subparsers object to use for the actions
+    subparsers_pset = parser_pset.add_subparsers(title='Processing Set Targets',
+                                       description='These are valid commands you can ask pontifex pset to do.')
+
+    # pset create target
+    parser_pset_create = subparsers_pset.add_parser('create',
+                                         help='Create processing set',
+                                         parents=[parser_build_common],
+                                         description='This command \
+                                         creates a \
+                                         processing set.')
+
+    parser_pset_create.add_argument('name', action='store', type=str,
+                              help='Name of the processing set')
+    parser_pset_create.add_argument('instrument', action='store', type=str,
+                              help='Instrument of the processing set')
+    parser_pset_create.set_defaults(command=pset_create)
+
     val = parser.parse_args()
 
-    val.command(val.id, val.pset)
+    #val.command(val.id, val.pset)
+    val.command(val)
 
 def main_host():
 
@@ -527,7 +581,7 @@ def main_server():
     tserver.register_function(im.receiver)
     tserver.register_function(im.version)
     tserver.register_function(im.run)
-
+    tserver.register_function(im.pset_create)
 
     # signal handler
     def handler(signum, frame):
