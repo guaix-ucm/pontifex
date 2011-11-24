@@ -123,7 +123,7 @@ session.add(pset)
 
 desc = ContextDescription()
 desc.instrument_id = 'megara'
-desc.name = 'detector0.mode'
+desc.name = 'spec1.detector.mode'
 desc.description = 'Megara detector readout mode'
 session.add(desc)
 session.commit()
@@ -136,7 +136,7 @@ for name in ['normal', 'slow', 'turbo']:
 
 desc = ContextDescription()
 desc.instrument_id = 'megara'
-desc.name = 'grism0'
+desc.name = 'spec1.grism'
 desc.description = 'Megara grism'
 session.add(desc)
 session.commit()
