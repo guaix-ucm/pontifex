@@ -1,0 +1,14 @@
+
+sequencer.create_ob('bias', 'BIAS')
+telescope.point(0.4555, 12.4545)
+telescope.guide(False)
+megara.spec1.grism('A')
+megara.spec1.imagetype('BIAS')
+megara.spec1.shutter.close()
+megara.spec1.detector.mode('normal')
+sequencer.start_ob()
+for i in range(10):
+    megara.spec1.expose(0)
+    image = megara.spec1.readout()
+    sequencer.add(image)
+sequencer.end_ob()

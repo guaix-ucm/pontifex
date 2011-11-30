@@ -138,9 +138,9 @@ class Sequencer(object):
         im.name = 'r0%03d.fits' % self.meta['control.runid']()
         print 'add image', im.name
         hdulist.writeto(os.path.join(datadir, im.name), clobber=True, checksum=True)
-
-        im.exposure = allmeta['megara.detector.exposed']
-        im.imgtype = allmeta['megara.imagetype']
+        # FIXME: extract this from the FITS header
+        im.exposure = allmeta['megara.spec.detector.exposed']
+        im.imgtype = allmeta['megara.spec.imagetype']
         im.observing_tree = self.current_obs_tree_node    
         
         self.session.add(im)
@@ -158,7 +158,7 @@ class Sequencer(object):
         ores.context.append(ccdmode)
         session.add(ores)
         
-        print 'ob created'
+        print 'ot created'
         self.current_obs_tree_node = ores
 
         # Observing Block
@@ -179,8 +179,6 @@ class Sequencer(object):
         
         self.session.commit()        
         self.current_obs_block = oblock
-        
-
         return oblock.id
 
     def start_ob(self):
