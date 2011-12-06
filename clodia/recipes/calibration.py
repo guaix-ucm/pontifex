@@ -1,5 +1,5 @@
 #
-# Copyright 2011 Sergio Pascual
+# Copyright 2011 Universidad Complutense de Madrid
 # 
 # This file is part of Pontifex
 # 
@@ -40,7 +40,7 @@ class BiasRecipe(RecipeBase):
 
     def __init__(self):
         super(BiasRecipe, self).__init__(
-                        author="Sergio Pascual <sergiopr@fis.ucm.es>",
+                        author="Universidad Complutense de Madrid <sergiopr@fis.ucm.es>",
                         version="0.1.0"
                 )
 
@@ -94,7 +94,7 @@ class DarkRecipe(RecipeBase):
 
     def __init__(self):
         super(DarkRecipe, self).__init__(
-                        author="Sergio Pascual <sergiopr@fis.ucm.es>",
+                        author="Universidad Complutense de Madrid <sergiopr@fis.ucm.es>",
                         version="0.1.0"
                 )
 
@@ -158,7 +158,7 @@ class FlatRecipe(RecipeBase):
 
     def __init__(self):
         super(FlatRecipe, self).__init__(
-                        author="Sergio Pascual <sergiopr@fis.ucm.es>",
+                        author="Universidad Complutense de Madrid <sergiopr@fis.ucm.es>",
                         version="0.1.0"
                 )
 

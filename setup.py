@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(name='pontifex',
       version='0.4.2',
-      author='Sergio Pascual',
+      author='Universidad Complutense de Madrid',
       author_email='sergiopr@fis.ucm.es',
       url='http://guaix.fis.ucm.es/~spr',
       license='GPLv3',
