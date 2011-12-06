@@ -1,5 +1,5 @@
 #
-# Copyright 2011 Sergio Pascual
+# Copyright 2011 Universidad Complutense de Madrid
 # 
 # This file is part of Pontifex
 # 
@@ -30,7 +30,7 @@ from clodia.products import MasterBias, MasterDark, MasterFlat, PointingImage, M
 
 __all__ = ['DirectImage']
 
-__author__ = "Sergio Pascual <sergiopr@fis.ucm.es>"
+__author__ = "Universidad Complutense de Madrid <sergiopr@fis.ucm.es>"
 
 _logger = logging.getLogger('clodia.recipes')
 
