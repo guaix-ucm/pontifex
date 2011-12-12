@@ -120,7 +120,7 @@ def processPointing(session, **kwds):
                 _logger.debug('copy %s', cdp.reference)
                 shutil.copy(os.path.join(productsdir, cdp.reference), workdir)
         elif req.name in stored_parameters:
-            _logger.info('parameter %s from stored paramters', req.name)
+            _logger.info('parameter %s from stored parameters', req.name)
             parameters[req.name] = stored_parameters[req.name]
         else:
             _logger.info('parameter %s has default value')
