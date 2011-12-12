@@ -21,7 +21,18 @@ from pontifex.model import get_last_image_index
 
 from datetime import datetime
 
-from megara.simulator import Megara, MegaraImageFactory
+from numina.recipes import s_init_recipe_system
+
+pipelines = s_init_recipe_system()
+print pipelines
+
+simulator = {}
+
+for key in pipelines:
+    mod = pipelines[key]
+    print mod.__all__
+    if 'Instrument' in mod.__all__ and 'ImageFactory' in mod.__all__:
+	simulator[key] = (mod.Instrument(), mod.ImageFactory())
 
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
@@ -116,7 +127,6 @@ class Sequencer(object):
         self.meta['pointing.ra'] = '10:01:04.000'
         self.meta['pointing.dec'] = '04:05:00.40'
 
-        self.image_factory = MegaraImageFactory()
         self.components = []
 
     def connect(self, component):
@@ -132,15 +142,15 @@ class Sequencer(object):
         for c in self.components:
             allmeta.update(c.meta)
 
-        hdulist = self.image_factory.create(allmeta, data)
+        hdulist = simulator['megara'][1].create(allmeta, data)
         
         im = Image()
         im.name = 'r0%03d.fits' % self.meta['control.runid']()
         print 'add image', im.name
         hdulist.writeto(os.path.join(datadir, im.name), clobber=True, checksum=True)
         # FIXME: extract this from the FITS header
-        im.exposure = allmeta['megara.spec.detector.exposed']
-        im.imgtype = allmeta['megara.spec.imagetype']
+        im.exposure = 0 #allmeta['megara.spec.detector.exposed']
+        im.imgtype = 'BIAS' #allmeta['megara.spec.imagetype']
         im.observing_tree = self.current_obs_tree_node    
         
         self.session.add(im)
@@ -268,15 +278,15 @@ session = model.Session()
 
 telescope = Telescope()
 
-megara = Megara()
-
 sequencer = Sequencer()
 sequencer.connect(telescope)
 
 loc = {}
 glob = {'telescope': telescope, 
-        'megara': megara, 
         'sequencer': sequencer}
+print simulator
+for key in simulator:
+    glob[key] = simulator[key][0]
 
 ins = session.query(Instrument).filter_by(name='megara').first()
 user = session.query(Users).first()
