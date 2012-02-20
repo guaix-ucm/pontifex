@@ -25,7 +25,7 @@ import shutil
 from importlib import import_module
 
 from sqlalchemy import desc
-from numina.recipes import Image, Product
+from numina.recipes import DataFrame
 
 from model import taskdir, datadir, productsdir, DataProduct, Recipe, RecipeConfiguration
 from model import Session
@@ -95,7 +95,7 @@ def processPointing(session, **kwds):
     for req in RecipeClass.__requires__:
         _logger.info('recipe requires %s', req.name)
         _logger.info('default value is %s', req.value)
-        if issubclass(req.value, Image):
+        if issubclass(req.value, DataFrame):
             # query here
             longname = '%s.%s' % (req.value.__module__, req.value.__name__)
             _logger.info('query for %s', longname)

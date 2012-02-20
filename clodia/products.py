@@ -21,25 +21,25 @@
 
 
 '''
-    RAW_BIAS Image
-    RAW_DARK Image
-    RAW_FLAT Image
-    RAW_ILLUM Image
-    RAW_SCIENCE Image
+    RAW_BIAS DataFrame
+    RAW_DARK DataFrame
+    RAW_FLAT DataFrame
+    RAW_ILLUM DataFrame
+    RAW_SCIENCE DataFrame
 
-    MASTER_BIAS  Image(detector)
-    MASTER_DARK  Image(detector, exposure)
-    MASTER_FLAT  Image(detector, filter)
-    MASTER_ILLUM Image(detector, filter)
+    MASTER_BIAS  DataFrame(detector)
+    MASTER_DARK  DataFrame(detector, exposure)
+    MASTER_FLAT  DataFrame(detector, filter)
+    MASTER_ILLUM DataFrame(detector, filter)
 
-    POINTING Image
-    MOSAIC Image
+    POINTING DataFrame
+    MOSAIC DataFrame
 
 '''
 
-from numina.recipes import Image
+from numina.recipes import DataFrame
 
-class MasterBias(Image):
+class MasterBias(DataFrame):
     def __init__(self, hdu):
         super(MasterBias, self).__init__(hdu)
 
@@ -47,7 +47,7 @@ class MasterBias(Image):
         hdr = self.image[0].header
         yield 'detector0.mode', hdr['ccdmode']
 
-class MasterDark(Image):
+class MasterDark(DataFrame):
     def __init__(self, hdu):
         super(MasterDark, self).__init__(hdu)
 
@@ -55,7 +55,7 @@ class MasterDark(Image):
         hdr = self.image[0].header
         yield 'detector0.mode', hdr['ccdmode']
 
-class MasterFlat(Image):
+class MasterFlat(DataFrame):
     def __init__(self, hdu):
         super(MasterFlat, self).__init__(hdu)
 
@@ -64,7 +64,7 @@ class MasterFlat(Image):
         yield 'detector0.mode', hdr['ccdmode']
         yield 'filter0', hdr['filter']
 
-class MasterIllum(Image):
+class MasterIllum(DataFrame):
     def __init__(self, hdu):
         super(MasterIllum, self).__init__(hdu)
 
@@ -73,7 +73,7 @@ class MasterIllum(Image):
         yield 'detector0.mode', hdr['ccdmode']
         yield 'filter0', hdr['filter']
 
-class PointingImage(Image):
+class PointingImage(DataFrame):
     def __init__(self, hdu):
         super(PointingImage, self).__init__(hdu)
 
@@ -82,7 +82,7 @@ class PointingImage(Image):
         yield 'detector0.mode', hdr['ccdmode']
         yield 'filter0', hdr['filter']
 
-class Mosaic(Image):
+class Mosaic(DataFrame):
     def __init__(self, hdu):
         super(Mosaic, self).__init__(hdu)
 

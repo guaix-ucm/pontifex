@@ -21,6 +21,37 @@ from pontifex.model import get_last_image_index
 
 from datetime import datetime
 
+# Import simulators
+from numina.pipeline import init_pipeline_system
+
+pipelines = init_pipeline_system()
+
+simulators = {}
+
+import emir
+print emir.__all__
+print emir.Instrument()
+
+for key, mod in pipelines.items():
+    try:
+        if 'Pipeline' in mod.__all__:
+            print key, 'provides pipeline'
+        if 'Instrument' in mod.__all__ and 'ImageFactory' in mod.__all__:
+            print key, 'provides simulator'
+            print dir(mod)
+            print mod.Instrument()
+            print mod.ImageFactory()
+            simulators[key] = (mod.Instrument(), mod.ImageFactory())
+    except AttributeError as err:
+        print err, 'module is %s' % mod.__name__
+        if key in simulators:
+            del simulators[key]
+
+print 'done'
+print simulators
+import sys
+sys.exit(0)
+
 from megara.simulator import Megara, MegaraImageFactory
 
 # Processing tasks STATES
