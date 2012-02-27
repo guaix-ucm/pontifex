@@ -4,7 +4,9 @@ from datetime import datetime
 import os.path
 import sys
 from StringIO import StringIO 
+import json
 
+import yaml
 from sqlalchemy import create_engine
 import pyfits
 from pyfits import Header
@@ -28,19 +30,12 @@ pipelines = init_pipeline_system()
 
 simulators = {}
 
-import emir
-print emir.__all__
-print emir.Instrument()
-
 for key, mod in pipelines.items():
     try:
         if 'Pipeline' in mod.__all__:
             print key, 'provides pipeline'
         if 'Instrument' in mod.__all__ and 'ImageFactory' in mod.__all__:
             print key, 'provides simulator'
-            print dir(mod)
-            print mod.Instrument()
-            print mod.ImageFactory()
             simulators[key] = (mod.Instrument(), mod.ImageFactory())
     except AttributeError as err:
         print err, 'module is %s' % mod.__name__
@@ -48,69 +43,11 @@ for key, mod in pipelines.items():
             del simulators[key]
 
 print 'done'
-print simulators
-import sys
-sys.exit(0)
-
-from megara.simulator import Megara, MegaraImageFactory
 
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 
-def new_image(number, exposure, imgtype, oresult):
-    im = Image()
-    im.name = 'r0%03d.fits' % number
-    data = numpy.zeros((1,1), dtype='int16')
-    hdu = pyfits.PrimaryHDU(data)
-    hdu.header.update('ccdmode', 'normal')
-    hdu.header.update('filter', 311)
-    hdu.writeto(os.path.join(datadir, im.name), clobber=True)
 
-    im.exposure = exposure
-    im.imgtype = imgtype
-    im.observing_tree = oresult    
-    return im
-
-def create_obsrun(userid, insname):
-    obsrun = ObservingRun()
-    obsrun.pi_id = userid
-    obsrun.instrument_id = insname
-    obsrun.state = 'RUNNING'
-    obsrun.start_time = datetime.utcnow()
-    return obsrun
-
-def create_observing_block(mode, parent):
-    oblock = ObservingBlock()
-    oblock.observing_mode = mode
-    oblock.observer = observer
-    parent.obsblocks.append(oblock)
-    return oblock
-
-def create_reduction_task(oblock, oresult):
-    ptask = DataProcessingTask()
-    ptask.observing_result = oresult
-    ptask.state = 0
-    ptask.method = 'process%s' % oresult.label.capitalize()
-    return ptask
-
-def create_reduction_tree(oresult, parent):
-
-    ptask = DataProcessingTask()
-    ptask.host = 'localhost'
-    ptask.state = 0
-    ptask.parent = parent
-    ptask.creation_time = datetime.utcnow()
-    ptask.method = 'process%S' % oresult.label
-#    request = {'id': otaskp.id,
-#                'images': [image.name for image in otaskp.images],
-#                'children': [],
-#                'instrument': ins.name,
-#                'observing_mode': oblock.observing_mode,
-#              }
-#    ptask.request = str(request)
-    for child in oresult.children:
-        create_reduction_tree(child, ptask)
-    return ptask
 
 class Telescope(object):
     def __init__(self):
@@ -129,7 +66,7 @@ class Telescope(object):
 
 
 class Sequencer(object):
-    def __init__(self):
+    def __init__(self, imgfact):
         self.session = model.Session()
         
         # Status is stored
@@ -141,37 +78,40 @@ class Sequencer(object):
         self.meta['control.name'] = 'NUMINA'
         self.meta['control.runid'] = lambda :get_last_image_index(self.session)
         self.meta['control.date'] = lambda : datetime.now().isoformat()
+        #self.meta['dateobs'] = lambda : datetime.now().isoformat()
         self.meta['proposal.id'] = 203
         self.meta['proposal.pi_id'] = 'sergiopr'
         self.meta['pointing.airmass'] = 1.0
         self.meta['pointing.ra'] = '10:01:04.000'
         self.meta['pointing.dec'] = '04:05:00.40'
 
-        self.image_factory = MegaraImageFactory()
+        self.imgfact = imgfact
         self.components = []
 
     def connect(self, component):
         self.components.append(component)
     
     def add(self, image):
+
+        name = 'emir'
         
         meta, data = image
         
         allmeta = self.meta
-        allmeta['megara'] = meta
+        allmeta[name] = meta
 
         for c in self.components:
             allmeta.update(c.meta)
 
-        hdulist = self.image_factory.create(allmeta, data)
+        hdulist = self.imgfact[name].create(allmeta, data)
         
         im = Image()
         im.name = 'r0%03d.fits' % self.meta['control.runid']()
         print 'add image', im.name
         hdulist.writeto(os.path.join(datadir, im.name), clobber=True, checksum=True)
         # FIXME: extract this from the FITS header
-        im.exposure = allmeta['megara.spec.detector.exposed']
-        im.imgtype = allmeta['megara.spec.imagetype']
+        im.exposure = hdulist['primary'].header['exposed']
+        im.imgtype = hdulist['primary'].header['imagety']
         im.observing_tree = self.current_obs_tree_node    
         
         self.session.add(im)
@@ -186,7 +126,7 @@ class Sequencer(object):
         ores.mode = mode
         ores.waiting = True
         ores.awaited = False
-        ores.context.append(ccdmode)
+        #ores.context.append(ccdmode)
         session.add(ores)
         
         print 'ot created'
@@ -225,6 +165,26 @@ class Sequencer(object):
         oblock = self.current_obs_block
         
         print 'end ob', oblock.observing_mode
+        insname = oblock.obsrun.instrument.name
+        
+        # Print file with ob
+        
+        images = []
+        ob = {'images': images, 'instrument': str(insname), 'mode': 
+              str(oblock.observing_mode), 'id': oblock.id, 'children': []}
+        
+        
+        for im in self.current_obs_tree_node.images:
+            images.append([str(im.name), 
+                           im.exposure, 
+                           str(im.imgtype)
+                           ])
+        
+        with open('ob-%d.json' % oblock.id, 'w') as fd:
+            json.dump(ob, fd, indent=1)
+
+        with open('ob-%d.yaml' % oblock.id, 'w') as fd:
+            yaml.dump(ob, fd)
         
         ores = self.current_obs_tree_node
         # OR ended
@@ -273,8 +233,16 @@ class Sequencer(object):
         self.current_obs_tree_node = None
         self.current_obs_block = None
         
-        
     def start_or(self, user, ins):
+        
+        def create_obsrun(userid, insname):
+            obsrun = ObservingRun()
+            obsrun.pi_id = userid
+            obsrun.instrument_id = insname
+            obsrun.state = 'RUNNING'
+            obsrun.start_time = datetime.utcnow()
+            return obsrun
+                
         self.current_obs_run = create_obsrun(user.id, ins.name)
         self.session.add(self.current_obs_run)
         self.session.commit()
@@ -297,26 +265,29 @@ model.init_model(engine)
 model.metadata.create_all(engine)
 session = model.Session()
 
+loc = {}
+img_factory = {}
+glob = {}
+
+for key, (instrument, factory) in simulators.iteritems():
+    glob[key] = instrument
+    img_factory[key] = factory
+
 telescope = Telescope()
-
-megara = Megara()
-
-sequencer = Sequencer()
+sequencer = Sequencer(img_factory)
 sequencer.connect(telescope)
 
-loc = {}
-glob = {'telescope': telescope, 
-        'megara': megara, 
-        'sequencer': sequencer}
+glob['telescope'] = telescope
+glob['sequencer'] = sequencer
 
-ins = session.query(Instrument).filter_by(name='megara').first()
+ins = session.query(Instrument).filter_by(name='emir').first()
 user = session.query(Users).first()
 observer = session.query(Users).filter_by(name='Observer').first()
 astronomer = session.query(Users).filter_by(name='Astronomer').first()
 
-context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='spec1.detector.mode').first()
+#context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='spec1.detector.mode').first()
 
-ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
+#ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
 
 sequencer.start_or(user, ins)
 
@@ -330,13 +301,4 @@ except Exception:
     print 'Error in sequence'
     raise
 
-
-
-#ptask.instrument_id = ins.name
-#ptask.state = 1
-#session.commit()
-
-# OR finished
-
 sequencer.end_or()
-
