@@ -12,6 +12,9 @@ import pyfits
 from pyfits import Header
 import numpy
 from numina.treedict import TreeDict
+# Import simulators
+from numina.pipeline import init_pipeline_system
+from numina.instrument import Sky, Lamp, ThermalBackground
 
 import pontifex.model as model
 from pontifex.model import datadir
@@ -23,8 +26,7 @@ from pontifex.model import get_last_image_index
 
 from datetime import datetime
 
-# Import simulators
-from numina.pipeline import init_pipeline_system
+
 
 pipelines = init_pipeline_system()
 
@@ -52,7 +54,31 @@ CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 class Telescope(object):
     def __init__(self):
         self.meta = TreeDict()
-
+        
+        class NullSource(object):
+            def emit(self):
+                return 0.0
+        
+        self._illum = False
+        
+        self.lamp = Lamp(10000.0)
+        self.thermal = ThermalBackground(1000.0)
+        
+        self.source = NullSource()
+        
+        
+    def connect(self, source):
+        self.source = source
+        
+    def emit(self):
+        thermal = self.thermal.emit()
+        if self._illum:
+            return thermal + self.lamp.emit()
+        return thermal + self.source.emit()
+        
+    def illum(self, on):
+        self.__illum = on
+        
     def guide(self, on):
         pass
 
@@ -269,11 +295,17 @@ loc = {}
 img_factory = {}
 glob = {}
 
-for key, (instrument, factory) in simulators.iteritems():
-    glob[key] = instrument
-    img_factory[key] = factory
-
 telescope = Telescope()
+
+for key, (instrument, factory) in simulators.iteritems():
+    try:
+        instrument.connect(telescope)
+        glob[key] = instrument
+        img_factory[key] = factory
+    except AttributeError:
+        pass
+
+
 sequencer = Sequencer(img_factory)
 sequencer.connect(telescope)
 
