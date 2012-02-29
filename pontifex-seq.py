@@ -77,7 +77,7 @@ class Telescope(object):
         return thermal + self.source.emit()
         
     def illum(self, on):
-        self.__illum = on
+        self._illum = on
         
     def guide(self, on):
         pass
@@ -90,6 +90,11 @@ class Telescope(object):
         self.meta['pointing.ra'] = ra
         self.meta['pointing.dec'] = dec
 
+    def point_offset(self, deltara, deltadec):
+        self.meta['pointing.airmass'] = 1.0
+        dec_rad = self.meta['pointing.dec'] / 180 * math.pi
+        self.meta['pointing.ra'] += deltara / 3600.0 / math.cos(dec_rad)
+        self.meta['pointing.dec'] += deltadec / 3600.0
 
 class Sequencer(object):
     def __init__(self, imgfact):
@@ -136,8 +141,11 @@ class Sequencer(object):
         print 'add image', im.name
         hdulist.writeto(os.path.join(datadir, im.name), clobber=True, checksum=True)
         # FIXME: extract this from the FITS header
+        im.object = hdulist['primary'].header['object']
         im.exposure = hdulist['primary'].header['exposed']
         im.imgtype = hdulist['primary'].header['imagety']
+        im.racoor = hdulist['primary'].header['ra']
+        im.deccoor = hdulist['primary'].header['dec']
         im.observing_tree = self.current_obs_tree_node    
         
         self.session.add(im)
@@ -202,8 +210,11 @@ class Sequencer(object):
         
         for im in self.current_obs_tree_node.images:
             images.append([str(im.name), 
+                           str(im.object),
                            im.exposure, 
-                           str(im.imgtype)
+                           str(im.imgtype),
+                           im.racoor,
+                           im.deccoor
                            ])
         
         with open('ob-%d.json' % oblock.id, 'w') as fd:

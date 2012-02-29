@@ -150,8 +150,11 @@ class Image(DeclarativeBase):
     __tablename__ = 'image'
     id = Column(Integer, primary_key=True)
     name = Column(String(10), unique=True, nullable=False)
+    object = Column(String(100), nullable=False)
     exposure = Column(Float, nullable=False)
     imgtype = Column(String(10), nullable=False)
+    racoor = Column(Float, nullable=False)
+    deccoor = Column(Float, nullable=False)
     stamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     obstree_id = Column(Integer,  ForeignKey("observing_tree.id"), nullable=False)
 
