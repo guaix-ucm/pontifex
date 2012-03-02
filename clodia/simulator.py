@@ -29,7 +29,7 @@ from numpy.random import normal, poisson
 from numina.treedict import TreeDict
 from numina.instrument.template import interpolate
 
-from pontifex.astrotime import datetime_to_mjd
+from numina.astrotime import datetime_to_mjd
 
 class Amplifier(object):
     def __init__(self):
