@@ -122,7 +122,7 @@ class ObservingTree(DeclarativeBase):
     
     context = relationship('ContextValue', secondary='observing_tree_context', backref='observing_tree')
 
-    images = relationship("Image", backref='observing_tree')
+    frames = relationship("Frame", backref='observing_tree')
 
     #observing_block = relationship("ObservingBlock")
 
@@ -146,8 +146,8 @@ class ObservingTree(DeclarativeBase):
 
 #event.listen(ObservingTree.__table__, 'after_create', update_task_state)
 
-class Image(DeclarativeBase):
-    __tablename__ = 'image'
+class Frame(DeclarativeBase):
+    __tablename__ = 'frame'
     id = Column(Integer, primary_key=True)
     name = Column(String(10), unique=True, nullable=False)
     object = Column(String(100), nullable=False)
@@ -186,10 +186,10 @@ class ContextValue(DeclarativeBase):
 
     definition = relationship("ContextDescription", backref=backref("values"),  collection_class=attribute_mapped_collection('together'))
 
-def get_last_image_index(session):
+def get_last_frame_index(session):
     number = 0
     try:
-        name, = session.query(Image.name).order_by(desc(Image.stamp)).first()
+        name, = session.query(Frame.name).order_by(desc(Frame.stamp)).first()
         number = int(name[1:-5]) + 1
     except TypeError:
         number = 1

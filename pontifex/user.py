@@ -267,7 +267,7 @@ class PontifexServer(object):
                     kwds = {}
                     kwds['id'] = task.id
                     kwds['children'] = task.children
-                    kwds['images'] = task.obstree_node.images
+                    kwds['frames'] = task.obstree_node.frames
                     kwds['mode'] = task.obstree_node.mode
                     kwds['request'] = eval(task.request)
                     # finding parent node

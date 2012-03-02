@@ -26,6 +26,7 @@ from importlib import import_module
 
 from sqlalchemy import desc
 from numina.recipes import DataFrame
+import yaml
 
 from model import taskdir, datadir, productsdir, DataProduct, Recipe, RecipeConfiguration
 from model import Session
@@ -54,8 +55,8 @@ def processPointing(session, **kwds):
 
     _logger.info('create config files, put them in root dir')
 
-    filename = os.path.join(resultsdir, 'task-control.json')
-
+    filename_json = os.path.join(resultsdir, 'task-control.json')
+    filename_yaml = os.path.join(resultsdir, 'task-control.yaml')
     
     _logger.info('instrument=%(instrument)s mode=%(mode)s', kwds)
     recipe = session.query(Recipe).filter_by(instrument_id=kwds['instrument'], 
@@ -129,12 +130,12 @@ def processPointing(session, **kwds):
     for req in RecipeClass.__provides__:
         _logger.info('recipe provides %s', req)
     
-    _logger.info('copying the images')
+    _logger.info('copying the frames')
     images = []
-    for image in kwds['images']:
-        _logger.debug('copy %s', image.name)
-        images.append(image.name)
-        shutil.copy(os.path.join(datadir, image.name), workdir)
+    for frame in kwds['frames']:
+        _logger.debug('copy %s', frame.name)
+        images.append(frame.name)
+        shutil.copy(os.path.join(datadir, frame.name), workdir)
 
     _logger.info('copying the children results')
     children_results = []
@@ -146,7 +147,7 @@ def processPointing(session, **kwds):
                 shutil.copy(os.path.join(productsdir, dp.reference), workdir)
 
     config = {'observing_result': {'id': kwds['id'], 
-        'images': images,
+        'frames': images,
         'children': children_results,
         'instrument': kwds['instrument'],
         'mode': kwds['mode'],
@@ -154,9 +155,13 @@ def processPointing(session, **kwds):
         'reduction': {'recipe': recipe.module, 'parameters': parameters, 'processing_set': pset},
         'instrument': kwds['ins_params'],
         }
-    with open(filename, 'w+') as fp:
+    with open(filename_json, 'w+') as fp:
         json.dump(config, fp, indent=1)
 
+    with open(filename_yaml, 'w+') as fp:
+        yaml.dump(config, fp, indent=1)
+
+    
     return 0
 
 processMosaic = processPointing

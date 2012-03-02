@@ -203,13 +203,13 @@ class Sequencer(object):
         
         # Print file with ob
         
-        images = []
-        ob = {'images': images, 'instrument': str(insname), 'mode': 
+        frames = []
+        ob = {'frames': frame, 'instrument': str(insname), 'mode': 
               str(oblock.observing_mode), 'id': oblock.id, 'children': []}
         
         
-        for im in self.current_obs_tree_node.images:
-            images.append([str(im.name), 
+        for im in self.current_obs_tree_node.frames:
+            frame.append([str(im.name), 
                            str(im.object),
                            im.exposure, 
                            str(im.imgtype),
