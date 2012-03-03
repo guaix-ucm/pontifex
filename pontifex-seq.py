@@ -18,11 +18,11 @@ from numina.instrument import Sky, Lamp, ThermalBackground
 
 import pontifex.model as model
 from pontifex.model import datadir
-from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
+from pontifex.model import ObservingRun, ObservingBlock, Frame, Instrument, Users
 from pontifex.model import DataProcessingTask, ObservingTree, InstrumentConfiguration
 
 from pontifex.model import ContextDescription, ContextValue
-from pontifex.model import get_last_image_index
+from pontifex.model import get_last_frame_index
 
 from datetime import datetime
 
@@ -107,7 +107,7 @@ class Sequencer(object):
 
         self.meta = TreeDict()
         self.meta['control.name'] = 'NUMINA'
-        self.meta['control.runid'] = lambda :get_last_image_index(self.session)
+        self.meta['control.runid'] = lambda :get_last_frame_index(self.session)
         self.meta['control.date'] = lambda : datetime.now().isoformat()
         #self.meta['dateobs'] = lambda : datetime.now().isoformat()
         self.meta['proposal.id'] = 203
@@ -136,9 +136,9 @@ class Sequencer(object):
 
         hdulist = self.imgfact[name].create(allmeta, data)
         
-        im = Image()
+        im = Frame()
         im.name = 'r0%03d.fits' % self.meta['control.runid']()
-        print 'add image', im.name
+        print 'add frame', im.name
         hdulist.writeto(os.path.join(datadir, im.name), clobber=True, checksum=True)
         # FIXME: extract this from the FITS header
         im.object = hdulist['primary'].header['object']
