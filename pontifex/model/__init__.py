@@ -19,6 +19,7 @@
 
 import os
 import os.path
+import math
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -55,4 +56,4 @@ from .sql import ObservingBlock, ObservingRun, Frame, InstrumentConfiguration
 from .sql import Instrument, Users, ObservingTree, Channel, ContextDescription, ContextValue
 from .dataproc import Recipe, RecipeConfiguration, DataProcessingTask
 from .dataproc import ReductionResult, DataProduct, ProcessingSet
-from .sql import get_last_image_index
+from .sql import get_last_frame_index
