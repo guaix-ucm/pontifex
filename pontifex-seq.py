@@ -5,6 +5,7 @@ import os.path
 import sys
 from StringIO import StringIO 
 import json
+import math
 
 import yaml
 from sqlalchemy import create_engine
@@ -204,17 +205,13 @@ class Sequencer(object):
         # Print file with ob
         
         frames = []
-        ob = {'frames': frame, 'instrument': str(insname), 'mode': 
+        ob = {'frames': frames, 'instrument': str(insname), 'mode': 
               str(oblock.observing_mode), 'id': oblock.id, 'children': []}
         
         
         for im in self.current_obs_tree_node.frames:
-            frame.append([str(im.name), 
-                           str(im.object),
-                           im.exposure, 
-                           str(im.imgtype),
-                           im.racoor,
-                           im.deccoor
+            frames.append([str(im.name), 
+                           str(im.imgtype)
                            ])
         
         with open('ob-%d.json' % oblock.id, 'w') as fd:
