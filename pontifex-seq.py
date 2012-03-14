@@ -92,10 +92,14 @@ class Telescope(object):
         self.meta['pointing.dec'] = dec
 
     def point_offset(self, deltara, deltadec):
+        '''
+        deltara and deltadec in arc-seconds
+        '''
         self.meta['pointing.airmass'] = 1.0
         dec_rad = self.meta['pointing.dec'] / 180 * math.pi
-        self.meta['pointing.ra'] += deltara / 3600.0 / math.cos(dec_rad)
-        self.meta['pointing.dec'] += deltadec / 3600.0
+        self.meta['pointing.ra'] += (deltara / 3600.0) / math.cos(dec_rad)
+        self.meta['pointing.dec'] += (deltadec / 3600.0)
+    
 
 class Sequencer(object):
     def __init__(self, imgfact):
