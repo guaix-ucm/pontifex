@@ -35,7 +35,9 @@ import shutil
 
 from sqlalchemy import create_engine
 from numina.user import run_recipe_from_file
+from numina.pipeline import init_pipeline_system
 from numina.jsonserializer import from_json
+from numina.serialize import lookup as lookup_serializer
 
 import pontifex.process as process
 from pontifex.txrServer import txrServer
@@ -63,6 +65,8 @@ class PontifexServer(object):
         self.nclient_hosts = 0
 
         self.ins_config = {}
+
+        init_pipeline_system()
 
         session = Session()
         for instrument in session.query(Instrument):
@@ -379,6 +383,10 @@ class PontifexServer(object):
 # create logger for host
 _logger = logging.getLogger("pontifex.host")
 
+# FIXME: global variables
+sdum = None
+sload = None
+
 class PontifexHost(object):
     def __init__(self, master, host, port):
         super(PontifexHost, self).__init__()
@@ -419,7 +427,16 @@ class PontifexHost(object):
                 _logger.debug('%s', basedir)
                 _logger.debug('%s', workdir)
                 _logger.debug('%s', resultsdir)
-                result = run_recipe_from_file(filename, workdir=workdir, 
+
+                # FIXME: global variables
+                serformat = 'yaml'
+                try:
+                    sname, sdump, sload = lookup_serializer(serformat)
+                except LookupError:
+                    _logger.info('Serialization format %s is not define', serformat)
+                    raise
+
+                result = run_recipe_from_file(filename, sload, sdump, workdir=workdir, 
                                     resultsdir=resultsdir, cleanup=False)
 
                 _logger.info('finished')

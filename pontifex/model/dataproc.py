@@ -136,9 +136,28 @@ class ProcessingSet(DeclarativeBase):
     instrument_id = Column(String(10), ForeignKey('instrument.name'), primary_key=True, nullable=False)
     name = Column(String(50), primary_key=True, nullable=False)
 
+class FITSKeyword(DeclarativeBase):
+    __tablename__ = 'dp_fits'
+    id = Column(Integer, primary_key=True)
+    key = Column(String(8), nullable=False)
+    discriminator = Column('type', String(50))
+    __mapper_args__ = {'polymorphic_on': discriminator}
 
+class BoolFITSKeyword(FITSKeyword):
+    __tablename__ = 'dp_fits_bool'
+    __mapper_args__ = {'polymorphic_identity': 'bool'}
+    id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
+    value = Column(Boolean, nullable=False)
 
+class IntegerFITSKeyword(FITSKeyword):
+    __tablename__ = 'dp_fits_int'
+    __mapper_args__ = {'polymorphic_identity': 'int'}
+    id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
+    value = Column(Integer, nullable=False)
 
-
-
+class StringFITSKeyword(FITSKeyword):
+    __tablename__ = 'dp_fits_string'
+    __mapper_args__ = {'polymorphic_identity': 'string'}
+    id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
+    value = Column(String(70), nullable=False)
 

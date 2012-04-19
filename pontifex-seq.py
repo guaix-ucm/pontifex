@@ -6,6 +6,9 @@ import sys
 from StringIO import StringIO 
 import json
 import math
+import logging.config
+
+logging.config.fileConfig("logging.ini")
 
 import yaml
 from sqlalchemy import create_engine
@@ -27,16 +30,14 @@ from pontifex.model import get_last_frame_index
 
 from datetime import datetime
 
-
-
 pipelines = init_pipeline_system()
 
+import emir as emirmod
+import megara as megaramod
 simulators = {}
 
-for key, mod in pipelines.items():
+for key, mod in [('emir', emirmod), ('megara', megaramod)]:
     try:
-        if 'Pipeline' in mod.__all__:
-            print key, 'provides pipeline'
         if 'Instrument' in mod.__all__ and 'ImageFactory' in mod.__all__:
             print key, 'provides simulator'
             simulators[key] = (mod.Instrument(), mod.ImageFactory())
@@ -45,12 +46,11 @@ for key, mod in pipelines.items():
         if key in simulators:
             del simulators[key]
 
+print simulators
 print 'done'
 
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
-
-
 
 class Telescope(object):
     def __init__(self):
@@ -129,7 +129,7 @@ class Sequencer(object):
     
     def add(self, image):
 
-        name = 'emir'
+        name = 'megara'
         
         meta, data = image
         
@@ -314,9 +314,10 @@ for key, (instrument, factory) in simulators.iteritems():
         instrument.connect(telescope)
         glob[key] = instrument
         img_factory[key] = factory
-    except AttributeError:
-        pass
+    except AttributeError as error:
+        print 'some error', error
 
+print glob
 
 sequencer = Sequencer(img_factory)
 sequencer.connect(telescope)
@@ -324,7 +325,7 @@ sequencer.connect(telescope)
 glob['telescope'] = telescope
 glob['sequencer'] = sequencer
 
-ins = session.query(Instrument).filter_by(name='emir').first()
+ins = session.query(Instrument).filter_by(name='megara').first()
 user = session.query(Users).first()
 observer = session.query(Users).filter_by(name='Observer').first()
 astronomer = session.query(Users).filter_by(name='Astronomer').first()

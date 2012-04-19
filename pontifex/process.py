@@ -26,6 +26,7 @@ from importlib import import_module
 
 from sqlalchemy import desc
 from numina.recipes import DataFrame
+from numina.pipeline import get_recipe
 import yaml
 
 from model import taskdir, datadir, productsdir, DataProduct, Recipe, RecipeConfiguration
@@ -59,24 +60,12 @@ def processPointing(session, **kwds):
     filename_yaml = os.path.join(resultsdir, 'task-control.yaml')
     
     _logger.info('instrument=%(instrument)s mode=%(mode)s', kwds)
-    recipe = session.query(Recipe).filter_by(instrument_id=kwds['instrument'], 
-                                        mode=kwds['mode'],
-                                        active=True).first()
-        
-    if recipe is None:
+    try:
+        recipeClass = get_recipe(kwds['instrument'], kwds['mode'])
+    except ValueError:
         _logger.warning('cannot find entry point for %(instrument)s and %(mode)s', kwds)
         raise ValueError
         
-    _logger.info('entry point is %s', recipe.module)
-        
-    mod, klass = recipe.module.split(':')
-
-    try:
-        module = import_module(mod)
-        RecipeClass = getattr(module, klass)
-    except Exception as error:
-        _logger.error(error)
-
     _logger.info('matching parameters')
     
     request = kwds['request']
@@ -85,7 +74,7 @@ def processPointing(session, **kwds):
     parameters = {}
     
     stored_parameters = session.query(RecipeConfiguration).filter_by(instrument_id=kwds['instrument'], 
-                                        module=recipe.module,
+                                        module='%s:%s' % (recipeClass.__module__, recipeClass.__name__),
                                         pset_name=pset,
                                         active=True).first()
 
@@ -93,7 +82,7 @@ def processPointing(session, **kwds):
         _logger.info('no stored parameters for this recipe')
         stored_parameters = {}
 
-    for req in RecipeClass.__requires__:
+    for req in recipeClass.__requires__:
         _logger.info('recipe requires %s', req.name)
         _logger.info('default value is %s', req.value)
         if issubclass(req.value, DataFrame):
@@ -127,7 +116,7 @@ def processPointing(session, **kwds):
             _logger.info('parameter %s has default value')
             parameters[req.name] = req.value
 
-    for req in RecipeClass.__provides__:
+    for req in recipeClass.__provides__:
         _logger.info('recipe provides %s', req)
     
     _logger.info('copying the frames')
@@ -152,7 +141,7 @@ def processPointing(session, **kwds):
         'instrument': kwds['instrument'],
         'mode': kwds['mode'],
         }, 
-        'reduction': {'recipe': recipe.module, 'parameters': parameters, 'processing_set': pset},
+        'reduction': {'recipe': recipeClass.__module__+':'+recipeClass.__name__, 'parameters': parameters, 'processing_set': pset},
         'instrument': kwds['ins_params'],
         }
     with open(filename_json, 'w+') as fp:
