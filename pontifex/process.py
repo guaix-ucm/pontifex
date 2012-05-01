@@ -19,19 +19,15 @@
 
 import logging
 import json
-import os
 import os.path
 import shutil
-from importlib import import_module
 
 from sqlalchemy import desc
 from numina.recipes import DataFrame
 from numina.pipeline import get_recipe
 import yaml
 
-from model import taskdir, datadir, productsdir, DataProduct, Recipe, RecipeConfiguration
-from model import Session
-
+from model import taskdir, datadir, productsdir, DataProduct, RecipeConfiguration
 
 
 _logger = logging.getLogger("pontifex.proc")

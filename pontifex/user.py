@@ -30,7 +30,6 @@ import signal
 import sys
 import uuid
 import ConfigParser
-import json
 import shutil
 
 from sqlalchemy import create_engine
@@ -41,8 +40,7 @@ from numina.serialize import lookup as lookup_serializer
 
 import pontifex.process as process
 from pontifex.txrServer import txrServer
-import pontifex.model as model
-from pontifex.model import Session, productsdir
+from pontifex.model import Session, productsdir, metadata, init_model
 from pontifex.model import ObservingBlock, Instrument, ProcessingSet
 from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
@@ -593,8 +591,8 @@ def main_server():
     #engine = create_engine('sqlite:///devdata.db', echo=True)
     engine.execute('pragma foreign_keys=on')
 
-    model.init_model(engine)
-    model.metadata.create_all(engine)
+    init_model(engine)
+    metadata.create_all(engine)
 
     im = PontifexServer()
 

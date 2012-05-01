@@ -22,16 +22,14 @@
 from datetime import datetime
 
 from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, CheckConstraint, desc
-from sqlalchemy import Integer, String, DateTime, Float, Binary, Boolean, TIMESTAMP
-from sqlalchemy import Table, Column, MetaData, ForeignKey
-from sqlalchemy import PickleType, Enum, event
+from sqlalchemy import Integer, String, DateTime, Float, Boolean, TIMESTAMP
+from sqlalchemy import Table, Column, ForeignKey
+from sqlalchemy import PickleType, Enum
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy.schema import DDL
 from sqlalchemy.orm import validates
 
-from pontifex.model import DeclarativeBase, metadata, Session
+from pontifex.model import DeclarativeBase
 
 class Users(DeclarativeBase):
     __tablename__ = 'users'
@@ -129,8 +127,8 @@ class ObservingTree(DeclarativeBase):
     # approach based on ORM validation
     @validates('state')
     def update_state(self, key, value):
-	if value == 2:
-	    for task in self.tasks:
+        if value == 2:
+            for task in self.tasks:
                 if task.state == 0:
                     task.state = 1
         return value
