@@ -19,32 +19,18 @@
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
-import time
+
 import threading
 import logging
-from Queue import Queue
 from xmlrpclib import ServerProxy
-import os.path
-from datetime import datetime
 import signal
 import sys
-import uuid
 import ConfigParser
-import shutil
 
-import yaml
 from sqlalchemy import create_engine
-from numina.user import run_recipe_from_file
-from numina.pipeline import init_pipeline_system
-from numina.serialize import lookup as lookup_serializer
 
-import pontifex.process as process
 from pontifex.txrServer import txrServer
 import pontifex.model
-from pontifex.model import Session, productsdir
-from pontifex.model import ObservingBlock, Instrument, ProcessingSet
-from pontifex.model import ContextDescription, ContextValue
-from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
 from pontifex.server import PontifexServer
 from pontifex.host import PontifexHost
 
@@ -70,8 +56,8 @@ def main_cli():
     def run(args):
         oid = args.id, 
         pset = args.pset
-        for id in oid:
-            print id, pset
+        for id_ in oid:
+            print id_, pset
             rserver.run(id, pset)
 
     def pset_create(args):

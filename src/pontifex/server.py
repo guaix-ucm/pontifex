@@ -26,21 +26,13 @@ from Queue import Queue
 from xmlrpclib import ServerProxy
 import os.path
 from datetime import datetime
-import signal
-import sys
-import uuid
-import ConfigParser
 import shutil
 
 import yaml
-from sqlalchemy import create_engine
-from numina.user import run_recipe_from_file
+
 from numina.pipeline import init_pipeline_system
-from numina.serialize import lookup as lookup_serializer
 
 import pontifex.process as process
-from pontifex.txrServer import txrServer
-import pontifex.model
 from pontifex.model import Session, productsdir
 from pontifex.model import ObservingBlock, Instrument, ProcessingSet
 from pontifex.model import ContextDescription, ContextValue
