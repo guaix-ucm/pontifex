@@ -57,5 +57,5 @@ from .sql import Instrument, Users, ObservingTree, Channel, ContextDescription, 
 from .dataproc import Recipe, RecipeConfiguration, DataProcessingTask
 from .dataproc import ReductionResult, DataProduct, ProcessingSet
 from .dataproc import FITSKeyword, BoolFITSKeyword, StringFITSKeyword
-from .dataproc import IntegerFITSKeyword
+from .dataproc import IntegerFITSKeyword, FloatFITSKeyword
 from .sql import get_last_frame_index

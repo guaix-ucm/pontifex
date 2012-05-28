@@ -35,10 +35,6 @@ CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 # create logger for host
 _logger = logging.getLogger("pontifex.host")
 
-# FIXME: global variables
-sdum = None
-sload = None
-
 class PontifexHost(object):
     def __init__(self, master, host, port):
         super(PontifexHost, self).__init__()

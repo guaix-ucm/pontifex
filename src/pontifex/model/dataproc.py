@@ -139,9 +139,12 @@ class ProcessingSet(DeclarativeBase):
 class FITSKeyword(DeclarativeBase):
     __tablename__ = 'dp_fits'
     id = Column(Integer, primary_key=True)
+    frame_id = Column(Integer, ForeignKey('frame.id'))
     key = Column(String(8), nullable=False)
     discriminator = Column('type', String(50))
     __mapper_args__ = {'polymorphic_on': discriminator}
+    
+    frame = relationship("Frame", backref="headers")
 
 class BoolFITSKeyword(FITSKeyword):
     __tablename__ = 'dp_fits_bool'
@@ -161,3 +164,8 @@ class StringFITSKeyword(FITSKeyword):
     id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
     value = Column(String(70), nullable=False)
 
+class FloatFITSKeyword(FITSKeyword):
+    __tablename__ = 'dp_fits_float'
+    __mapper_args__ = {'polymorphic_identity': 'float'}
+    id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
+    value = Column(Integer, nullable=False)

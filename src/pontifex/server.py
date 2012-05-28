@@ -39,10 +39,41 @@ from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
 
 # create logger
-_logger_s = logging.getLogger("pontifex.server")
+_logger = logging.getLogger("pontifex.server")
 
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
+
+def create_reduction_tree(session, otask, rparent, instrument, pset='default'):
+    '''Climb the tree and create DataProcessingTask in nodes.'''
+    rtask = DataProcessingTask()
+    rtask.parent = rparent
+    rtask.obstree_node = otask
+    rtask.creation_time = datetime.utcnow()
+    if otask.state == 2:
+        rtask.state = COMPLETED
+    else:
+        rtask.state = CREATED
+    rtask.method = 'process%s' % otask.label.capitalize()
+    request = {'pset': pset, 'instrument': instrument}
+    rtask.request = str(request)
+
+    if otask.children:
+        rtask.waiting = True
+    else:
+        rtask.waiting = False
+
+    session.add(rtask)
+
+    for child in otask.children:
+        create_reduction_tree(child, rtask, instrument, pset=pset)
+    
+    return rtask
+
+
+
+
+
 
 class PontifexServer(object):
     def __init__(self):
@@ -61,19 +92,19 @@ class PontifexServer(object):
 
         session = Session()
         for instrument in session.query(Instrument):
-            _logger_s.debug('loading configurations for %s', instrument.name)
+            _logger.debug('loading configurations for %s', instrument.name)
             if instrument.valid_configuration:
-                _logger_s.debug('valid configuration for %s', instrument.name)
+                _logger.debug('valid configuration for %s', instrument.name)
                 self.ins_config[instrument.name] = instrument.valid_configuration.parameters
             else:
-                _logger_s.debug('no valid configuration for %s', instrument.name)
+                _logger.debug('no valid configuration for %s', instrument.name)
 
-        _logger_s.info('loaded configuration for %s', self.ins_config.keys())
+        _logger.info('loaded configuration for %s', self.ins_config.keys())
 
-        _logger_s.info('ready')
+        _logger.info('ready')
 
     def quit(self):
-        _logger_s.info('ending')
+        _logger.info('ending')
         self.doned = True
         self.qback.put(None)
         self.queue.put(None)
@@ -86,24 +117,24 @@ class PontifexServer(object):
             if hostid not in self.client_hosts:
                 self.nclient_hosts += 1
                 self.client_hosts[hostid]= [ServerProxy('http://%s:%d' % (host, port)), (host, port), capabilities, True]
-                _logger_s.info('host registered %s %s:%d %s', hostid, host, port, capabilities)
+                _logger.info('host registered %s %s:%d %s', hostid, host, port, capabilities)
 
     def unregister(self, hostid):
         with self.clientlock:
-            _logger_s.info('unregistering host %s', hostid)
+            _logger.info('unregistering host %s', hostid)
             self.nclient_hosts -= 1
             del self.client_hosts[hostid]
 
 
     def find_client(self, session, task):
-        _logger_s.info('finding host for task=%d', task.id)
+        _logger.info('finding host for task=%d', task.id)
         for idx in self.client_hosts:
             server, (host, port), _, idle = self.client_hosts[idx]
             if idle:
 
                 task.state = PROCESSING
                 task.host = '%s:%d' % (host, port)
-                _logger_s.info('sending to host %s', task.host)
+                _logger.info('sending to host %s', task.host)
                 session.commit()
                 server.pass_info(task.id)
                 with self.clientlock:
@@ -111,7 +142,7 @@ class PontifexServer(object):
                     self.client_hosts[idx][3] = False
                 return idx
         else:
-            _logger_s.info('no server for taskid=%d', task.id)
+            _logger.info('no server for taskid=%d', task.id)
         
         return None
 
@@ -119,16 +150,16 @@ class PontifexServer(object):
         session = Session()
         while True:
             if self.doned:
-                _logger_s.info('cleaning up pending jobs')
+                _logger.info('cleaning up pending jobs')
                 for task in session.query(DataProcessingTask).filter_by(state=ENQUEUED):
                     task.state = COMPLETED
                 session.commit()
-                _logger_s.info('watchdog finished')
+                _logger.info('watchdog finished')
                 return
             else:            
                 time.sleep(pollfreq)                
                 for task in session.query(DataProcessingTask).filter_by(state=COMPLETED, waiting=False)[:self.nclient_hosts]:
-                    _logger_s.info('enqueueing task %d ', task.id)
+                    _logger.info('enqueueing task %d ', task.id)
                     task.state = ENQUEUED
     
                     session.commit()
@@ -139,18 +170,18 @@ class PontifexServer(object):
         # clean up on startup
         q = session.query(DataProcessingTask).filter_by(state=ENQUEUED)
         for i in q:
-            _logger_s.info('fixing job %d', i.id)
+            _logger.info('fixing job %d', i.id)
             i.state = COMPLETED
         session.commit()
 
         while True:
             val = self.qback.get()
             if self.doned or val is None:
-                _logger_s.info('inserter finished')
+                _logger.info('inserter finished')
                 return
             else:
                 _, result, taskid = val
-                _logger_s.info('updating done work, ProcessingTask %d', int(taskid))
+                _logger.info('updating done work, ProcessingTask %d', int(taskid))
                 task = session.query(DataProcessingTask).filter_by(id=taskid).one() 
 
                 task.completion_time = datetime.utcnow()
@@ -251,7 +282,7 @@ class PontifexServer(object):
         while True:
             taskid = self.queue.get()
             if self.doned or taskid is None:
-                _logger_s.info('consumer is finished')
+                _logger.info('consumer is finished')
                 return
             else:
                 task = session.query(DataProcessingTask).filter_by(id=taskid).first()
@@ -286,14 +317,14 @@ class PontifexServer(object):
                 except Exception as ex:
                     task.completion_time = datetime.utcnow()
                     task.state = ERROR
-                    _logger_s.warning('error creating root for task %d', taskid)
-                    _logger_s.warning('error is %s', ex)
+                    _logger.warning('error creating root for task %d', taskid)
+                    _logger.warning('error is %s', ex)
                     session.commit()
                     continue
 
                 cid = self.find_client(session, task)
                 if cid is not None:
-                    _logger_s.info('processing taskid %d in host %s', taskid, cid)
+                    _logger.info('processing taskid %d in host %s', taskid, cid)
                 else:
                     self.queue.task_done()                    
                     self.qback.put((0, 1, task.id))
@@ -334,42 +365,14 @@ class PontifexServer(object):
         _logger.info('create a new task tree for obsid %d', obsid)
         session = Session()
 
-        def create_reduction_tree(otask, rparent, instrument, pset='default'):
-            '''Climb the tree and create DataProcessingTask in nodes.'''
-            rtask = DataProcessingTask()
-            rtask.parent = rparent
-            rtask.obstree_node = otask
-            rtask.creation_time = datetime.utcnow()
-            if otask.state == 2:
-                rtask.state = COMPLETED
-            else:
-                rtask.state = CREATED
-            rtask.method = 'process%s' % otask.label.capitalize()
-            request = {'pset': pset, 'instrument': instrument}
-            rtask.request = str(request)
-
-            if otask.children:
-                rtask.waiting = True
-            else:
-                rtask.waiting = False
-
-            session.add(rtask)
-
-            for child in otask.children:
-                create_reduction_tree(child, rtask, instrument, pset=pset)
-            
-            return rtask
-
         obsblock = session.query(ObservingBlock).filter_by(id=obsid).first()
         if obsblock is not None:
             _logger.info('observing tasks tree')
         
-            rtask = create_reduction_tree(obsblock.observing_tree, None, 
+            rtask = create_reduction_tree(session, 
+                                          obsblock.observing_tree, None, 
                                         obsblock.obsrun.instrument_id, pset)
             _logger.info('new root processing task is %d', rtask.id)
             session.commit()
         else:
             _logger.warning('No observing block with id %d', obsid)
-
-# create logger for host
-_logger = logging.getLogger("pontifex.host")

@@ -33,13 +33,13 @@ import pontifex.model
 from pontifex.server import PontifexServer
 
 # create logger
-_logger_s = logging.getLogger("pontifex.server")
+_logger = logging.getLogger("pontifex.server")
 
 def main():
 
     logging.config.fileConfig("logging.ini")
 
-    df_server = ServerProxy('http://127.0.0.1:7080')
+    #df_server = ServerProxy('http://127.0.0.1:7080')
 
     engine = create_engine('sqlite:///devdata.db', echo=False)
     #engine = create_engine('sqlite:///devdata.db', echo=True)
@@ -73,7 +73,7 @@ def main():
     xmls.start()
 
     POLL = 5
-    _logger_s.info('polling database for new ProcessingTasks every %d seconds', POLL)
+    _logger.info('polling database for new ProcessingTasks every %d seconds', POLL)
     timer = threading.Thread(target=im.watchdog, args=(POLL, ), name='timer')
     timer.start()
 

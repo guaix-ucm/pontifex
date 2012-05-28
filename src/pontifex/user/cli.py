@@ -37,7 +37,7 @@ def main():
         pset = args.pset
         for id_ in oid:
             print id_, pset
-            rserver.run(id, pset)
+            rserver.run(id_, pset)
 
     def pset_create(args):
         print 'Create pset with name %s for instrument %s' % (args.name, args.instrument)
