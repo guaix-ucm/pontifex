@@ -78,7 +78,7 @@ class Recipe(DeclarativeBase):
                         CheckConstraint('(active IS NULL AND revoke_event IS NOT NULL) OR (active IS NOT NULL and revoke_event IS NULL)'))                                   
 
     instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
-    mode = Column(String(45), nullable=False)
+    mode = Column(String, ForeignKey("observing_modes.key"), nullable=False)
     module = Column(String(255), nullable=False)
 # versioning (borrowed from koji schema)
     create_event = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)

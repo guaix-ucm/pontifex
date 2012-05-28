@@ -25,9 +25,11 @@ from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, CheckConstraint, 
 from sqlalchemy import Integer, String, DateTime, Float, Boolean, TIMESTAMP
 from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import PickleType, Enum
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, mapper
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.orm import validates
+
+from numina.pipeline import ObservingMode
 
 from pontifex.model import DeclarativeBase
 
@@ -73,6 +75,16 @@ class InstrumentConfiguration(DeclarativeBase):
     active = Column(Boolean, nullable=True)
 
     instrument = relationship("Instrument", backref='configurations')
+
+class ObservingMode(DeclarativeBase):    
+    __tablename__ = 'observing_modes' 
+    Id = Column(Integer, primary_key=True)
+    name = Column(String)
+    key = Column(String, unique=True)
+    instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
+    module = Column(String(255), nullable=False)
+
+    instrument = relationship("Instrument", backref='observing_modes')
 
 class ObservingRun(DeclarativeBase):
     __tablename__ = 'observing_run'

@@ -58,4 +58,5 @@ from .dataproc import Recipe, RecipeConfiguration, DataProcessingTask
 from .dataproc import ReductionResult, DataProduct, ProcessingSet
 from .dataproc import FITSKeyword, BoolFITSKeyword, StringFITSKeyword
 from .dataproc import IntegerFITSKeyword, FloatFITSKeyword
+from .sql import ObservingMode
 from .sql import get_last_frame_index
