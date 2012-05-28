@@ -121,3 +121,6 @@ def main():
     #val.command(val.id, val.pset)
     val.command(val)
 
+if __name__ == '__main__':
+    main()
+

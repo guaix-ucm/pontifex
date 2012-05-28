@@ -1,5 +1,5 @@
 #
-# Copyright 2011 Universidad Complutense de Madrid
+# Copyright 2011-2012 Universidad Complutense de Madrid
 # 
 # This file is part of Pontifex
 # 
@@ -25,36 +25,38 @@ import logging
 from xmlrpclib import ServerProxy
 import signal
 import sys
-import ConfigParser
 
 from sqlalchemy import create_engine
 
 from pontifex.txrServer import txrServer
 import pontifex.model
-from pontifex.host import PontifexHost
+from pontifex.server import PontifexServer
 
+# create logger
+_logger_s = logging.getLogger("pontifex.server")
 
-# create logger for host
-_logger = logging.getLogger("pontifex.host")
+def main():
 
-def main_host():
+    logging.config.fileConfig("logging.ini")
 
-    if len(sys.argv) != 2:
-        sys.exit(1)
+    df_server = ServerProxy('http://127.0.0.1:7080')
 
-    cfgfile = sys.argv[1]
+    engine = create_engine('sqlite:///devdata.db', echo=False)
+    #engine = create_engine('sqlite:///devdata.db', echo=True)
+    engine.execute('pragma foreign_keys=on')
 
-    config = ConfigParser.ConfigParser()
-    config.read(cfgfile)
+    pontifex.model.init_model(engine)
+    pontifex.model.metadata.create_all(engine)
 
-    masterurl = config.get('master', 'url')
-    host = config.get('slave', 'host')
-    port = config.getint('slave', 'port')
+    im = PontifexServer()
 
-    im = PontifexHost(masterurl, host, port)
-
-    tserver = txrServer((host, port), allow_none=True, logRequests=False)
-    tserver.register_function(im.pass_info)
+    tserver = txrServer(('localhost', 7081), allow_none=True, logRequests=False)
+    tserver.register_function(im.register)
+    tserver.register_function(im.unregister)
+    tserver.register_function(im.receiver)
+    tserver.register_function(im.version)
+    tserver.register_function(im.run)
+    tserver.register_function(im.pset_create)
 
     # signal handler
     def handler(signum, frame):
@@ -70,9 +72,19 @@ def main_host():
     xmls = threading.Thread(target=tserver.serve_forever)
     xmls.start()
 
-    worker = threading.Thread(target=im.worker)
-    worker.start()
+    POLL = 5
+    _logger_s.info('polling database for new ProcessingTasks every %d seconds', POLL)
+    timer = threading.Thread(target=im.watchdog, args=(POLL, ), name='timer')
+    timer.start()
+
+    inserter = threading.Thread(target=im.inserter, name='inserter')
+    inserter.start()
+
+    consumer = threading.Thread(target=im.consumer, name='consumer')
+    consumer.start()
 
     while not im.doned:
         signal.pause()
-
+        
+if __name__ == '__main__':
+    main()

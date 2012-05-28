@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='pontifex',
       version='0.4.2',
@@ -11,6 +11,10 @@ setup(name='pontifex',
       description='Pontifex automatic reduction system',
       packages=['pontifex', 'pontifex.model', 'pontifex.user'],
       package_dir={'pontifex': 'src/pontifex'},
+      entry_points={
+                    'console_scripts': ['pontifex = pontifex.user.cli:main',
+                                        'pontifex-server = pontifex.user.server:main',
+                                        'pontifex-host = pontifex.user.host:main']},
       scripts=['scripts/pontifex-server.py', 'scripts/pontifex-host.py'],
       install_requires=['numina', 'sqlalchemy'],
       classifiers=[

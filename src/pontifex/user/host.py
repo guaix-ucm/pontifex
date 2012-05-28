@@ -22,22 +22,19 @@
 
 import threading
 import logging
-from xmlrpclib import ServerProxy
+
 import signal
 import sys
 import ConfigParser
 
-from sqlalchemy import create_engine
-
 from pontifex.txrServer import txrServer
-import pontifex.model
 from pontifex.host import PontifexHost
 
 
 # create logger for host
 _logger = logging.getLogger("pontifex.host")
 
-def main_host():
+def main():
 
     if len(sys.argv) != 2:
         sys.exit(1)
@@ -75,4 +72,7 @@ def main_host():
 
     while not im.doned:
         signal.pause()
+
+if __name__ == '__main__':
+    main()
 
