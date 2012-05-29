@@ -217,6 +217,61 @@ class ContextValue(DeclarativeBase):
 
     definition = relationship("ContextDescription", backref=backref("values"),  collection_class=attribute_mapped_collection('together'))
 
+class FITSKeyword(DeclarativeBase):
+    __tablename__ = 'dp_fits'
+    id = Column(Integer, primary_key=True)
+    frame_id = Column(Integer, ForeignKey('frame.id'))
+    key = Column(String(8), nullable=False)
+    discriminator = Column('type', String(10))
+    __mapper_args__ = {'polymorphic_on': discriminator}
+    
+    frame = relationship("Frame", backref="headers")
+
+class BoolFITSKeyword(FITSKeyword):
+    __tablename__ = 'dp_fits_bool'
+    __mapper_args__ = {'polymorphic_identity': 'bool'}
+    Id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
+    value = Column(Boolean, nullable=False)
+
+class IntegerFITSKeyword(FITSKeyword):
+    __tablename__ = 'dp_fits_int'
+    __mapper_args__ = {'polymorphic_identity': 'int'}
+    Id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
+    value = Column(Integer, nullable=False)
+
+class StringFITSKeyword(FITSKeyword):
+    __tablename__ = 'dp_fits_string'
+    __mapper_args__ = {'polymorphic_identity': 'string'}
+    Id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
+    value = Column(String(70), nullable=False)
+
+class FloatFITSKeyword(FITSKeyword):
+    __tablename__ = 'dp_fits_float'
+    __mapper_args__ = {'polymorphic_identity': 'float'}
+    Id = Column(Integer, ForeignKey('dp_fits.id'), primary_key=True)
+    value = Column(Integer, nullable=False)
+
+
+def create_fits_keyword(frame, key, value):
+    if type(value) == bool:
+        k = BoolFITSKeyword(key=key, frame=frame, value=value)
+        k.discriminator = 'bool'
+        return k
+    elif type(value) == str:
+        k = StringFITSKeyword(key=key, frame=frame, value=value)
+        k.discriminator = 'string'
+        return k
+    elif type(value) == int:
+        k = IntegerFITSKeyword(key=key, frame=frame, value=value)
+        k.discriminator = 'int'
+        return k
+    elif type(value) == float:
+        k = FloatFITSKeyword(key=key, frame=frame, value=value)
+        k.discriminator = 'float'
+        return k
+    else:
+        raise TypeError
+
 def get_last_frame_index(session):
     number = 0
     try:
