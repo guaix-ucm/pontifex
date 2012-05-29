@@ -69,48 +69,6 @@ class ReductionResult(DeclarativeBase):
     
     task = relationship("DataProcessingTask", backref='rresult', uselist=False)
 
-class Recipe(DeclarativeBase):
-    __tablename__ = 'dp_recipe'
-    # The PrimaryKeyConstraint is equivalent to put primary_key=True
-    # in several columns
-    __table_args__ = (PrimaryKeyConstraint('instrument_id', 'module', 'create_event'),
-                        UniqueConstraint('instrument_id', 'mode', 'module', 'active'),
-                        CheckConstraint('(active IS NULL AND revoke_event IS NOT NULL) OR (active IS NOT NULL and revoke_event IS NULL)'))                                   
-
-    instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
-    mode = Column(String, ForeignKey("observing_modes.key"), nullable=False)
-    module = Column(String(255), nullable=False)
-# versioning (borrowed from koji schema)
-    create_event = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
-    revoke_event = Column(TIMESTAMP)
-    active = Column(Boolean, nullable=True)
-
-    instrument = relationship("Instrument", backref='recipes')
-
-class RecipeConfiguration(DeclarativeBase):
-    __tablename__ = 'dp_recipe_configuration'
-    # The PrimaryKeyConstraint is equivalent to put primary_key=True
-    # in several columns
-    __table_args__ = (PrimaryKeyConstraint('instrument_id', 'module', 'pset_name', 'create_event'),
-                        UniqueConstraint('instrument_id', 'module', 'pset_name', 'active'),
-                        ForeignKeyConstraint(['instrument_id', 'module'], ['dp_recipe.instrument_id', 'dp_recipe.module']),
-                        ForeignKeyConstraint(['instrument_id', 'pset_name'], ['dp_set.instrument_id', 'dp_set.name']),
-                        CheckConstraint('(active IS NULL AND revoke_event IS NOT NULL) OR (active IS NOT NULL and revoke_event IS NULL)'))                                   
-
-    instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
-
-    module = Column(String(255), nullable=False)
-    parameters = Column(PickleType, nullable=False)
-    pset_name = Column(String(50), nullable=False)
-    description = Column(String(255))
-# versioning (borrowed from koji schema)
-    create_event = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
-    revoke_event = Column(TIMESTAMP)
-    active = Column(Boolean, nullable=True)
-
-    instrument = relationship("Instrument", backref='recipe_configurations')
-
-
 data_product_context = Table(
     'data_product_context', DeclarativeBase.metadata,
     Column('data_product_id', Integer, ForeignKey('dp_product.id'), primary_key=True),
@@ -133,8 +91,10 @@ class DataProduct(DeclarativeBase):
 
 class ProcessingSet(DeclarativeBase):
     __tablename__ = 'dp_set'
-    instrument_id = Column(String(10), ForeignKey('instrument.name'), primary_key=True, nullable=False)
-    name = Column(String(50), primary_key=True, nullable=False)
+    __table_args__ = (UniqueConstraint('instrument_id', 'name'), )
+    id = Column(Integer, primary_key=True)
+    instrument_id = Column(String(10), ForeignKey('instrument.name'), nullable=False)
+    name = Column(String(50), nullable=False)
 
 class FITSKeyword(DeclarativeBase):
     __tablename__ = 'dp_fits'

@@ -21,15 +21,14 @@
 
 from datetime import datetime
 
-from sqlalchemy import UniqueConstraint, PrimaryKeyConstraint, CheckConstraint, desc
+from sqlalchemy import UniqueConstraint, ForeignKeyConstraint, PrimaryKeyConstraint, CheckConstraint, desc
 from sqlalchemy import Integer, String, DateTime, Float, Boolean, TIMESTAMP
 from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import PickleType, Enum
-from sqlalchemy.orm import relationship, backref, mapper
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.orm import validates
 
-from numina.pipeline import ObservingMode
 
 from pontifex.model import DeclarativeBase
 
@@ -77,14 +76,36 @@ class InstrumentConfiguration(DeclarativeBase):
     instrument = relationship("Instrument", backref='configurations')
 
 class ObservingMode(DeclarativeBase):    
-    __tablename__ = 'observing_modes' 
+    __tablename__ = 'observing_modes'
+    __table_args__ = (UniqueConstraint('instrument_id', 'key'),)                    
+    
     Id = Column(Integer, primary_key=True)
     name = Column(String)
-    key = Column(String, unique=True)
+    key = Column(String)
     instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
-    module = Column(String(255), nullable=False)
+    module = Column(String(255), ForeignKey("recipe.module"), unique=True, nullable=False)
 
     instrument = relationship("Instrument", backref='observing_modes')
+
+class Recipe(DeclarativeBase):
+    __tablename__ = 'recipe'                                   
+
+    module = Column(String(255), primary_key=True)
+    
+    configurations = relationship("RecipeConfiguration", backref='recipe')
+    
+class RecipeConfiguration(DeclarativeBase):
+    __tablename__ = 'recipe_configuration'
+    # The PrimaryKeyConstraint is equivalent to put primary_key=True
+    # in several columns
+    __table_args__ = (PrimaryKeyConstraint('module', 'pset_id'),)
+                                                           
+    module = Column(String(255), ForeignKey("recipe.module"), nullable=False)
+    parameters = Column(PickleType, nullable=False)
+    pset_id = Column(Integer, ForeignKey("dp_set.id"), nullable=False)
+    description = Column(String(255))
+    
+    processing_set = relationship("ProcessingSet")
 
 class ObservingRun(DeclarativeBase):
     __tablename__ = 'observing_run'

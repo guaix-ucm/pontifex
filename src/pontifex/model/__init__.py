@@ -54,9 +54,9 @@ productsdir = os.path.abspath(_productsdir)
 
 from .sql import ObservingBlock, ObservingRun, Frame, InstrumentConfiguration
 from .sql import Instrument, Users, ObservingTree, Channel, ContextDescription, ContextValue
-from .dataproc import Recipe, RecipeConfiguration, DataProcessingTask
+from .dataproc import DataProcessingTask
 from .dataproc import ReductionResult, DataProduct, ProcessingSet
 from .dataproc import FITSKeyword, BoolFITSKeyword, StringFITSKeyword
 from .dataproc import IntegerFITSKeyword, FloatFITSKeyword
-from .sql import ObservingMode
+from .sql import Recipe, RecipeConfiguration, ObservingMode
 from .sql import get_last_frame_index
