@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #
-# Copyright 2011 Universidad Complutense de Madrid
+# Copyright 2011 Sergio Pascual
 # 
 # This file is part of Pontifex
 # 
@@ -32,20 +32,31 @@ import numpy
 
 import pontifex.model as model
 from pontifex.model import datadir
-from pontifex.model import ObservingRun, ObservingBlock, Image, Instrument, Users
+from pontifex.model import ObservingRun, ObservingBlock, Frame, Instrument, Users
 from pontifex.model import DataProcessingTask, ObservingTree, InstrumentConfiguration
 
 from pontifex.model import ContextDescription, ContextValue
-from pontifex.model import get_last_image_index
+from pontifex.model import get_last_frame_index
+from pontifex.model import create_fits_keyword 
 
-def new_image(number, exposure, imgtype, oresult):
-    im = Image()
+def new_image(session, number, exposure, imgtype, oresult):
+    im = Frame()
     im.name = 'r0%03d.fits' % number
+    im.object = 'TEST'
+    im.racoor = 1
+    im.deccoor = 1
     data = numpy.zeros((1,1), dtype='int16')
     hdu = pyfits.PrimaryHDU(data)
     hdu.header.update('ccdmode', 'normal')
-    hdu.header.update('filter', 311)
+    hdu.header.update('imgtype', 'BIAS')
     hdu.writeto(os.path.join(datadir, im.name), clobber=True)
+
+    # keywords
+    for i in hdu.header:
+        key = i
+        value = hdu.header[i]
+        k = create_fits_keyword(im, key, value)
+        session.add(k)
 
     im.exposure = exposure
     im.imgtype = imgtype
@@ -64,6 +75,7 @@ def create_observing_block(mode, observer, parent):
     oblock = ObservingBlock()
     oblock.observing_mode = mode
     oblock.observer_id = observer
+    oblock.object = 'TEST'
     parent.obsblocks.append(oblock)
     return oblock
 
@@ -93,20 +105,23 @@ def create_reduction_tree(oresult, parent):
         create_reduction_tree(child, ptask)
     return ptask
 
-#engine = create_engine('sqlite:///devdata.db', echo=False)
-engine = create_engine('sqlite:///devdata.db', echo=True)
+engine = create_engine('sqlite:///devdata.db', echo=False)
+#engine = create_engine('sqlite:///devdata.db', echo=True)
 engine.execute('pragma foreign_keys=on')
 
 model.init_model(engine)
 model.metadata.create_all(engine)
 session = model.Session()
 
-ins = session.query(Instrument).filter_by(name='clodia').first()
+ins = session.query(Instrument).filter_by(name='MEGARA').first()
+if ins is None:
+    print 'mal'
+    raise RunTimeError
 user = session.query(Users).first()
 
-context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
+#context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
 
-ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
+#ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
 
 obsrun = create_obsrun(user.id, ins.name)
 session.add(obsrun)
@@ -122,7 +137,7 @@ ores.label = 'pointing'
 ores.mode = 'bias'
 ores.waiting = True
 ores.awaited = False
-ores.context.append(ccdmode)
+#ores.context.append(ccdmode)
 session.add(ores)
 
 oblock = create_observing_block('bias', user.id, obsrun)
@@ -146,10 +161,10 @@ ores.start_time = datetime.utcnow()
 ores.state = 1
 session.commit()
 
-dd = get_last_image_index(session)
+dd = get_last_frame_index(session)
 
 for i in range(3):
-    im = new_image(dd, 0, 'bias', ores)
+    im = new_image(session, dd, 0, 'bias', ores)
     dd += 1
     session.add(im)
 
