@@ -41,7 +41,7 @@ def main():
 
     #df_server = ServerProxy('http://127.0.0.1:7080')
 
-    engine = create_engine('sqlite:///devdata.db', echo=False)
+    engine = create_engine('sqlite:///devdata.sqlite', echo=False)
     #engine = create_engine('sqlite:///devdata.db', echo=True)
     engine.execute('pragma foreign_keys=on')
 

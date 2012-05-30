@@ -79,7 +79,7 @@ class ObservingMode(DeclarativeBase):
     __tablename__ = 'observing_modes'
     __table_args__ = (UniqueConstraint('instrument_id', 'key'),)                    
     
-    Id = Column(Integer, primary_key=True)
+    Id = Column(Integer, primary_key=True, name='id')
     name = Column(String)
     key = Column(String)
     instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
@@ -117,11 +117,12 @@ class ObservingRun(DeclarativeBase):
     instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
 
     obsblocks = relationship("ObservingBlock", backref='obsrun')
+    pi = relationship(Users)
 
 class ObservingBlock(DeclarativeBase):
     __tablename__ = 'observing_block'
     id = Column(Integer, primary_key=True)
-    observing_mode = Column(String(20), nullable=False)
+    mode_id = Column(Integer, ForeignKey("observing_modes.id"))
     create_time = Column(DateTime, default=datetime.utcnow, nullable=False)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
@@ -133,7 +134,8 @@ class ObservingBlock(DeclarativeBase):
     observing_tree = relationship("ObservingTree", backref=backref('observing_block', uselist=False))
     #observer = relationship("Users", backref='observed_obs')
     observer = relationship("Users")
-
+    observing_mode = relationship("ObservingMode")
+    
 class ObservingTree(DeclarativeBase):
     __tablename__ = 'observing_tree'
     id = Column(Integer, primary_key=True)
@@ -142,8 +144,8 @@ class ObservingTree(DeclarativeBase):
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
     parent_id = Column(Integer, ForeignKey('observing_tree.id'))
-    #observing_block_id = Column(Integer, ForeignKey("observing_block.id", use_alter=True, name="fk2"), nullable=False)
-    mode = Column(String(45), nullable=False)
+    
+    mode_id = Column(Integer, ForeignKey('observing_modes.id'), nullable=False)
     label = Column(String(45))
     waiting = Column(Boolean)
     awaited = Column(Boolean)
@@ -154,6 +156,7 @@ class ObservingTree(DeclarativeBase):
     context = relationship('ContextValue', secondary='observing_tree_context', backref='observing_tree')
 
     frames = relationship("Frame", backref='observing_tree')
+    observing_mode = relationship("ObservingMode")
 
     #observing_block = relationship("ObservingBlock")
 

@@ -33,7 +33,7 @@ class DataProcessingTask(DeclarativeBase):
     __tablename__ = 'dp_task'
     id = Column(Integer, primary_key=True)
     host = Column(String(45))
-    state = Column(Integer)
+    state = Column(Integer, default=0)
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)

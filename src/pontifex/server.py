@@ -44,6 +44,20 @@ _logger = logging.getLogger("pontifex.server")
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 
+def process_(session, task):
+    
+    kwds = {}
+    kwds['id'] = task.id
+    kwds['children'] = task.children
+    
+    node = task.obstree_node
+    obsmode = node.observing_mode
+    kwds['frames'] = node.frames
+    kwds['mode'] = obsmode.key
+    recipe = obsmode.module
+    print recipe
+    
+
 def create_reduction_tree(session, otask, rparent, instrument, pset='default'):
     '''Climb the tree and create DataProcessingTask in nodes.'''
     rtask = DataProcessingTask()
@@ -69,11 +83,6 @@ def create_reduction_tree(session, otask, rparent, instrument, pset='default'):
         create_reduction_tree(child, rtask, instrument, pset=pset)
     
     return rtask
-
-
-
-
-
 
 class PontifexServer(object):
     def __init__(self):
@@ -163,6 +172,7 @@ class PontifexServer(object):
                     task.state = ENQUEUED
     
                     session.commit()
+                    # sending to consumer
                     self.queue.put(task.id)
 
     def inserter(self):
@@ -294,8 +304,11 @@ class PontifexServer(object):
                     kwds['id'] = task.id
                     kwds['children'] = task.children
                     kwds['frames'] = task.obstree_node.frames
-                    kwds['mode'] = task.obstree_node.mode
+                    kwds['mode'] = task.obstree_node.observing_mode.key
                     kwds['request'] = eval(task.request)
+                    
+                    recipe = task.obstree_node.observing_mode.module
+                    print recipe
                     # finding parent node
                     # FIXME: find a better way of doing this:
                     # Recover the instrument of the task
@@ -312,8 +325,11 @@ class PontifexServer(object):
                     kwds['ins_params'] = self.ins_config[ob.obsrun.instrument_id]
                     kwds['context'] = task.obstree_node.context
 
-                    fun = getattr(process, task.method)
-                    val = fun(session, **kwds)
+                    #fun = getattr(process, task.method)
+                    
+                    val = process_(session, task=task)
+                    
+                    #val = fun(session, **kwds)
                 except Exception as ex:
                     task.completion_time = datetime.utcnow()
                     task.state = ERROR

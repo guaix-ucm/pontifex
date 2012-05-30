@@ -32,7 +32,7 @@ import numpy
 
 import pontifex.model as model
 from pontifex.model import datadir
-from pontifex.model import ObservingRun, ObservingBlock, Frame, Instrument, Users
+from pontifex.model import ObservingRun, ObservingBlock, Frame, Instrument, Users, ObservingMode
 from pontifex.model import DataProcessingTask, ObservingTree, InstrumentConfiguration
 
 from pontifex.model import ContextDescription, ContextValue
@@ -49,6 +49,8 @@ def new_image(session, number, exposure, imgtype, oresult):
     hdu = pyfits.PrimaryHDU(data)
     hdu.header.update('ccdmode', 'normal')
     hdu.header.update('imgtype', 'BIAS')
+    hdu.header.update('obsmode', 'BIAS')
+    hdu.header.update('instrume', 'EMIR')
     hdu.writeto(os.path.join(datadir, im.name), clobber=True)
 
     # keywords
@@ -63,36 +65,17 @@ def new_image(session, number, exposure, imgtype, oresult):
     im.observing_tree = oresult    
     return im
 
-def create_obsrun(userid, insname):
-    obsrun = ObservingRun()
-    obsrun.pi_id = userid
-    obsrun.instrument_id = insname
-    obsrun.state = 'RUNNING'
-    obsrun.start_time = datetime.utcnow()
-    return obsrun
-
-def create_observing_block(mode, observer, parent):
-    oblock = ObservingBlock()
-    oblock.observing_mode = mode
-    oblock.observer_id = observer
-    oblock.object = 'TEST'
-    parent.obsblocks.append(oblock)
-    return oblock
-
 def create_reduction_task(oblock, oresult):
-    ptask = DataProcessingTask()
+    ptask = DataProcessingTask(state=0)
     ptask.observing_result = oresult
-    ptask.state = 0
     ptask.method = 'process%s' % oresult.label.capitalize()
     return ptask
 
 def create_reduction_tree(oresult, parent):
 
-    ptask = DataProcessingTask()
+    ptask = DataProcessingTask(state=0)
     ptask.host = 'localhost'
-    ptask.state = 0
     ptask.parent = parent
-    ptask.creation_time = datetime.utcnow()
     ptask.method = 'process%S' % oresult.label
 #    request = {'id': otaskp.id,
 #                'images': [image.name for image in otaskp.images],
@@ -105,7 +88,7 @@ def create_reduction_tree(oresult, parent):
         create_reduction_tree(child, ptask)
     return ptask
 
-engine = create_engine('sqlite:///devdata.db', echo=False)
+engine = create_engine('sqlite:///devdata.sqlite', echo=False)
 #engine = create_engine('sqlite:///devdata.db', echo=True)
 engine.execute('pragma foreign_keys=on')
 
@@ -113,42 +96,41 @@ model.init_model(engine)
 model.metadata.create_all(engine)
 session = model.Session()
 
-ins = session.query(Instrument).filter_by(name='MEGARA').first()
+ins = session.query(Instrument).filter_by(name='EMIR').first()
 if ins is None:
     print 'mal'
-    raise RunTimeError
+    raise RuntimeError
 user = session.query(Users).first()
 
 #context1 = session.query(ContextDescription).filter_by(instrument_id=ins.name, name='detector0.mode').first()
 
 #ccdmode = session.query(ContextValue).filter_by(definition=context1, value='normal').first()
 
-obsrun = create_obsrun(user.id, ins.name)
+obsrun = ObservingRun(instrument=ins, pi=user)
 session.add(obsrun)
 
 # Observing block
 
 # The layout of observing tasks can be arbitrary...
+obsmode = session.query(ObservingMode).filter_by(instrument=ins, key='bias_image').first()
 
 # Observing trees (siblings)
-ores = ObservingTree()
-ores.state = 0
-ores.label = 'pointing'
-ores.mode = 'bias'
-ores.waiting = True
-ores.awaited = False
+ores = ObservingTree(state=0, label='pointing',
+                    waiting=True, awaited=False,
+                    observing_mode=obsmode)
 #ores.context.append(ccdmode)
 session.add(ores)
 
-oblock = create_observing_block('bias', user.id, obsrun)
-oblock.observing_tree = ores
+oblock = ObservingBlock(observing_mode=obsmode, 
+                        object='TEST', observer=user, 
+                        observing_tree=ores, obsrun=obsrun)
 session.add(oblock)
-session.commit()
+#session.commit()
 
 # Create corresponding reduction tasks
 ptask = create_reduction_task(oblock, ores)
 ptask.waiting = False
-ptask.obstree_node_id = ores.id
+ptask.obstree_node = ores
 request = {'pset': 'default', 'instrument': ins.name}
 ptask.request = str(request)
 session.add(ptask)
@@ -179,7 +161,6 @@ session.commit()
 # OB finished
 oblock.state = 1
 oblock.completion_time = datetime.utcnow()
-session.commit()
 
 # OR finished
 obsrun.completion_time = datetime.utcnow()
