@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #
-# Copyright 2011 Universidad Complutense de Madrid
+# Copyright 2011 Sergio Pascual
 # 
 # This file is part of Pontifex
 # 
@@ -29,19 +29,31 @@ from pontifex.model import Users, Instrument, Channel, InstrumentConfiguration
 from pontifex.model import Recipe, RecipeConfiguration
 from pontifex.model import ContextValue, ContextDescription, ProcessingSet
 from pontifex.model import init_model, metadata, Session
+from pontifex.model import ObservingMode
 
-#engine = create_engine('sqlite:///devdata.db', echo=False)
-engine = create_engine('sqlite:///devdata.db', echo=True)
+import os
+
+try:
+    os.remove('devdata.sqlite')
+except OSError:
+    pass
+
+engine = create_engine('sqlite:///devdata.sqlite', echo=False)
+#engine = create_engine('sqlite:///devdata.db', echo=True)
 engine.execute('pragma foreign_keys=on')
 
 init_model(engine)
 metadata.create_all(engine)
 session = Session()
 
-user = Users()
-user.name = 'auto'
-user.status = 1
-user.usertype = 1
+from numina.pipeline import init_pipeline_system
+
+init_pipeline_system()
+
+from numina.pipeline import get_instruments
+
+
+user = Users(name='auto', status=1, usertype=1)
 session.add(user)
 
 user = Users()
@@ -56,47 +68,19 @@ user.status = 1
 user.usertype = 1
 session.add(user)
 
-channel = Channel()
-channel.name = 'default'
+channel = Channel(name='default')
 session.add(channel)
 
-channel = Channel()
-channel.name = 'fast'
+channel = Channel(name='fast')
 session.add(channel)
 
-ii = Instrument()
-ii.name = 'megara'
-session.add(ii)
 
-# equivalence
 
-recipes = {'bias': 'megara.recipes.calibration:BiasRecipe',
-    'dark': 'megara.recipes.calibration:DarkRecipe',
-    'flat': 'megara.recipes.calibration:FlatRecipe',
-}
+fridaconf = {'name': 'FRIDA'}
+miradasconf = {'name': 'MIRADAS'}
 
-for r in recipes:
-    a = Recipe()
-    a.instrument = ii
-    a.mode = r
-    a.module = recipes[r]
-    a.active = True
-    session.add(a)
-
-    b = RecipeConfiguration()
-    b.instrument = ii
-    b.module = recipes[r]
-    b.parameters = {}
-    b.description = "Description"
-    b.pset_name = 'default'
-    b.active = True
-    session.add(b)
-
-cc = InstrumentConfiguration()
-cc.instrument = ii
-cc.description = 'Default configuration'
-cc.parameters = {
-                 'name': 'megara',
+megaraconf = {
+                 'name': 'MEGARA',
                  'detectors': [(2048, 2048)],
 		 'metadata' : {'imagetype': 'IMGTYP',
 	                'airmass': 'AIRMASS',
@@ -105,103 +89,12 @@ cc.parameters = {
                 	'detector.mode': 'CCDMODE',
                 	'filter0': 'FILTER'
                 	},
-		'amplifiers' : [[((0, 2048), (0, 1024)),
+		'channels' : [[((0, 2048), (0, 1024)),
 		                 ((0, 2048), (1024, 2048))]]
                 }
-cc.active = True
-session.add(cc)
 
-pset = ProcessingSet()
-pset.instrument = ii
-pset.name = 'default'
-session.add(pset)
-
-pset = ProcessingSet()
-pset.instrument = ii
-pset.name = 'test'
-session.add(pset)
-
-desc = ContextDescription()
-desc.instrument_id = 'megara'
-desc.name = 'spec1.detector.mode'
-desc.description = 'Megara detector readout mode'
-session.add(desc)
-session.commit()
-
-for name in ['normal', 'slow', 'turbo']:
-    vl = ContextValue()
-    vl.definition = desc
-    vl.value = name
-    session.add(vl)
-
-desc = ContextDescription()
-desc.instrument_id = 'megara'
-desc.name = 'spec1.grism'
-desc.description = 'Megara grism'
-session.add(desc)
-session.commit()
-
-for name in ['A', 'B', 'C', 'D', 'E', 'F']:
-    vl = ContextValue()
-    vl.definition = desc
-    vl.value = name
-    session.add(vl)
-
-session.add(desc)
-
-ii = Instrument()
-ii.name = 'emir'
-session.add(ii)
-
-recipes = {
-    'bias_image': 'emir.recipes.auxiliary:Recipe1',
-    'dark_current_image': 'emir.recipes.auxiliary:Recipe2',
-    'intensity_flatfield': 'emir.recipes.auxiliary:Recipe3',
-    'msm_spectral_flatfield': 'emir.recipes.auxiliary:Recipe4',
-    'slit_transmission_calibration': 'emir.recipes.auxiliary:Recipe5',
-    'wavelength_calibration': 'emir.recipes.auxiliary:Recipe6',
-    'ts_rough_focus': 'emir.recipes.auxiliary:Recipe7',
-    'ts_fine_focus': 'emir.recipes.auxiliary:Recipe8',
-    'emir_focus_control': 'emir.recipes.auxiliary:Recipe9',
-    'image_setup': 'emir.recipes.auxiliary:Recipe10',
-    'mos_and_longslit_setup': 'emir.recipes.auxiliary:Recipe11',
-    'target_acquisition': 'emir.recipes.auxiliary:Recipe12',
-    'mask_imaging': 'emir.recipes.auxiliary:Recipe13',
-    'msm_and_lsm_check': 'emir.recipes.auxiliary:Recipe14',
-    'stare_image': 'emir.recipes.image:Recipe15',
-    'nb_image': 'emir.recipes.image:Recipe16',
-    'dithered_image':'emir.recipes.image:Recipe17',
-    'microdithered_image': 'emir.recipes.image:Recipe18',
-    'mosaiced_image': 'emir.recipes.image:Recipe19',
-    'stare_spectra': 'emir.recipes.mos:Recipe20',
-    'dn_spectra': 'emir.recipes.mos:Recipe21',
-    'offset_spectra': 'emir.recipes.mos:Recipe22',
-    'raster_spectra': 'emir.recipes.ls:Recipe23',
-}
-
-for r in recipes:
-    a = Recipe()
-    a.instrument = ii
-    a.mode = r
-    a.module = recipes[r]
-    a.active = True
-    session.add(a)
-
-    b = RecipeConfiguration()
-    b.instrument = ii
-    b.module = recipes[r]
-    b.parameters = {}
-    b.description = "Description"
-    b.pset_name = 'default'
-    b.active = True
-    session.add(b)
-
-cc = InstrumentConfiguration()
-cc.instrument = ii
-cc.description = 'Default configuration'
-cc.active = True
-cc.parameters = {
-                 'name': 'emir',
+emirconf = {
+                 'name': 'EMIR',
                  'detectors': [(2048, 2048)],
 		 'metadata' : {'imagetype': 'IMGTYP',
 	                'airmass': 'AIRMASS',
@@ -210,7 +103,7 @@ cc.parameters = {
                 	'detector.mode': 'CCDMODE',
                 	'filter0': 'FILTER'
                 	},
-		'amplifiers': [
+		'channels': [
 			[((1024, 2048), (896, 1024)), 
 			((1024, 2048), (768, 896)), 
 			((1024, 2048), (640, 768)), 
@@ -246,123 +139,55 @@ cc.parameters = {
 			],
                 }
 
-session.add(cc)
 
-pset = ProcessingSet()
-pset.instrument = ii
-pset.name = 'default'
-session.add(pset)
+insconf = {'EMIR':emirconf, 'FRIDA':fridaconf,
+            'MEGARA': megaraconf, 'MIRADAS': miradasconf}
 
-ii = Instrument()
-ii.name = 'frida'
-session.add(ii)
 
-pset = ProcessingSet()
-pset.instrument = ii
-pset.name = 'default'
-session.add(pset)
 
-ii = Instrument()
-ii.name = 'clodia'
-session.add(ii)
+ins = get_instruments()
+for key in ins:
+    thisins = ins[key]
+    ii = Instrument(name=key)
+    session.add(ii)
 
-# equivalence
+    ic = InstrumentConfiguration(instrument=ii, parameters=insconf[key], 
+                    description='Default', active=True)
+    session.add(ic)
 
-recipes = {'bias': 'clodia.recipes.calibration:BiasRecipe',
-    'dark': 'clodia.recipes.calibration:DarkRecipe',
-    'flat': 'clodia.recipes.calibration:FlatRecipe',
-    'direct_image': 'clodia.recipes.science:DirectImage',
-    'mosaic_image': 'clodia.recipes.science:MosaicImage',
-    'null': 'clodia.recipes.science:Null',
-}
+    pset_d = ProcessingSet(instrument=ii, name='default')
+    session.add(pset_d)
+    pset_t = ProcessingSet(instrument=ii, name='test')
+    session.add(pset_t)
 
-for r in recipes:
-    a = Recipe()
-    a.instrument = ii
-    a.mode = r
-    a.module = recipes[r]
-    a.active = True
-    session.add(a)
+    for mode in thisins.modes:
+        om = ObservingMode(name=mode.name, key=mode.key, 
+            instrument=ii, module=mode.recipe)
+        session.add(om)
+        rr = Recipe(module=mode.recipe)
+        session.add(rr)
 
-    b = RecipeConfiguration()
-    b.instrument = ii
-    b.module = recipes[r]
-    b.parameters = {}
-    b.description = "Description"
-    b.pset_name = 'default'
-    b.active = True
-    session.add(b)
+        b = RecipeConfiguration(module=mode.recipe, parameters={},
+                                description='Description', processing_set=pset_d)
 
-cc = InstrumentConfiguration()
-cc.instrument = ii
-cc.description = 'Default configuration'
-cc.parameters = {
-                 'name': 'clodia',
-                 'detectors': [(256, 256)],
-		 'metadata' : {'imagetype': 'IMGTYP',
-	                'airmass': 'AIRMASS',
-        	        'exposure': 'EXPOSED',
-                	'juliandate': 'MJD-OBS',
-                	'detector.mode': 'CCDMODE',
-                	'filter0': 'FILTER'
-                	},
-		'amplifiers' : [[((0, 256), (0,256))]],
-                }
-cc.active = True
-session.add(cc)
+        session.add(b)
 
-cc = InstrumentConfiguration()
-cc.instrument = ii
-cc.description = 'Old configuration'
-cc.parameters = {
-                 'name': 'clodia',
-                 'detectors': [(256, 256)],
-		 'metadata' : {'imagetype': 'IMGTYP',
-	                'airmass': 'AIRMASS',
-        	        'exposure': 'EXPOSED',
-                	'juliandate': 'MJD-OBS',
-                	'detector.mode': 'CCDMODE',
-                	'filter0': 'FILTER'
-                	},
-		'amplifiers' : [[((0, 256), (0,256))]],
-                }
-cc.revoke_event = datetime.utcnow()
-session.add(cc)
-
-pset = ProcessingSet()
-pset.instrument = ii
-pset.name = 'default'
-session.add(pset)
-
-pset = ProcessingSet()
-pset.instrument = ii
-pset.name = 'test'
-session.add(pset)
-
-desc = ContextDescription()
-desc.instrument_id = 'clodia'
-desc.name = 'detector0.mode'
-desc.description = 'Clodia detector readout mode'
+desc = ContextDescription(instrument_id='MEGARA',
+                        name='spec1.detector.mode',
+                        description='Megara detector readout mode')
 session.add(desc)
-session.commit()
 
 for name in ['normal', 'slow', 'turbo']:
-    vl = ContextValue()
-    vl.definition = desc
-    vl.value = name
+    vl = ContextValue(definition=desc, value=name)
     session.add(vl)
 
-desc = ContextDescription()
-desc.instrument_id = 'clodia'
-desc.name = 'filter0'
-desc.description = 'Clodia filter'
+desc = ContextDescription(instrument_id='MEGARA',
+                        name='spec1.grism',
+                        description='Megara grism')
 session.add(desc)
-session.commit()
 
-for name in ['310', '311', '312', '313', '314', '315']:
-    vl = ContextValue()
-    vl.definition = desc
-    vl.value = name
+for name in ['A', 'B', 'C', 'D', 'E', 'F']:
+    vl = ContextValue(definition=desc, value=name)
     session.add(vl)
 
 session.add(desc)
