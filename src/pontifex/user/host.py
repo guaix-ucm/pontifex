@@ -21,7 +21,8 @@
 
 
 import threading
-import logging
+#import logging
+import logging.config
 
 import signal
 import sys
@@ -35,6 +36,8 @@ from pontifex.host import PontifexHost
 _logger = logging.getLogger("pontifex.host")
 
 def main():
+
+    logging.config.fileConfig("logging.ini")
 
     if len(sys.argv) != 2:
         sys.exit(1)

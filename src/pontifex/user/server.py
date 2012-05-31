@@ -22,7 +22,6 @@
 
 import threading
 import logging
-from xmlrpclib import ServerProxy
 import signal
 import sys
 

@@ -67,7 +67,7 @@ class ReductionResult(DeclarativeBase):
     obstree_node_id = Column(Integer, ForeignKey('observing_tree.id'))
     task_id = Column(Integer, ForeignKey('dp_task.id'))
     
-    task = relationship("DataProcessingTask", backref='rresult', uselist=False)
+    task = relationship(DataProcessingTask, backref='rresult', uselist=False)
 
 data_product_context = Table(
     'data_product_context', DeclarativeBase.metadata,
@@ -86,7 +86,7 @@ class DataProduct(DeclarativeBase):
     instrument_id = Column(String(10), ForeignKey('instrument.name'), nullable=False)
     pset_name = Column(String(50), nullable=False)
 
-    result = relationship("ReductionResult", backref='data_product')
+    result = relationship(ReductionResult, backref='data_product')
     context = relationship('ContextValue', secondary='data_product_context', backref='data_product')
 
 class ProcessingSet(DeclarativeBase):

@@ -58,39 +58,34 @@ class PontifexHost(object):
     def version(self):
         return '1.0'
 
-    def pass_info(self, taskid):
+    def pass_info(self, taskid, config):
         _logger.info('received taskid=%d', taskid)
-        self.queue.put(taskid)
+        self.queue.put((taskid, config))
 
     def worker(self):
         taskdir = os.path.abspath('task')
         while True:
-            taskid = self.queue.get()            
-            if taskid is not None:
+            token = self.queue.get()            
+            if token is not None:
+                taskid, config = token
                 _logger.info('processing taskid %d', taskid)
                 basedir = os.path.join(taskdir, str(taskid))
                 workdir = os.path.join(basedir, 'work')
                 resultsdir = os.path.join(basedir, 'results')
                 filename = os.path.join(resultsdir, 'task-control.json')
-                _logger.debug('%s', basedir)
-                _logger.debug('%s', workdir)
-                _logger.debug('%s', resultsdir)
+                _logger.debug('Basedir: %s', basedir)
+                _logger.debug('Workdir: %s', workdir)
+                _logger.debug('Resultsdir: %s', resultsdir)                
 
-                # FIXME: global variables
-                serformat = 'yaml'
-                try:
-                    _, sdump, sload = lookup_serializer(serformat)
-                except LookupError:
-                    _logger.info('Serialization format %s is not define', serformat)
-                    raise
-
-                result = run_recipe_from_file(filename, sload, sdump, workdir=workdir, 
-                                    resultsdir=resultsdir, cleanup=False)
+                #result = run_recipe_from_file(filename, sload, sdump, workdir=workdir, 
+                #                    resultsdir=resultsdir, cleanup=False)
+                
+                result = {'products': {}}
 
                 _logger.info('finished')
                 
                 self.queue.task_done()
-                _logger.info('sending to server')
+                _logger.info('sending back to server')
                 self.rserver.receiver(self.cid, result, taskid)
                 os.chdir(taskdir)
             else:

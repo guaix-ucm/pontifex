@@ -133,8 +133,8 @@ class ObservingBlock(DeclarativeBase):
 
     observing_tree = relationship("ObservingTree", backref=backref('observing_block', uselist=False))
     #observer = relationship("Users", backref='observed_obs')
-    observer = relationship("Users")
-    observing_mode = relationship("ObservingMode")
+    observer = relationship(Users)
+    observing_mode = relationship(ObservingMode)
     
 class ObservingTree(DeclarativeBase):
     __tablename__ = 'observing_tree'
@@ -218,7 +218,8 @@ class ContextValue(DeclarativeBase):
     description_id = Column(Integer, ForeignKey("context_description.id"), nullable=False)
     value = Column(String(250), nullable=False)
 
-    definition = relationship("ContextDescription", backref=backref("values"),  collection_class=attribute_mapped_collection('together'))
+    definition = relationship(ContextDescription, backref=backref("values"), 
+                              collection_class=attribute_mapped_collection('together'))
 
 class FITSKeyword(DeclarativeBase):
     __tablename__ = 'dp_fits'
@@ -228,7 +229,7 @@ class FITSKeyword(DeclarativeBase):
     discriminator = Column('type', String(10))
     __mapper_args__ = {'polymorphic_on': discriminator}
     
-    frame = relationship("Frame", backref="headers")
+    frame = relationship(Frame, backref="headers")
 
 class BoolFITSKeyword(FITSKeyword):
     __tablename__ = 'dp_fits_bool'

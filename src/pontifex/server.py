@@ -30,7 +30,7 @@ import shutil
 
 import yaml
 
-from numina.pipeline import init_pipeline_system
+from numina.pipeline import init_pipeline_system, import_object
 
 import pontifex.process as process
 from pontifex.model import Session, productsdir
@@ -44,7 +44,7 @@ _logger = logging.getLogger("pontifex.server")
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 
-def process_(session, task):
+def process_2(session, task):
     
     kwds = {}
     kwds['id'] = task.id
@@ -56,7 +56,104 @@ def process_(session, task):
     kwds['mode'] = obsmode.key
     recipe = obsmode.module
     print recipe
+
+from model import taskdir, datadir, productsdir, DataProduct, RecipeConfiguration
+
+def process_(session, task, instrument):
     
+    node = task.obstree_node
+    obsmode = node.observing_mode
+      
+    _logger.info('process called')
+
+    
+    
+    _logger.info('obsmode is %s', obsmode.key)
+    _logger.info('recipe is %s', obsmode.module)
+    try:
+        recipeClass = import_object(obsmode.module)
+    except ImportError:
+        _logger.warning('cannot find entry point for %s', obsmode.module)
+        raise ValueError
+        
+    _logger.info('matching parameters')
+    
+    request = eval(task.request)
+    pset = request['pset']
+
+    psetf = session.query(ProcessingSet).filter_by(instrument=instrument, 
+                                                  name=pset).one()
+    parameters = {}
+    
+    stored_parameters = session.query(RecipeConfiguration).filter_by( 
+                                        module=obsmode.module, 
+                                        processing_set=psetf                                        
+                                        ).first()
+
+    if stored_parameters is None:
+        _logger.info('no stored parameters for this recipe')
+        stored_parameters = {}
+
+    for req in recipeClass.__requires__:
+        _logger.info('recipe requires %s', req.name)
+        _logger.info('default value is %s', req.value)
+
+    for req in recipeClass.__provides__:
+        _logger.info('recipe provides %s', req)
+
+    _logger.info('creating root directory')
+
+    basedir = str(task.id)
+    os.chdir(taskdir)
+    _logger.info('root directory is %s', basedir)
+
+    basedir = os.path.abspath(basedir)
+    workdir = os.path.join(basedir, 'work')
+    resultsdir = os.path.join(basedir, 'results')
+
+    os.mkdir(basedir)
+    os.mkdir(workdir)
+    os.mkdir(resultsdir)
+
+    os.chdir(basedir)
+
+    _logger.info('create config files, put them in root dir')
+    
+    _logger.info('copying the frames')
+    images = []
+    for frame in node.frames:
+        _logger.debug('copy %s', frame.name)
+        images.append(str(frame.name))
+        shutil.copy(os.path.join(datadir, frame.name), workdir)
+
+    _logger.info('copying the children results')
+    children_results = []
+    for child in task.children:
+        for rresult in child.rresult:
+            for dp in rresult.data_product:
+                _logger.debug('copy %s', dp.reference)
+                children_results.append(dp.reference)
+                shutil.copy(os.path.join(productsdir, dp.reference), workdir)
+
+    config = {'observing_result': {'id': task.id, 
+        'frames': images,
+        'children': children_results,
+        'instrument': str(instrument.name),
+        'mode': str(obsmode.key),
+        }, 
+        'reduction': {'recipe': str(obsmode.module), 'parameters': parameters, 'processing_set': pset},
+        'instrument': str(instrument.name)
+        }
+
+    _logger.info('writing task control')
+    filename_yaml = os.path.join(resultsdir, 'task-control.yaml')
+    
+    with open(filename_yaml, 'w+') as fp:
+        yaml.dump(config, fp)
+
+    _logger.info('done')
+    return config
+
 
 def create_reduction_tree(session, otask, rparent, instrument, pset='default'):
     '''Climb the tree and create DataProcessingTask in nodes.'''
@@ -135,23 +232,19 @@ class PontifexServer(object):
             del self.client_hosts[hostid]
 
 
-    def find_client(self, session, task):
-        _logger.info('finding host for task=%d', task.id)
+    def send_to_client(self, session, task, config):
         for idx in self.client_hosts:
             server, (host, port), _, idle = self.client_hosts[idx]
             if idle:
-
                 task.state = PROCESSING
                 task.host = '%s:%d' % (host, port)
                 _logger.info('sending to host %s', task.host)
                 session.commit()
-                server.pass_info(task.id)
+                server.pass_info(task.id, config)
                 with self.clientlock:
                     self.nclient_hosts -= 1
                     self.client_hosts[idx][3] = False
                 return idx
-        else:
-            _logger.info('no server for taskid=%d', task.id)
         
         return None
 
@@ -306,9 +399,7 @@ class PontifexServer(object):
                     kwds['frames'] = task.obstree_node.frames
                     kwds['mode'] = task.obstree_node.observing_mode.key
                     kwds['request'] = eval(task.request)
-                    
-                    recipe = task.obstree_node.observing_mode.module
-                    print recipe
+                                                            
                     # finding parent node
                     # FIXME: find a better way of doing this:
                     # Recover the instrument of the task
@@ -321,13 +412,11 @@ class PontifexServer(object):
     
                     ob = otask.obstree_node.observing_block
                     
-                    kwds['instrument'] = ob.obsrun.instrument_id
+                    instrument = ob.obsrun.instrument
                     kwds['ins_params'] = self.ins_config[ob.obsrun.instrument_id]
-                    kwds['context'] = task.obstree_node.context
-
-                    #fun = getattr(process, task.method)
+                    # context = task.obstree_node.context
                     
-                    val = process_(session, task=task)
+                    config = process_(session, task=task, instrument=instrument)
                     
                     #val = fun(session, **kwds)
                 except Exception as ex:
@@ -336,15 +425,16 @@ class PontifexServer(object):
                     _logger.warning('error creating root for task %d', taskid)
                     _logger.warning('error is %s', ex)
                     session.commit()
-                    continue
-
-                cid = self.find_client(session, task)
-                if cid is not None:
-                    _logger.info('processing taskid %d in host %s', taskid, cid)
                 else:
-                    self.queue.task_done()                    
-                    self.qback.put((0, 1, task.id))
-                session.commit()
+                    _logger.info('finding host for task=%d', taskid)
+                    cid = self.send_to_client(session, task, config)
+                    if cid is not None:
+                        _logger.info('processing taskid %d in host %s', taskid, cid)
+                    else:
+                        _logger.warning('no host for taskid %d', taskid)
+                        self.queue.task_done()                    
+                        self.qback.put((0, 1, task.id))
+                    session.commit()
 
     def receiver(self, cid, result, taskid):
         self.queue.task_done()
