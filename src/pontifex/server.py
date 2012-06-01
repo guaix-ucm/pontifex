@@ -37,25 +37,12 @@ from pontifex.model import Session, productsdir
 from pontifex.model import ObservingBlock, Instrument, ProcessingSet
 from pontifex.model import ContextDescription, ContextValue
 from pontifex.model import DataProcessingTask, ReductionResult, DataProduct
-
+from numina.recipes.oblock import obsres_from_dict  
 # create logger
 _logger = logging.getLogger("pontifex.server")
 
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
-
-def process_2(session, task):
-    
-    kwds = {}
-    kwds['id'] = task.id
-    kwds['children'] = task.children
-    
-    node = task.obstree_node
-    obsmode = node.observing_mode
-    kwds['frames'] = node.frames
-    kwds['mode'] = obsmode.key
-    recipe = obsmode.module
-    print recipe
 
 from model import taskdir, datadir, productsdir, DataProduct, RecipeConfiguration
 
@@ -65,9 +52,6 @@ def process_(session, task, instrument):
     obsmode = node.observing_mode
       
     _logger.info('process called')
-
-    
-    
     _logger.info('obsmode is %s', obsmode.key)
     _logger.info('recipe is %s', obsmode.module)
     try:
@@ -144,7 +128,7 @@ def process_(session, task, instrument):
         'reduction': {'recipe': str(obsmode.module), 'parameters': parameters, 'processing_set': pset},
         'instrument': str(instrument.name)
         }
-
+    ob = obsres_from_dict(config['observing_result'])
     _logger.info('writing task control')
     filename_yaml = os.path.join(resultsdir, 'task-control.yaml')
     
@@ -152,7 +136,7 @@ def process_(session, task, instrument):
         yaml.dump(config, fp)
 
     _logger.info('done')
-    return config
+    return config, ob
 
 
 def create_reduction_tree(session, otask, rparent, instrument, pset='default'):
@@ -232,7 +216,7 @@ class PontifexServer(object):
             del self.client_hosts[hostid]
 
 
-    def send_to_client(self, session, task, config):
+    def send_to_client(self, session, task, config, ob):
         for idx in self.client_hosts:
             server, (host, port), _, idle = self.client_hosts[idx]
             if idle:
@@ -240,7 +224,7 @@ class PontifexServer(object):
                 task.host = '%s:%d' % (host, port)
                 _logger.info('sending to host %s', task.host)
                 session.commit()
-                server.pass_info(task.id, config)
+                server.pass_info(task.id, config, ob)
                 with self.clientlock:
                     self.nclient_hosts -= 1
                     self.client_hosts[idx][3] = False
@@ -416,7 +400,7 @@ class PontifexServer(object):
                     kwds['ins_params'] = self.ins_config[ob.obsrun.instrument_id]
                     # context = task.obstree_node.context
                     
-                    config = process_(session, task=task, instrument=instrument)
+                    config, ob = process_(session, task=task, instrument=instrument)
                     
                     #val = fun(session, **kwds)
                 except Exception as ex:
@@ -427,7 +411,7 @@ class PontifexServer(object):
                     session.commit()
                 else:
                     _logger.info('finding host for task=%d', taskid)
-                    cid = self.send_to_client(session, task, config)
+                    cid = self.send_to_client(session, task, config, ob)
                     if cid is not None:
                         _logger.info('processing taskid %d in host %s', taskid, cid)
                     else:
