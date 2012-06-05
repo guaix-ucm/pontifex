@@ -25,12 +25,14 @@ from Queue import Queue
 import xmlrpclib
 import os.path
 import uuid
+import cPickle as pickle
 
 import yaml
 
 from numina.pipeline import import_object
-
-from numina.recipes.oblock import obsres_from_dict  
+from numina.user import main_internal
+from numina.recipes.oblock import obsres_from_dict
+from numina.recipes.requirements import Names
 
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
@@ -38,7 +40,35 @@ CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
 # create logger for host
 _logger = logging.getLogger("pontifex.host")
 
-def run_recipe_from_file(taskid, taskdir, config):
+def main_internal(cls, obsres, 
+    instrument, 
+    requirements, 
+    runinfo, 
+    workdir=None):
+
+    csd = os.getcwd()
+
+    if workdir is not None:
+        workdir = os.path.abspath(workdir)
+
+    _logger.debug('Created the Recipe')
+    recipe = cls()
+
+    _logger.debug('Configured the Recipe')
+    recipe.configure(instrument=instrument,
+                    requirements=requirements,
+                    runinfo=runinfo)
+
+    os.chdir(workdir)
+    print type(obsres)
+    try:
+        result = recipe(obsres)
+    finally:
+        os.chdir(csd)
+
+    return result
+
+def run_recipe_from_file_(taskid, taskdir, config, obsres, names):
     basedir = os.path.join(taskdir, str(taskid))
     workdir = os.path.join(basedir, 'work')
     resultsdir = os.path.join(basedir, 'results')
@@ -48,14 +78,10 @@ def run_recipe_from_file(taskid, taskdir, config):
     if 'instrument' in task_control:
         _logger.info('config contains instrument')
         ins_pars = task_control['instrument']
-    if 'observing_result' in task_control:
-        _logger.info('config contains observing result')
-        obsres_dict = task_control['observing_result']       
-        obsres = obsres_from_dict(obsres_dict)
-
+    
     if 'reduction' in task_control:
         params = task_control['reduction']['parameters']
-
+    
     try:
         # RecipeClass = get_recipe(ins_pars['pipeline'], obsres.mode)
         RecipeClass = import_object(task_control['reduction']['recipe'])
@@ -70,7 +96,7 @@ def run_recipe_from_file(taskid, taskdir, config):
     runinfo['workdir'] = workdir
     runinfo['resultsdir'] = resultsdir
     runinfo['entrypoint'] = RecipeClass
-
+    print '+', type(obsres)
     # Set custom logger
     _recipe_logger = RecipeClass.logger
     _recipe_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -83,8 +109,10 @@ def run_recipe_from_file(taskid, taskdir, config):
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(_recipe_formatter)
     _recipe_logger.addHandler(fh)
+    
+    result = main_internal(RecipeClass, obsres, ins_pars, names, 
+                                runinfo, workdir=workdir)
 
-    result = {'products': {}}
     _recipe_logger.removeHandler(fh)
 
     return result
@@ -112,16 +140,20 @@ class PontifexHost(object):
     def version(self):
         return '1.0'
 
-    def pass_info(self, taskid, config, ob):
+    def pass_info(self, taskid, config, bpob, names):
         _logger.info('received taskid=%d', taskid)
-        self.queue.put((taskid, config, ob))
+        _logger.debug('type of ObservingResult is %r', type(bpob))
+        nnames = Names(**names)
+        ob = pickle.loads(bpob.data)
+        _logger.debug('type of ObservingResult now is %r', type(ob))
+        self.queue.put((taskid, config, ob, nnames))
 
     def worker(self):
         taskdir = os.path.abspath('task')
         while True:
             token = self.queue.get()            
             if token is not None:
-                taskid, config, ob = token
+                taskid, config, ob, names = token
                 _logger.info('processing taskid=%d', taskid)
                 basedir = os.path.join(taskdir, str(taskid))
                 workdir = os.path.join(basedir, 'work')
@@ -130,9 +162,7 @@ class PontifexHost(object):
                 _logger.debug('Workdir: %s', workdir)
                 _logger.debug('Resultsdir: %s', resultsdir)                
 
-                run_recipe_from_file(taskid, taskdir, config)
-                
-                result = {'products': {}}
+                result = run_recipe_from_file_(taskid, taskdir, config, ob, names)
 
                 _logger.info('finished')
                 

@@ -24,13 +24,15 @@ import threading
 import logging
 from Queue import Queue
 from xmlrpclib import ServerProxy
+import xmlrpclib
 import os.path
 from datetime import datetime
 import shutil
-
+import cPickle as pickle
 import yaml
 
 from numina.pipeline import init_pipeline_system, import_object
+from numina.recipes.requirements import Names
 
 import pontifex.process as process
 from pontifex.model import Session, productsdir
@@ -100,7 +102,7 @@ def process_(session, task, instrument):
     os.mkdir(resultsdir)
 
     os.chdir(basedir)
-
+   
     _logger.info('create config files, put them in root dir')
     
     _logger.info('copying the frames')
@@ -129,6 +131,9 @@ def process_(session, task, instrument):
         'instrument': str(instrument.name)
         }
     ob = obsres_from_dict(config['observing_result'])
+    names = Names(**parameters)
+    # FIXME: dummy value
+    names.test = 100
     _logger.info('writing task control')
     filename_yaml = os.path.join(resultsdir, 'task-control.yaml')
     
@@ -136,7 +141,7 @@ def process_(session, task, instrument):
         yaml.dump(config, fp)
 
     _logger.info('done')
-    return config, ob
+    return config, ob, names
 
 
 def create_reduction_tree(session, otask, rparent, instrument, pset='default'):
@@ -216,7 +221,7 @@ class PontifexServer(object):
             del self.client_hosts[hostid]
 
 
-    def send_to_client(self, session, task, config, ob):
+    def send_to_client(self, session, task, config, ob, names):
         for idx in self.client_hosts:
             server, (host, port), _, idle = self.client_hosts[idx]
             if idle:
@@ -224,7 +229,12 @@ class PontifexServer(object):
                 task.host = '%s:%d' % (host, port)
                 _logger.info('sending to host %s', task.host)
                 session.commit()
-                server.pass_info(task.id, config, ob)
+                # Passing the observing result
+                # as a pickled binary
+                pob = pickle.dumps(ob)
+                bpob = xmlrpclib.Binary(pob)
+                
+                server.pass_info(task.id, config, bpob, names)
                 with self.clientlock:
                     self.nclient_hosts -= 1
                     self.client_hosts[idx][3] = False
@@ -262,12 +272,13 @@ class PontifexServer(object):
         session.commit()
 
         while True:
-            val = self.qback.get()
-            if self.doned or val is None:
+            token = self.qback.get()
+            if self.doned or token is None:
                 _logger.info('inserter finished')
                 return
             else:
-                _, result, taskid = val
+                _, result, taskid = token
+                print 'received result:', result
                 _logger.info('updating done work, ProcessingTask %d', int(taskid))
                 task = session.query(DataProcessingTask).filter_by(id=taskid).one() 
 
@@ -400,7 +411,7 @@ class PontifexServer(object):
                     kwds['ins_params'] = self.ins_config[ob.obsrun.instrument_id]
                     # context = task.obstree_node.context
                     
-                    config, ob = process_(session, task=task, instrument=instrument)
+                    config, ob, names = process_(session, task=task, instrument=instrument)
                     
                     #val = fun(session, **kwds)
                 except Exception as ex:
@@ -411,7 +422,7 @@ class PontifexServer(object):
                     session.commit()
                 else:
                     _logger.info('finding host for task=%d', taskid)
-                    cid = self.send_to_client(session, task, config, ob)
+                    cid = self.send_to_client(session, task, config, ob, names)
                     if cid is not None:
                         _logger.info('processing taskid %d in host %s', taskid, cid)
                     else:
