@@ -15,7 +15,6 @@ setup(name='pontifex',
                     'console_scripts': ['pontifex = pontifex.user.cli:main',
                                         'pontifex-server = pontifex.user.server:main',
                                         'pontifex-host = pontifex.user.host:main']},
-      scripts=['scripts/pontifex-server.py', 'scripts/pontifex-host.py'],
       install_requires=['numina', 'sqlalchemy'],
       classifiers=[
                    "Programming Language :: Python :: 2.7",
