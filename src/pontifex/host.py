@@ -140,7 +140,7 @@ class PontifexHost(object):
     def version(self):
         return '1.0'
 
-    def pass_info(self, taskid, config, bpob, names):
+    def pass_info_(self, taskid, config, bpob, names):
         _logger.info('received taskid=%d', taskid)
         _logger.debug('type of ObservingResult is %r', type(bpob))
         nnames = Names(**names)
@@ -148,12 +148,20 @@ class PontifexHost(object):
         _logger.debug('type of ObservingResult now is %r', type(ob))
         self.queue.put((taskid, config, ob, nnames))
 
+    def pass_info(self, taskid, bprecipe, bpob):
+        _logger.info('received taskid=%d', taskid)
+        _logger.debug('type of ObservingResult is %r', type(bpob))
+        recipe = pickle.loads(bprecipe.data)
+        ob = pickle.loads(bpob.data)
+        _logger.debug('type of ObservingResult now is %r', type(ob))
+        self.queue.put((taskid, recipe, ob))
+
     def worker(self):
         taskdir = os.path.abspath('task')
         while True:
             token = self.queue.get()            
             if token is not None:
-                taskid, config, ob, names = token
+                taskid, recipe, ob = token
                 _logger.info('processing taskid=%d', taskid)
                 basedir = os.path.join(taskdir, str(taskid))
                 workdir = os.path.join(basedir, 'work')
@@ -162,10 +170,24 @@ class PontifexHost(object):
                 _logger.debug('Workdir: %s', workdir)
                 _logger.debug('Resultsdir: %s', resultsdir)                
 
-                result = run_recipe_from_file_(taskid, taskdir, config, ob, names)
-
-                _logger.info('finished')
+                _recipe_logger = recipe.logger
+                _recipe_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            
+                processing_log = 'processing.log'
+            
+                _logger.debug('creating custom logger "%s"', processing_log)
+                os.chdir(resultsdir)
+                fh = logging.FileHandler(processing_log)
+                fh.setLevel(logging.DEBUG)
+                fh.setFormatter(_recipe_formatter)
+                _recipe_logger.addHandler(fh)
                 
+                result = recipe.run(ob)
+                
+                result = {'products': {'a':1}}
+    
+                _logger.info('finished')
+                    
                 self.queue.task_done()
                 _logger.info('sending back to server')
                 self.rserver.receiver(self.cid, result, taskid)

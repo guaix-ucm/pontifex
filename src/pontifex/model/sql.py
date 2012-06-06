@@ -129,7 +129,7 @@ class ObservingBlock(DeclarativeBase):
     object = Column(String(80), nullable=False)
     obsrun_id = Column(Integer,  ForeignKey("observing_run.id"), nullable=False)
     observer_id = Column(Integer,  ForeignKey("users.id"), nullable=False)
-    observing_tree_root_id = Column(Integer,  ForeignKey("observation_result.id"), nullable=False)
+    observation_result_root_id = Column(Integer,  ForeignKey("observation_result.id"), nullable=False)
 
     observation_result = relationship("ObservationResult", backref=backref('observing_block', uselist=False))
     #observer = relationship("Users", backref='observed_obs')
@@ -190,7 +190,7 @@ class Frame(DeclarativeBase):
     racoor = Column(Float, nullable=False)
     deccoor = Column(Float, nullable=False)
     stamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    obstree_id = Column(Integer,  ForeignKey("observation_result.id"), nullable=False)
+    obsresult_id = Column(Integer,  ForeignKey("observation_result.id"), nullable=False)
 
 class ContextDescription(DeclarativeBase):
     __tablename__ = 'context_description'

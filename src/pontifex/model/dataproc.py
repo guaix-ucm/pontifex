@@ -37,7 +37,7 @@ class DataProcessingTask(DeclarativeBase):
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
-    obstree_node_id = Column(Integer, ForeignKey('observing_tree.id'), nullable=False)
+    obsresult_node_id = Column(Integer, ForeignKey('observation_result.id'), nullable=False)
     parent_id = Column(Integer, ForeignKey('dp_task.id'))
     label = Column(String(45))
     waiting = Column(Boolean)
@@ -46,7 +46,7 @@ class DataProcessingTask(DeclarativeBase):
     request = Column(String(45))
     result = Column(String(45))
 
-    obstree_node = relationship("ObservingTree", backref='tasks')
+    obsresult_node = relationship("ObservationResult", backref='tasks')
 
     children = relationship("DataProcessingTask",
                 backref=backref('parent', remote_side=[id]))
@@ -64,7 +64,7 @@ class ReductionResult(DeclarativeBase):
     state = Column(Integer)
     # TODO: these two fields aren't necessary
     other = Column(String(45))
-    obstree_node_id = Column(Integer, ForeignKey('observing_tree.id'))
+    obsresult_node_id = Column(Integer, ForeignKey('observation_result.id'))
     task_id = Column(Integer, ForeignKey('dp_task.id'))
     
     task = relationship(DataProcessingTask, backref='rresult', uselist=False)
