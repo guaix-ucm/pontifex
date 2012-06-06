@@ -129,33 +129,33 @@ class ObservingBlock(DeclarativeBase):
     object = Column(String(80), nullable=False)
     obsrun_id = Column(Integer,  ForeignKey("observing_run.id"), nullable=False)
     observer_id = Column(Integer,  ForeignKey("users.id"), nullable=False)
-    observing_tree_root_id = Column(Integer,  ForeignKey("observing_tree.id"), nullable=False)
+    observing_tree_root_id = Column(Integer,  ForeignKey("observation_result.id"), nullable=False)
 
-    observing_tree = relationship("ObservingTree", backref=backref('observing_block', uselist=False))
+    observation_result = relationship("ObservationResult", backref=backref('observing_block', uselist=False))
     #observer = relationship("Users", backref='observed_obs')
     observer = relationship(Users)
     observing_mode = relationship(ObservingMode)
     
-class ObservingTree(DeclarativeBase):
-    __tablename__ = 'observing_tree'
+class ObservationResult(DeclarativeBase):
+    __tablename__ = 'observation_result'
     id = Column(Integer, primary_key=True)
     state = Column(Integer)    
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow)
     start_time = Column(DateTime)
     completion_time = Column(DateTime)
-    parent_id = Column(Integer, ForeignKey('observing_tree.id'))
+    parent_id = Column(Integer, ForeignKey('observation_result.id'))
     
     mode_id = Column(Integer, ForeignKey('observing_modes.id'), nullable=False)
     label = Column(String(45))
     waiting = Column(Boolean)
     awaited = Column(Boolean)
 
-    children = relationship("ObservingTree",
+    children = relationship("ObservationResult",
                 backref=backref('parent', remote_side=[id]))
     
-    context = relationship('ContextValue', secondary='observing_tree_context', backref='observing_tree')
+    context = relationship('ContextValue', secondary='observing_tree_context', backref='observation_result')
 
-    frames = relationship("Frame", backref='observing_tree')
+    frames = relationship("Frame", backref='observation_result')
     observing_mode = relationship("ObservingMode")
 
     #observing_block = relationship("ObservingBlock")
@@ -173,12 +173,12 @@ class ObservingTree(DeclarativeBase):
 # http://stackoverflow.com/questions/7888846/trigger-in-sqlachemy
 
 #update_task_state = DDL('''\
-#CREATE TRIGGER update_task_state UPDATE OF state ON observing_tree
+#CREATE TRIGGER update_task_state UPDATE OF state ON observation_result
 #  BEGIN
 #    UPDATE dp_task SET state = 1 WHERE (obstree_node_id = old.id) and (new.state = 2);
 #  END;''')
 
-#event.listen(ObservingTree.__table__, 'after_create', update_task_state)
+#event.listen(ObservationResult.__table__, 'after_create', update_task_state)
 
 class Frame(DeclarativeBase):
     __tablename__ = 'frame'
@@ -190,7 +190,7 @@ class Frame(DeclarativeBase):
     racoor = Column(Float, nullable=False)
     deccoor = Column(Float, nullable=False)
     stamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    obstree_id = Column(Integer,  ForeignKey("observing_tree.id"), nullable=False)
+    obstree_id = Column(Integer,  ForeignKey("observation_result.id"), nullable=False)
 
 class ContextDescription(DeclarativeBase):
     __tablename__ = 'context_description'
@@ -207,7 +207,7 @@ class ContextDescription(DeclarativeBase):
 
 observing_tree_context = Table(
     'observing_tree_context', DeclarativeBase.metadata,
-    Column('observing_tree_id', Integer, ForeignKey('observing_tree.id'), primary_key=True),
+    Column('observing_tree_id', Integer, ForeignKey('observation_result.id'), primary_key=True),
     Column('context_id', Integer, ForeignKey('context_value.id'), primary_key=True)
     )
 

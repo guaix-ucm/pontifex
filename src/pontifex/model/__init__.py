@@ -53,7 +53,7 @@ taskdir = os.path.abspath(_taskdir)
 productsdir = os.path.abspath(_productsdir)
 
 from .sql import ObservingBlock, ObservingRun, Frame, InstrumentConfiguration
-from .sql import Instrument, Users, ObservingTree, Channel, ContextDescription, ContextValue
+from .sql import Instrument, Users, ObservationResult, Channel, ContextDescription, ContextValue
 from .dataproc import DataProcessingTask
 from .dataproc import ReductionResult, DataProduct, ProcessingSet
 from .sql import FITSKeyword, BoolFITSKeyword, StringFITSKeyword
