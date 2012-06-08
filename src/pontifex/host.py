@@ -60,7 +60,6 @@ def main_internal(cls, obsres,
                     runinfo=runinfo)
 
     os.chdir(workdir)
-    print type(obsres)
     try:
         result = recipe(obsres)
     finally:
@@ -96,7 +95,7 @@ def run_recipe_from_file_(taskid, taskdir, config, obsres, names):
     runinfo['workdir'] = workdir
     runinfo['resultsdir'] = resultsdir
     runinfo['entrypoint'] = RecipeClass
-    print '+', type(obsres)
+    
     # Set custom logger
     _recipe_logger = RecipeClass.logger
     _recipe_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -185,7 +184,7 @@ class PontifexHost(object):
                 csd = os.getcwd()
 
                 os.chdir(workdir)
-                print type(obsres)
+                
                 try:
                     result = recipe(obsres)
                 finally:
