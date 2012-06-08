@@ -161,7 +161,7 @@ class PontifexHost(object):
         while True:
             token = self.queue.get()            
             if token is not None:
-                taskid, recipe, ob = token
+                taskid, recipe, obsres = token
                 _logger.info('processing taskid=%d', taskid)
                 basedir = os.path.join(taskdir, str(taskid))
                 workdir = os.path.join(basedir, 'work')
@@ -182,9 +182,14 @@ class PontifexHost(object):
                 fh.setFormatter(_recipe_formatter)
                 _recipe_logger.addHandler(fh)
                 
-                result = recipe.run(ob)
-                
-                result = {'products': {'a':1}}
+                csd = os.getcwd()
+
+                os.chdir(workdir)
+                print type(obsres)
+                try:
+                    result = recipe(obsres)
+                finally:
+                    os.chdir(csd)
     
                 _logger.info('finished')
                     

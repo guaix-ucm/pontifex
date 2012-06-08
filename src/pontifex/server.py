@@ -302,7 +302,7 @@ class PontifexServer(object):
                 return
             else:
                 _, result, taskid = token
-                print 'received result:', result
+                _logger.info('received result: %r', result)
                 _logger.info('updating done work, ProcessingTask %d', int(taskid))
                 task = session.query(DataProcessingTask).filter_by(id=taskid).one() 
 
@@ -311,6 +311,7 @@ class PontifexServer(object):
                 results = {}
 
                 if 'error' not in result:
+                    _logger.info('result is correct')
                     task.state = FINISHED
                     
                     #cwd = os.getcwd()
@@ -352,7 +353,8 @@ class PontifexServer(object):
                     rr.obsres_id = task.obsresult_node_id
 
                     # processing data products
-                    for pr in result['products']:
+                    #for pr in result['products']:
+                    for pr in []:
                         prod = yaml.load(pr)
                 
                         dp = DataProduct()
@@ -389,6 +391,7 @@ class PontifexServer(object):
 
                     session.add(rr)
                 else:
+                    _logger.info('result is an error')
                     results['error'] = result['error']
                     _logger.warning('error in task %d', task.id)
                     _logger.warning('error is %s', results['error']['type'])
