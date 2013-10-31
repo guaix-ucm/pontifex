@@ -29,7 +29,7 @@ from pontifex.model import Users, Instrument, Channel, InstrumentConfiguration
 from pontifex.model import Recipe, RecipeConfiguration
 from pontifex.model import ContextValue, ContextDescription, ProcessingSet
 from pontifex.model import init_model, metadata, Session
-from pontifex.model import ObservingMode
+from pontifex.model import ObservingMode, Pipeline, PipelineMap
 
 import os
 
@@ -167,6 +167,14 @@ for key in drps:
                                 description='Description', processing_set=pset_d)
 
         session.add(b)
+
+    for name, pipeline in thisins.pipelines.items():
+        pipe = Pipeline(name=pipeline.name, version=pipeline.version, 
+            instrument=ii)
+        for r in pipeline.recipes:
+            pm = PipelineMap(pipeline=pipe, obsmode_id=1, recipe_fqn=pipeline.recipes[r])
+            session.add(pm)
+        session.add(pipe)
 
 desc = ContextDescription(instrument_id='MEGARA',
                         name='spec1.detector.mode',

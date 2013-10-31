@@ -59,5 +59,6 @@ from .dataproc import ReductionResult, DataProduct, ProcessingSet
 from .sql import FITSKeyword, BoolFITSKeyword, StringFITSKeyword
 from .sql import IntegerFITSKeyword, FloatFITSKeyword
 from .sql import create_fits_keyword
-from .sql import Recipe, RecipeConfiguration, ObservingMode
+from .sql import Recipe, RecipeConfiguration, ObservingMode, Pipeline
+from .sql import PipelineMap
 from .sql import get_last_frame_index

@@ -87,6 +87,25 @@ class ObservingMode(DeclarativeBase):
 
     instrument = relationship("Instrument", backref='observing_modes')
 
+class Pipeline(DeclarativeBase):
+    __tablename__ = 'pipeline' 
+    __table_args__ = (UniqueConstraint('instrument_id', 'name', 'version'),)
+    Id = Column(Integer, primary_key=True, name='id')
+    instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
+    name = Column(String, nullable=False)
+    version = Column(Integer, default=1)
+    instrument = relationship("Instrument", backref='pipelines')
+
+class PipelineMap(DeclarativeBase):
+    __tablename__ = 'pipeline_map' 
+    Id = Column(Integer, primary_key=True, name='id')
+    pipeline_id = Column(Integer,  ForeignKey("pipeline.id"), nullable=False)
+    obsmode_id = Column(Integer, ForeignKey("observing_modes.id"), nullable=False)
+    recipe_fqn = Column(String(255))
+    
+    pipeline = relationship("Pipeline", backref='recipes')
+    obsmodes = relationship("ObservingMode", backref='recipes')
+
 class Recipe(DeclarativeBase):
     __tablename__ = 'recipe'                                   
 
