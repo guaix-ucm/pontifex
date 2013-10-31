@@ -83,7 +83,7 @@ class ObservingMode(DeclarativeBase):
     name = Column(String)
     key = Column(String)
     instrument_id = Column(String(10),  ForeignKey("instrument.name"), nullable=False)
-    module = Column(String(255), ForeignKey("recipe.module"), unique=True, nullable=False)
+    #module = Column(String(255), ForeignKey("recipe.module"), unique=True, nullable=False)
 
     instrument = relationship("Instrument", backref='observing_modes')
 
@@ -92,15 +92,17 @@ class Recipe(DeclarativeBase):
 
     module = Column(String(255), primary_key=True)
     
-    configurations = relationship("RecipeConfiguration", backref='recipe')
+    #configurations = relationship("RecipeConfiguration", backref='recipe')
     
 class RecipeConfiguration(DeclarativeBase):
     __tablename__ = 'recipe_configuration'
     # The PrimaryKeyConstraint is equivalent to put primary_key=True
     # in several columns
-    __table_args__ = (PrimaryKeyConstraint('module', 'pset_id'),)
+    #__table_args__ = (PrimaryKeyConstraint('module', 'pset_id'),)
                                                            
-    module = Column(String(255), ForeignKey("recipe.module"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    #module = Column(String(255), ForeignKey("recipe.module"), nullable=False)
+    module = Column(String(255), ForeignKey("recipe.module"))
     parameters = Column(PickleType, nullable=False)
     pset_id = Column(Integer, ForeignKey("dp_set.id"), nullable=False)
     description = Column(String(255))
