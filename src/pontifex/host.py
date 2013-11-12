@@ -29,10 +29,9 @@ import cPickle as pickle
 
 import yaml
 
-from numina.pipeline import import_object
-from numina.user import main_internal
-from numina.recipes.oblock import obsres_from_dict
-from numina.recipes.requirements import Names
+from numina.core import import_object
+from numina.core import obsres_from_dict
+#from numina.recipes.requirements import Names
 
 # Processing tasks STATES
 CREATED, COMPLETED, ENQUEUED, PROCESSING, FINISHED, ERROR = range(6)
@@ -142,7 +141,8 @@ class PontifexHost(object):
     def pass_info_(self, taskid, config, bpob, names):
         _logger.info('received taskid=%d', taskid)
         _logger.debug('type of ObservingResult is %r', type(bpob))
-        nnames = Names(**names)
+        #nnames = Names(**names)
+        nnames = {}
         ob = pickle.loads(bpob.data)
         _logger.debug('type of ObservingResult now is %r', type(ob))
         self.queue.put((taskid, config, ob, nnames))
