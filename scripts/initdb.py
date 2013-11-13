@@ -24,6 +24,7 @@
 from datetime import datetime
 
 from sqlalchemy import create_engine
+from sqlalchemy.orm.exc import NoResultFound
 
 from pontifex.model import Users, Instrument, Channel, InstrumentConfiguration
 from pontifex.model import Recipe, RecipeConfiguration
@@ -160,21 +161,28 @@ for key in drps:
         om = ObservingMode(name=mode.name, key=mode.key, 
             instrument=ii)
         session.add(om)
-        rr = Recipe(module='dum%s' % i)
-        session.add(rr)
-
-        b = RecipeConfiguration(parameters={},
-                                description='Description', processing_set=pset_d)
-
-        session.add(b)
 
     for name, pipeline in thisins.pipelines.items():
         pipe = Pipeline(name=pipeline.name, version=pipeline.version, 
             instrument=ii)
-        for r in pipeline.recipes:
-            pm = PipelineMap(pipeline=pipe, obsmode_id=1, recipe_fqn=pipeline.recipes[r])
+        for r,p in pipeline.recipes.items():
+            try:
+                om = session.query(ObservingMode).filter_by(key=r, instrument=ii).one()
+            except NoResultFound as error:
+                print error
+                print '->', r, instrument.name
+            pm = PipelineMap(pipeline=pipe, obsmodes=om, recipe_fqn=p)
             session.add(pm)
-        session.add(pipe)
+    session.add(pipe)
+
+for mm in session.query(PipelineMap.recipe_fqn).distinct():
+    rr = Recipe(module=mm.recipe_fqn)
+    session.add(rr)
+
+#    b = RecipeConfiguration(parameters={},
+#        description='Description', processing_set=pset_d)
+
+#    session.add(b)
 
 desc = ContextDescription(instrument_id='MEGARA',
                         name='spec1.detector.mode',
